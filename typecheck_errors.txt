@@ -1,0 +1,8 @@
+
+> temp_app@0.1.0 typecheck
+> tsc --noEmit
+
+src/app/financial-control/client.tsx(167,37): error TS2322: Type '{ restaurantId: string; initialDate: string; initialData: { restaurant_id: string; date: string; revenue_total: number; revenue_dine_in: number; revenue_takeout: number; revenue_delivery: number; ... 8 more ...; created_at?: string | undefined; } | null; onDateChange: (newDate: Date) => void; }' is not assignable to type 'IntrinsicAttributes & DailySalesFormProps'.
+  Property 'initialDate' does not exist on type 'IntrinsicAttributes & DailySalesFormProps'. Did you mean 'initialData'?
+src/app/financial-control/client.tsx(179,33): error TS2322: Type '{ restaurantId: string; initialExpenses: { restaurant_id: string; date: string; category: "COGS_FOOD" | "COGS_BEVERAGE" | "LABOR_PAYROLL" | "LABOR_TAXES" | "OCCUPANCY_RENT" | "OCCUPANCY_UTILITIES" | ... 7 more ... | "OTHER"; ... 12 more ...; created_at?: string | undefined; }[]; initialDate: string; }' is not assignable to type 'IntrinsicAttributes & ExpensesManagerProps'.
+  Property 'initialExpenses' does not exist on type 'IntrinsicAttributes & ExpensesManagerProps'.

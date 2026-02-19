@@ -1,0 +1,16 @@
+export const ALLERGENS = [
+    { id: "gluten", label: "Gluten", icon: "🌾" },
+    { id: "crustaceans", label: "Crustáceos", icon: "🦐" },
+    { id: "eggs", label: "Huevos", icon: "🥚" },
+    { id: "fish", label: "Pescado", icon: "🐟" },
+    { id: "peanuts", label: "Cacahuetes", icon: "🥜" },
+    { id: "soy", label: "Soja", icon: "🫘" },
+    { id: "dairy", label: "Lácteos", icon: "🥛" },
+    { id: "nuts", label: "Frutos Secos", icon: "🌰" },
+    { id: "celery", label: "Apio", icon: "🌿" },
+    { id: "mustard", label: "Mostaza", icon: "🌭" },
+    { id: "sesame", label: "Sésamo", icon: "🥯" },
+    { id: "sulphites", label: "Sulfitos", icon: "🍷" },
+    { id: "lupin", label: "Altramuces", icon: "🌼" },
+    { id: "molluscs", label: "Moluscos", icon: "🐙" },
+] as const;

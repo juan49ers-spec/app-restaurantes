@@ -1,0 +1,177 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - navigation [ref=e7]:
+            - button "previous" [disabled] [ref=e8]:
+              - img "previous" [ref=e9]
+            - generic [ref=e11]:
+              - generic [ref=e12]: 1/
+              - text: "1"
+            - button "next" [disabled] [ref=e13]:
+              - img "next" [ref=e14]
+          - img
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - img [ref=e18]
+            - generic "Latest available version is detected (16.1.6)." [ref=e20]: Next.js 16.1.6
+            - generic [ref=e21]: Turbopack
+          - img
+      - dialog "Build Error" [ref=e23]:
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - generic [ref=e28]:
+              - generic [ref=e30]: Build Error
+              - generic [ref=e31]:
+                - button "Copy Error Info" [ref=e32] [cursor=pointer]:
+                  - img [ref=e33]
+                - button "No related documentation found" [disabled] [ref=e35]:
+                  - img [ref=e36]
+                - button "Attach Node.js inspector" [ref=e38] [cursor=pointer]:
+                  - img [ref=e39]
+            - generic [ref=e48]: Error parsing package.json file
+          - generic [ref=e50]:
+            - generic [ref=e52]:
+              - img [ref=e54]
+              - generic [ref=e56]: ./package.json (17:1)
+              - button "Open in editor" [ref=e57] [cursor=pointer]:
+                - img [ref=e59]
+            - generic [ref=e62]:
+              - generic [ref=e63]: Error parsing package.json file
+              - generic [ref=e64]: 15 |
+              - text: "\"test:e2e:ui\":"
+              - generic [ref=e65]: "\"playwright test --ui\""
+              - text: ","
+              - generic [ref=e66]: 16 |
+              - text: "\"test:e2e:debug\":"
+              - generic [ref=e67]: "\"playwright test --debug\""
+              - text: ",\" >"
+              - generic [ref=e68]: 17 |
+              - text: "\"smoke-test\":"
+              - generic [ref=e69]: "\"node scripts/smoke-test.js\""
+              - text: ","
+              - generic [ref=e70]: "|"
+              - text: ^
+              - generic [ref=e71]: 18 |
+              - text: "\"pre-refactor\":"
+              - generic [ref=e72]: "\"npm run smoke-test\""
+              - text: ","
+              - generic [ref=e73]: 19 |
+              - text: "\"post-refactor\":"
+              - generic [ref=e74]: "\"npm run smoke-test && npm run typecheck && npm run build\""
+              - generic [ref=e75]: 20 |
+              - generic [ref=e76]: "}"
+              - text: ","
+              - generic [ref=e77]: "package.json is not parseable: invalid JSON: control character (\\u0000-\\u001F) found while parsing a string at line 17 column 0"
+        - generic [ref=e78]: "1"
+        - generic [ref=e79]: "2"
+    - generic [ref=e84] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e85]:
+        - img [ref=e86]
+      - button "Open issues overlay" [ref=e90]:
+        - generic [ref=e91]:
+          - generic [ref=e92]: "0"
+          - generic [ref=e93]: "1"
+        - generic [ref=e94]: Issue
+  - generic [ref=e95]:
+    - complementary [ref=e96]:
+      - generic [ref=e97]:
+        - link "C ControlHub" [ref=e99] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e100]: C
+          - generic [ref=e101]: ControlHub
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - heading "CORE" [level=4] [ref=e107]
+            - navigation [ref=e108]:
+              - link "Control Financiero" [ref=e109] [cursor=pointer]:
+                - /url: /financial-control
+                - img [ref=e110]
+                - generic [ref=e113]: Control Financiero
+              - link "Facturas" [ref=e114] [cursor=pointer]:
+                - /url: /invoices
+                - img [ref=e115]
+                - generic [ref=e118]: Facturas
+          - generic [ref=e119]:
+            - heading "OPERATIVA" [level=4] [ref=e120]
+            - navigation [ref=e121]:
+              - link "Escandallos" [ref=e122] [cursor=pointer]:
+                - /url: /escandallos
+                - img [ref=e123]
+                - generic [ref=e125]: Escandallos
+              - link "Ingeniería de Menú" [ref=e126] [cursor=pointer]:
+                - /url: /menu-engineering
+                - img [ref=e127]
+                - generic [ref=e139]: Ingeniería de Menú
+              - link "Control de Stock" [ref=e140] [cursor=pointer]:
+                - /url: /stock
+                - img [ref=e141]
+                - generic [ref=e145]: Control de Stock
+              - link "Desperdicios" [ref=e146] [cursor=pointer]:
+                - /url: /desperdicios
+                - img [ref=e147]
+                - generic [ref=e150]: Desperdicios
+          - generic [ref=e151]:
+            - heading "ESTRUCTURA" [level=4] [ref=e152]
+            - navigation [ref=e153]:
+              - link "Equipo" [ref=e154] [cursor=pointer]:
+                - /url: /staff/employees
+                - img [ref=e155]
+                - generic [ref=e160]: Equipo
+              - link "Turnos" [ref=e161] [cursor=pointer]:
+                - /url: /staff/schedule
+                - img [ref=e162]
+                - generic [ref=e166]: Turnos
+              - link "Políticas" [ref=e167] [cursor=pointer]:
+                - /url: /staff/policies
+                - img [ref=e168]
+                - generic [ref=e170]: Políticas
+          - generic [ref=e171]:
+            - heading "PROVEEDORES" [level=4] [ref=e172]
+            - navigation [ref=e173]:
+              - link "Proveedores" [ref=e174] [cursor=pointer]:
+                - /url: /suppliers
+                - img [ref=e175]
+                - generic [ref=e180]: Proveedores
+        - generic [ref=e181]:
+          - generic [ref=e182]:
+            - generic [ref=e186]: G
+            - generic [ref=e188]:
+              - paragraph [ref=e189]: Invitado
+              - paragraph [ref=e190]: Usuario
+            - button [ref=e191]:
+              - img
+            - button "Cerrar sesión" [ref=e192]:
+              - img [ref=e193]
+          - button "Contraer" [ref=e196]:
+            - generic [ref=e197]: Contraer
+            - img [ref=e199]
+    - main [ref=e201]:
+      - button "Guía Interactiva" [ref=e203]:
+        - img
+        - generic [ref=e204]: Guía Interactiva
+      - generic [ref=e206]:
+        - generic [ref=e207]:
+          - generic [ref=e208]: Control Hub
+          - generic [ref=e209]: Inicia sesión o regístrate para continuar.
+        - generic [ref=e211]:
+          - generic [ref=e212]:
+            - generic [ref=e213]:
+              - generic [ref=e214]: Email
+              - textbox "Email" [ref=e215]:
+                - /placeholder: tu@email.com
+                - text: test@restaurante.com
+            - generic [ref=e216]:
+              - generic [ref=e217]: Contraseña
+              - textbox "Contraseña" [active] [ref=e218]: TestPassword123
+          - button "Iniciar Sesión" [ref=e220]
+        - generic [ref=e221]:
+          - generic [ref=e222]: ¿No tienes cuenta?
+          - button "Crear Cuenta" [ref=e223]
+  - region "Notifications alt+T"
+  - alert [ref=e224]
+```

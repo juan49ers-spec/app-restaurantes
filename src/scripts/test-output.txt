@@ -1,0 +1,30 @@
+
+--- Test: Basic Elasticity (Low) ---
+Current: Ôé¼10 -> New: Ôé¼11
+Volume Change: -14.04%
+New Volume: 85.96
+Profit Change: Ôé¼-12.32
+
+--- Test: Psych Barrier (9.90 -> 10.50) ---
+Current: Ôé¼9.9 -> New: Ôé¼10.5
+Volume Change: -10.21%
+New Volume: 89.79
+Profit Change: Ôé¼-16.58
+
+--- Test: Drink Sensitivity ---
+Current: Ôé¼10 -> New: Ôé¼11
+Volume Change: -23.40%
+New Volume: 76.60
+Profit Change: Ôé¼-87.20
+
+--- Test: Main Sensitivity ---
+Current: Ôé¼10 -> New: Ôé¼11
+Volume Change: -14.04%
+New Volume: 85.96
+Profit Change: Ôé¼-12.32
+
+--- Test: Anchor Effect (Way above avg) ---
+Current: Ôé¼20 -> New: Ôé¼35
+Volume Change: -100.00%
+New Volume: 0.00
+Profit Change: Ôé¼-1500.00

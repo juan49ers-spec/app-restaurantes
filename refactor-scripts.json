@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "smoke-test": "node scripts/smoke-test.js",
+    "refactor:check": "node scripts/refactor-safety-check.js",
+    "pre-refactor": "npm run smoke-test",
+    "post-refactor": "npm run smoke-test && npm run typecheck && npm run build"
+  }
+}

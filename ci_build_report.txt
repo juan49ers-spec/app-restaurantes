@@ -1,0 +1,65 @@
+
+> temp_app@0.1.0 build
+> next build
+
+ÔÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Usuario\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\package-lock.json
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+ÔÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 14.7s
+  Running TypeScript ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/17) ...
+  Generating static pages using 11 workers (4/17) 
+  Generating static pages using 11 workers (8/17) 
+  Generating static pages using 11 workers (12/17) 
+Ô£ô Generating static pages using 11 workers (17/17) in 421.9ms
+  Finalizing page optimization ...
+
+Route (app)
+Ôöî ãÆ /
+Ôö£ ãÆ /_not-found
+Ôö£ ãÆ /admin
+Ôö£ ãÆ /admin/invoice-validation
+Ôö£ ãÆ /api/debug/ping
+Ôö£ ãÆ /api/debug/seed-invoice
+Ôö£ ãÆ /api/debug/test-ingestion
+Ôö£ ãÆ /api/invoices/process
+Ôö£ ãÆ /api/seed-ops
+Ôö£ ãÆ /desperdicios
+Ôö£ ãÆ /escandallos
+Ôö£ ãÆ /financial-control
+Ôö£ ãÆ /ingredients
+Ôö£ ãÆ /invoices
+Ôö£ ãÆ /invoices/[id]/review
+Ôö£ ãÆ /login
+Ôö£ ãÆ /menu-engineering
+Ôö£ ãÆ /menu-engineering/[id]
+Ôö£ ãÆ /menu-engineering/new
+Ôö£ ãÆ /notifications
+Ôö£ ãÆ /onboarding
+Ôö£ ãÆ /operational
+Ôö£ ãÆ /purchasing/analytics
+Ôö£ ãÆ /recipes
+Ôö£ ãÆ /recipes/[id]/edit
+Ôö£ ãÆ /staff/employees
+Ôö£ ãÆ /staff/policies
+Ôö£ ãÆ /staff/schedule
+Ôö£ ãÆ /stock
+Ôö£ ãÆ /suppliers
+Ôö£ ãÆ /suppliers/[id]
+Ôöö ãÆ /test-seed
+
+
+ãÆ Proxy (Middleware)
+
+ãÆ  (Dynamic)  server-rendered on demand
+

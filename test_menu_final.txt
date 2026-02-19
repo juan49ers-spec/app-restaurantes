@@ -1,0 +1,9 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Usuario/.gemini/antigravity/playground/app finanzas restaurante[39m
+
+No test files found, exiting with code 1
+
+filter: src/lib/menu-engineering.test.ts
+include: tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}
+exclude:  **/node_modules/**, **/.git/**
+
