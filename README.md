@@ -1,5 +1,8 @@
 # Restaurant Financial Management System (SaaS)
 
+![Project Status](https://img.shields.io/badge/status-active_development-brightgreen)
+![CI](https://github.com/tu-usuario/restaurant-finance-app/actions/workflows/ci.yml/badge.svg)
+
 ## Project Overview
 
 A comprehensive financial control and menu engineering platform tailored for the hospitality industry. This application helps restaurant managers and owners optimize their profitability through:
@@ -8,6 +11,16 @@ A comprehensive financial control and menu engineering platform tailored for the
 - **Menu Engineering**: Recipe costing, margin analysis, and BCG matrix classification (Stars, Plowhorses, Puzzles, Dogs).
 - **Staff Management**: intelligent scheduling, payroll estimation, and shift planning.
 - **Inventory & Suppliers**: Stock control, supplier management, and purchasing intelligence.
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](Contributing.md) (coming soon) and use the provided templates for Issues and Pull Requests.
+
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feature/amazing-feature`.
+3. Commit your changes: `git commit -m 'feat: Add amazing feature'`.
+4. Push to the branch: `git push origin feature/amazing-feature`.
+5. Open a Pull Request.
 
 ## Tech Stack
 
