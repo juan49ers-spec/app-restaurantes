@@ -1,8 +1,11 @@
 # ControlHub - Resumen del Proyecto
 
+**Repositorio GitHub**: [https://github.com/juan49ers-spec/app-finanzas-restaurante](https://github.com/juan49ers-spec/app-finanzas-restaurante)
+
 ## 📊 Estado Actual
 
 ### Testing
+
 - ✅ **287 tests unitarios** - Todos pasando
 - ✅ **94.46% cobertura** - Statements
 - ✅ **80.24% cobertura** - Branches
@@ -10,11 +13,13 @@
 - ✅ **96.68% cobertura** - Lines
 
 ### Calidad de Código
+
 - ✅ **TypeScript**: Sin errores
 - ✅ **ESLint**: 0 errores, 294 warnings (menores)
 - ✅ **Tests automatizados**: Configurados en CI/CD
 
 ### CI/CD Pipeline
+
 - ✅ GitHub Actions configurado
 - ✅ Jobs: Lint → TypeScript → Tests → Build
 - ✅ Coverage report subido como artifact
@@ -94,12 +99,14 @@ npm run post-refactor    # Después de refactor
 ### Variables de Entorno Necesarias
 
 Para el build en CI/CD:
+
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
 Para tests E2E (opcional):
+
 ```bash
 TEST_EMAIL=test@restaurante.com
 TEST_PASSWORD=TestPassword123
@@ -120,6 +127,7 @@ TEST_PASSWORD=TestPassword123
 ## 🎯 Próximos Pasos Recomendados
 
 ### Alto Prioridad
+
 1. **Configurar secrets en GitHub**
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -135,46 +143,51 @@ TEST_PASSWORD=TestPassword123
    - Guía de contribución
 
 ### Medio Prioridad
+
 4. **Optimizaciones**
    - Analizar bundle size
    - Revisar Core Web Vitals
    - Optimizar imágenes
 
-5. **E2E Tests**
+2. **E2E Tests**
    - Configurar entorno de prueba en Supabase
    - Crear usuario de test
    - Habilitar tests E2E en CI/CD
 
-6. **Seguridad**
+3. **Seguridad**
    - Revisar headers de seguridad
    - Configurar CSP
    - Auditar dependencias
 
 ### Bajo Prioridad
+
 7. **Monitoreo**
    - Integrar Sentry o similar
    - Analytics básico
    - Logs estructurados
 
-8. **Feature Flags**
+2. **Feature Flags**
    - Sistema para activar/desactivar features
    - A/B testing capability
 
 ## 📝 Notas Importantes
 
 ### Refactoring Realizado
+
 - ✅ Extraídas funciones de `recipes.ts` → `lib/recipe-utils.ts`
 - ✅ Extraídas funciones de `financial-control.ts` → `lib/financial-utils.ts`
 - ✅ Mejorada testabilidad del código
 - ✅ Cobertura aumentada de 85% a 94.46%
 
 ### E2E Tests
+
 - Configuración completa en `playwright.config.ts`
 - 48 tests E2E definidos (24 en Chromium, 24 en Mobile Chrome)
 - Requieren entorno con credenciales válidas
 - Temporalmente deshabilitados en CI hasta configurar entorno
 
 ### Dependencias Principales
+
 - Next.js 16.1.6
 - React 19.2.3
 - TypeScript 5
@@ -186,22 +199,26 @@ TEST_PASSWORD=TestPassword123
 ## 🎉 Logros
 
 ✅ **Testing Infrastructure Completa**
+
 - 287 tests unitarios
 - Tests de componentes React
 - Tests de integración
 - Cobertura >90%
 
 ✅ **Calidad de Código**
+
 - TypeScript estricto
 - ESLint configurado
 - 0 errores
 
 ✅ **CI/CD Pipeline**
+
 - GitHub Actions
 - Validación automática
 - Build y deploy
 
 ✅ **Refactoring para Testabilidad**
+
 - Extracción de funciones puras
 - Mejor separación de concerns
 - Código más mantenible
