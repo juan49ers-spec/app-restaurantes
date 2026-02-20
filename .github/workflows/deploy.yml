@@ -1,0 +1,39 @@
+name: Deploy to Production
+
+on:
+    push:
+        tags:
+            - "v*"
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Use Node.js 20.x
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 20.x
+                  cache: "npm"
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Build
+              run: npm run build
+              env:
+                  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+                  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+            - name: Deploy to Vercel
+              run: npx vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }}
+              # Nota: Esto asume que el usuario configurará VERCEL_TOKEN si quiere despliegue manual desde CI
+              # En la mayoría de los casos, Vercel lo hace automáticamente al detectar el push a GitHub.
+
+            - name: Notify Slack
+              if: always()
+              run: |
+                  if [ -n "${{ secrets.SLACK_WEBHOOK }}" ]; then
+                    curl -X POST -H 'Content-type: application/json' --data '{"text":"🚀 Deploy to production completed with status: ${{ job.status }}"}' ${{ secrets.SLACK_WEBHOOK }}
+                  fi

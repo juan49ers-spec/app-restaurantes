@@ -183,18 +183,11 @@ describe('formatRecipeIngredient - 100% Coverage', () => {
       quantity_gross: 1,
       quantity_net: 0.8,
       yield_factor: null,
-      master_ingredient: {
-        id: 'ing-5',
-        name: 'Tomate',
-        base_unit: 'kg',
-        current_avg_price: 2.5,
-        standard_waste_pct: 0.2, // masterYield = 0.8
-        allergens: []
-      },
+      master_ingredient: null,
       sub_recipe: null
     }
 
-    expect(() => formatRecipeIngredient(item)).toThrow('Invalid ingredient data: missing master_ingredient')
+    expect(() => formatRecipeIngredient(item as any)).toThrow('Invalid ingredient data: missing master_ingredient')
   })
 
   it('debería lanzar error si falta sub_recipe (líneas 24-26)', () => {
@@ -207,10 +200,7 @@ describe('formatRecipeIngredient - 100% Coverage', () => {
       sub_recipe: null
     }
 
-    // Modificar para que parezca sub_recipe pero sea null
-    item.master_ingredient = null
-
-    expect(() => formatRecipeIngredient(item)).toThrow('Invalid ingredient data')
+    expect(() => formatRecipeIngredient(item as any)).toThrow('Invalid ingredient data')
   })
 
   it('debería manejar yield_factor undefined (líneas 35-37)', () => {
