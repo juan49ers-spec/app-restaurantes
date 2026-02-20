@@ -87,8 +87,7 @@
     "vitest": "^4.0.18"
   },
   "overrides": {
-    "react-day-picker": {
-      "react": "$react"
-    }
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
   }
 }
