@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import Link from "next/link"
 import { ChevronLeft, Building2, Phone, Mail } from "lucide-react"
 
-export default async function SupplierDetailPage({ params }: { params: { id: string } }) {
+export default async function SupplierDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
     // 1. Fetch Parallel
-    const supplierPromise = getSupplier(params.id)
-    const itemsPromise = getSupplierItems(params.id)
+    const supplierPromise = getSupplier(id)
+    const itemsPromise = getSupplierItems(id)
     const masterIngredientsPromise = getIngredients() // For dropdown
 
     const [supplier, items, masterIngredients] = await Promise.all([

@@ -1,0 +1,24 @@
+
+> temp_app@0.1.0 build
+> next build
+
+   Ôû▓ Next.js 15.1.6
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./src/components/dashboard/ExecutiveDashboard.tsx:46:13
+Type error: Type '{ initialDateRange: DateRange; _restaurantName: string; initialData: { financial: null; engine: null; staff: null; }; missingRestaurant: true; }' is not assignable to type 'IntrinsicAttributes & Omit<ExecutiveDashboardClientProps, "_restaurantName">'.
+  Property '_restaurantName' does not exist on type 'IntrinsicAttributes & Omit<ExecutiveDashboardClientProps, "_restaurantName">'.
+
+  44 |         return <ExecutiveDashboardClient
+  45 |             initialDateRange={dateRange}
+> 46 |             _restaurantName=""
+     |             ^
+  47 |             initialData={{
+  48 |                 financial: null,
+  49 |                 engine: null,
+Static worker exited with code: 1 and signal: null

@@ -72,7 +72,7 @@ export function ValidationInboxComponent({ items: initialItems, allIngredients, 
         }
     }
 
-    const handleCreateNew = async (itemId: string, item: PendingItem) => {
+    const handleCreateNew = async (itemId: string) => {
         if (!newIngredientName.trim()) {
             toast.error('Ingresa un nombre para el ingrediente')
             return
@@ -83,10 +83,7 @@ export function ValidationInboxComponent({ items: initialItems, allIngredients, 
             await createAndMapIngredient(
                 itemId,
                 restaurantId,
-                item.supplier_id || '',
-                newIngredientName.trim(),
-                item.raw_name,
-                item.raw_price || 0
+                newIngredientName.trim()
             )
             setItems(prev => prev.filter(i => i.id !== itemId))
             setNewIngredientName('')
@@ -215,7 +212,7 @@ export function ValidationInboxComponent({ items: initialItems, allIngredients, 
                                         <Button
                                             size="sm"
                                             disabled={isCreating || !newIngredientName.trim()}
-                                            onClick={() => handleCreateNew(item.id, item)}
+                                            onClick={() => handleCreateNew(item.id)}
                                         >
                                             <Plus className="w-4 h-4" />
                                         </Button>

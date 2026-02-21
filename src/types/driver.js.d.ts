@@ -11,7 +11,7 @@ declare module 'driver.js' {
         onNextClick?: (element: Element, step: DriveStep, options: { config: Config; state: State }) => void;
         onPrevClick?: (element: Element, step: DriveStep, options: { config: Config; state: State }) => void;
         onCloseClick?: (element: Element, step: DriveStep, options: { config: Config; state: State }) => void;
-        [key: string]: any;
+        [key: string]: unknown;
     }
 
     export interface DriveStep {
@@ -20,14 +20,14 @@ declare module 'driver.js' {
         onDeselected?: (element: Element, step: DriveStep, options: { config: Config; state: State }) => void;
         onHighlightStarted?: (element: Element, step: DriveStep, options: { config: Config; state: State }) => void;
         onHighlighted?: (element: Element, step: DriveStep, options: { config: Config; state: State }) => void;
-        [key: string]: any;
+        [key: string]: unknown;
     }
 
     export interface Config {
         animate?: boolean;
         allowClose?: boolean;
         overlayClickBehavior?: "close" | "nextStep" | ((element: Element, step: DriveStep) => void);
-        [key: string]: any;
+        [key: string]: unknown;
     }
 
     export interface State {
@@ -35,7 +35,7 @@ declare module 'driver.js' {
         activeIndex?: number;
         activeStep?: DriveStep;
         activeElement?: Element;
-        [key: string]: any;
+        [key: string]: unknown;
     }
 
     export interface Driver {
@@ -49,7 +49,7 @@ declare module 'driver.js' {
         getActiveIndex: () => number | undefined;
         isLastStep: () => boolean;
         isFirstStep: () => boolean;
-        [key: string]: any;
+        [key: string]: unknown;
     }
 
     export function driver(options?: Config & { steps?: DriveStep[] }): Driver;

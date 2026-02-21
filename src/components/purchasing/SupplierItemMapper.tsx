@@ -36,7 +36,8 @@ export function SupplierItemMapper({ unmappedItems, ingredients, onMappingSucces
     item.supplier_name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleMapping = async (item: UnmappedItem, _: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleMapping = async (item: UnmappedItem, _ingredientId: string) => {
     setSaving({ ...saving, [item.item_name]: true })
 
     try {

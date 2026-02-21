@@ -1,6 +1,6 @@
 import { getPurchaseAnalytics } from "@/app/actions/purchase-analytics"
 import { getIngredients } from "@/app/actions/ingredients"
-import { getPriceComparisons, getUnmappedItems, getSupplierItemMappings } from "@/app/actions/supplier-mapping"
+import { getPriceComparisons, getUnmappedItems } from "@/app/actions/supplier-mapping"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -16,12 +16,11 @@ import { SupplierItemMapper } from "@/components/purchasing/SupplierItemMapper"
 export const dynamic = 'force-dynamic'
 
 export default async function PurchaseAnalyticsPage() {
-    const [analytics, ingredients, comparisons, unmappedItems, mappings] = await Promise.all([
+    const [analytics, ingredients, comparisons, unmappedItems] = await Promise.all([
         getPurchaseAnalytics(),
         getIngredients(),
         getPriceComparisons(),
-        getUnmappedItems(),
-        getSupplierItemMappings()
+        getUnmappedItems()
     ])
 
     const totalPotentialSavings = comparisons.reduce((sum, comp) => {

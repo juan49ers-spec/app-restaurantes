@@ -120,7 +120,7 @@ export async function processInvoice(formData: FormData) {
     }
 }
 
-export async function createInvoiceRecord(filePath: string, _originalName: string) {
+export async function createInvoiceRecord(filePath: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("Unauthorized")

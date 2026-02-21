@@ -92,9 +92,9 @@ async function processInvoiceLine(
 
         // Handle potentially different checking return depending on client type
         if (Array.isArray(knownItem.master_ingredients)) {
-            masterIngredient = knownItem.master_ingredients[0] as any
+            masterIngredient = (knownItem.master_ingredients as unknown as Array<{ id: string; name: string; current_avg_price: number }>)[0]
         } else {
-            masterIngredient = knownItem.master_ingredients as any
+            masterIngredient = knownItem.master_ingredients as unknown as { id: string; name: string; current_avg_price: number }
         }
 
         if (masterIngredient) {

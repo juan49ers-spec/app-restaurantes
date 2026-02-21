@@ -162,6 +162,74 @@ src/
 - Store sensitive data securely (environment variables)
 - Use Content Security Policy (CSP) headers
 
+## AI Agent Tools
+
+### LazyLoadingAI - Code Context Optimizer
+
+**LazyLoadingAI** es un servidor MCP (Model Context Protocol) que permite a los agentes de código entender codebases enormes sin desperdiciar tokens de contexto.
+
+#### Instalación Global
+```bash
+npm install -g lazyloadingai
+cd your-project
+lazyloadingai init
+```
+
+#### ¿Qué hace?
+
+LazyLoadingAI indexa tu codebase y genera "manifests" ligeros que contienen solo las firmas de funciones, clases e interfaces, sin el código de implementación. Esto permite:
+
+1. **Búsqueda semántica**: Encuentra funciones/clases relevantes sin leer todos los archivos
+2. **Carga perezosa**: El agente solo carga el código completo cuando lo necesita
+3. **Reducción de tokens**: Hasta 48% menos tokens consumidos por sesión
+4. **Mayor velocidad**: 1.7x más rápido en tareas de análisis de código
+
+#### Cómo funciona internamente
+
+| Componente | Descripción |
+|------------|-------------|
+| **Indexador** | Parsea TypeScript/Python con tree-sitter y ts-morph |
+| **Base de datos SQLite** | Almacena firmas, tipos y referencias |
+| **Motor de búsqueda** | Fuse.js para búsqueda fuzzy de símbolos |
+| **Servidor MCP** | Expone herramientas al agente vía Model Context Protocol |
+
+#### Herramientas MCP disponibles
+
+- `search_symbols`: Busca funciones/clases por nombre o patrón
+- `get_signature`: Obtiene la firma completa de un símbolo
+- `get_references`: Encuentra dónde se usa un símbolo
+- `list_exports`: Lista todas las exportaciones de un archivo
+- `get_type_info`: Obtiene información de tipos detallada
+
+#### Beneficios para proyectos grandes
+
+| Métrica | Sin LazyLoadingAI | Con LazyLoadingAI |
+|---------|-------------------|-------------------|
+| Tokens por query | ~50k tokens | ~26k tokens |
+| Tiempo de análisis | ~30s | ~18s |
+| Precisión de contexto | 70% | 95% |
+| Archivos escaneados | 100% | 15% (solo relevantes) |
+
+#### Uso en Claude Code / OpenCode
+
+1. Inicializa el índice en tu proyecto
+2. El servidor MCP se conecta automáticamente
+3. El agente usa las herramientas de búsqueda en lugar de leer archivos completos
+
+#### Configuración recomendada
+
+Añade a tu configuración MCP global:
+```json
+{
+  "mcpServers": {
+    "lazyloadingai": {
+      "command": "lazyloadingai",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
 ## Development Workflow
 
 ### Before Starting
@@ -169,6 +237,7 @@ src/
 2. Install dependencies with `npm install`
 3. Copy environment variables from `.env.example`
 4. Run type checking with `npm run typecheck`
+5. **[Opcional]** Inicializa LazyLoadingAI: `lazyloadingai init`
 
 ### During Development
 1. Use TypeScript for type safety
@@ -176,6 +245,7 @@ src/
 3. Write tests for new features
 4. Use meaningful commit messages
 5. Review code changes before committing
+6. **[Opcional]** LazyLoadingAI busca símbolos: `lazyloadingai search <patrón>`
 
 ### Before Committing
 1. Run full test suite: `npm test`

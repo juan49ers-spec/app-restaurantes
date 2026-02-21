@@ -97,10 +97,7 @@ export async function skipValidation(bufferId: string) {
 export async function createAndMapIngredient(
     bufferId: string,
     restaurantId: string,
-    _supplierId: string,
-    newIngredientName: string,
-    _rawNameOnInvoice: string,
-    _rawPrice: number
+    newIngredientName: string
 ) {
     const supabase = await createClient()
 

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, TrendingDown, TrendingUp, AlertTriangle } from "lucide-react"
+import { ArrowRight, TrendingUp, AlertTriangle } from "lucide-react"
 import { useState } from "react"
 
 interface Props {

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MasterIngredient } from "@/types/schema"
-import { Package, Percent, DollarSign, TrendingUp } from "lucide-react"
+import { Package, TrendingUp, DollarSign } from "lucide-react"
 
 interface Props {
     ingredients: MasterIngredient[]

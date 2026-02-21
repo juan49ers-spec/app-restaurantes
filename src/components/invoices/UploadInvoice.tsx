@@ -53,7 +53,7 @@ export default function UploadInvoice() {
             if (error) throw error
 
             // 2. Create Record in DB & Trigger OCR
-            const result = await createInvoiceRecord(data.path, file.name)
+            const result = await createInvoiceRecord(data.path)
 
             if (!result.success) {
                 throw new Error(result.error)
@@ -66,14 +66,16 @@ export default function UploadInvoice() {
             // Reload credits to reflect deduction
             loadCredits()
 
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Error desconocido"
             toast.error("Error al procesar", {
-                description: error.message
+                description: message
             })
         } finally {
             setIsUploading(false)
         }
     }
+
 
     const hasCredits = credits !== null && credits > 0
 
@@ -120,11 +122,13 @@ export default function UploadInvoice() {
                         {isUploading ? "Procesando..." : "Seleccionar Archivo"}
                     </Button>
                     <input
+                        id="invoice-upload"
                         type="file"
                         className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                         accept="image/*,application/pdf"
                         onChange={handleFileChange}
                         disabled={isUploading || (!loadingCredits && !hasCredits)}
+                        title="Subir archivo de factura"
                     />
                 </div>
             </CardContent>

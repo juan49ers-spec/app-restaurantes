@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { seedShiftsAndEmployees } from "@/app/actions/seed-shifts-robust"
 import { createClient } from "@/lib/supabaseServer"
 
-export async function GET(_req: NextRequest) {
+export async function POST() {
     console.log("👉 API HIT: /api/seed-ops")
     const supabase = await createClient()
 

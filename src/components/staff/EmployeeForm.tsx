@@ -8,8 +8,7 @@ import {
     Briefcase,
     AlertCircle,
     ShieldAlert,
-    Info,
-    Euro
+    Info
 } from "lucide-react"
 import { SmartNumberInput } from "@/components/ui/smart-number-input"
 import type { Employee, StaffRole, ContractType } from "@/types/schema"

@@ -319,7 +319,7 @@ export const exportMetricToPDF = (
     })
 
     // --- FOOTER ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- accessing jspdf internal API
     const pageCount = (doc as any).internal?.getNumberOfPages?.() || 1
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i)

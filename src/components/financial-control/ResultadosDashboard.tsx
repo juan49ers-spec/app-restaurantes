@@ -265,13 +265,13 @@ interface CollapsibleSectionProps {
   defaultOpen?: boolean
 }
 
-const CollapsibleSection = memo(function CollapsibleSection({
+const CollapsibleSection = memo(({
   title,
   subtitle,
   icon: Icon,
   children,
   defaultOpen = false
-}: CollapsibleSectionProps) {
+}: CollapsibleSectionProps) => {
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
   const toggle = useCallback(() => {
@@ -283,6 +283,7 @@ const CollapsibleSection = memo(function CollapsibleSection({
   return (
     <div className="border border-neutral-200 rounded-xl overflow-hidden bg-white">
       <button
+        type="button"
         onClick={toggle}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
         aria-expanded={isOpen ? "true" : "false"}
@@ -319,6 +320,7 @@ const CollapsibleSection = memo(function CollapsibleSection({
     </div>
   )
 })
+CollapsibleSection.displayName = "CollapsibleSection"
 
 // ==========================================
 // KPIs FOR INTELLIGENCE WIDGET
@@ -437,7 +439,11 @@ function useDiagnoses(data: DashboardUiData): DiagnosisCard[] {
 // ==========================================
 
 
-export function ResultadosDashboard({ restaurantId: _restaurantId, dashboardData }: { restaurantId: string; dashboardData?: ServerDashboardData | null }) {
+export interface ResultadosDashboardProps {
+  dashboardData?: ServerDashboardData | null
+}
+
+export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps) {
   const [isClosingMonth, setIsClosingMonth] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
 
@@ -679,20 +685,22 @@ export function ResultadosDashboard({ restaurantId: _restaurantId, dashboardData
       </section>
 
       {/* Diagnóstico Inteligente */}
-      {diagnoses.length > 0 && (
-        <section aria-label="Diagnósticos inteligentes">
-          <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="w-4 h-4 text-amber-500" aria-hidden="true" />
-            <h2 className="font-bold text-sm text-neutral-900">Diagnóstico Inteligente</h2>
-            <span className="text-xs text-neutral-400">({diagnoses.length})</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {diagnoses.map((diagnosis) => (
-              <DiagnosisCardComponent key={diagnosis.id} card={diagnosis} />
-            ))}
-          </div>
-        </section>
-      )}
+      {
+        diagnoses.length > 0 && (
+          <section aria-label="Diagnósticos inteligentes">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="w-4 h-4 text-amber-500" aria-hidden="true" />
+              <h2 className="font-bold text-sm text-neutral-900">Diagnóstico Inteligente</h2>
+              <span className="text-xs text-neutral-400">({diagnoses.length})</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {diagnoses.map((diagnosis) => (
+                <DiagnosisCardComponent key={diagnosis.id} card={diagnosis} />
+              ))}
+            </div>
+          </section>
+        )
+      }
 
       {/* Análisis Detallado */}
       <section className="space-y-3" aria-label="Análisis detallado">
@@ -741,7 +749,7 @@ export function ResultadosDashboard({ restaurantId: _restaurantId, dashboardData
         Datos calculados automáticamente de Facturación y Gastos •
         Actualizado {new Date().toLocaleDateString('es-ES')}
       </footer>
-    </div>
+    </div >
   )
 }
 

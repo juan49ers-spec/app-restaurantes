@@ -1,14 +1,13 @@
-
 import { getAllRestaurants } from "@/app/actions/admin"
 import { RestaurantList } from "@/components/admin/RestaurantList"
 import { redirect } from "next/navigation"
 
 export default async function AdminPage() {
-    let restaurants = []
+    let restaurants
 
     try {
         restaurants = await getAllRestaurants() || []
-    } catch (_error) {
+    } catch {
         // If unauthorized or other error, redirect to home or login
         redirect('/')
     }

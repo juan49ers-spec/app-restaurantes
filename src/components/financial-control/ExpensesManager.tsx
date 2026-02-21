@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-import { OperatingExpense, OperatingExpenseCategory, EXPENSE_CATEGORY_LABELS, EXPENSE_TAGS, OperatingExpenseCategorySchema } from "@/types/schema"
+import { OperatingExpense, EXPENSE_CATEGORY_LABELS, EXPENSE_TAGS, OperatingExpenseCategorySchema } from "@/types/schema"
 import { upsertOperatingExpense, deleteOperatingExpense } from "@/app/actions/financial-control"
 
 import { Button } from "@/components/ui/button"
@@ -77,6 +77,7 @@ export function ExpensesManager({ restaurantId, expenses }: ExpensesManagerProps
     const [isDiscreetMode, setIsDiscreetMode] = useState(false)
 
     const form = useForm<ExpenseFormValues>({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zodResolver generic mismatch with Zod v4
         resolver: zodResolver(ExpenseFormSchema) as any,
         defaultValues: {
             restaurant_id: restaurantId,

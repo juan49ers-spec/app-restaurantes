@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 
 // ==================== TAX PERIOD MANAGEMENT ====================
 
-export async function getCurrentTaxPeriod(_restaurantId: string): Promise<{
+export async function getCurrentTaxPeriod(): Promise<{
     year: number
     quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4'
     daysPassed: number

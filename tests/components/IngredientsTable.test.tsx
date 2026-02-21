@@ -34,20 +34,24 @@ vi.mock('sonner', () => ({
 const mockIngredients: MasterIngredient[] = [
   {
     id: '1',
+    restaurant_id: 'r1',
     name: 'Pechuga de Pollo',
     category: 'Carnes',
     base_unit: 'kg',
     current_avg_price: 8.90,
     standard_waste_pct: 0.05,
+    is_active: true,
     allergens: ['gluten']
   },
   {
     id: '2',
+    restaurant_id: 'r1',
     name: 'Aceite de Oliva',
     category: 'Abarrotes',
-    base_unit: 'lt',
+    base_unit: 'l',
     current_avg_price: 5.50,
     standard_waste_pct: 0.10,
+    is_active: true,
     allergens: []
   }
 ]
@@ -68,7 +72,7 @@ describe('IngredientsTable', () => {
   it('debería mostrar unidades correctamente', () => {
     render(<IngredientsTable ingredients={mockIngredients} />)
     expect(screen.getByText('kg')).toBeInTheDocument()
-    expect(screen.getByText('lt')).toBeInTheDocument()
+    expect(screen.getByText('l')).toBeInTheDocument()
   })
 
   it('debería mostrar precios formateados', () => {

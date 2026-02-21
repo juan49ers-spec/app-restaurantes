@@ -43,7 +43,6 @@ export async function ExecutiveDashboard({ searchParams }: ExecutiveDashboardPro
     if (!restaurant) {
         return <ExecutiveDashboardClient
             initialDateRange={dateRange}
-            _restaurantName=""
             initialData={{
                 financial: null,
                 engine: null,
@@ -94,7 +93,6 @@ export async function ExecutiveDashboard({ searchParams }: ExecutiveDashboardPro
         <Suspense fallback={<DashboardSkeleton />}>
             <ExecutiveDashboardClient
                 initialDateRange={dateRange}
-                _restaurantName={restaurant.name}
                 initialData={{
                     financial,
                     engine,

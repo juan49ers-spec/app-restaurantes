@@ -29,7 +29,7 @@ interface Props {
   restaurantName: string
 }
 
-export function OperationalDashboardClient({ alerts, kpis, tasks, restaurantName: _restaurantName }: Props) {
+export function OperationalDashboardClient({ alerts, kpis, tasks }: Omit<Props, 'restaurantName'>) {
   // const [refreshing, setRefreshing] = useState(false) - Removed unused state
 
   const highPriorityAlerts = alerts.filter(a => a.severity === 'high')

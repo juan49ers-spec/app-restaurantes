@@ -8,7 +8,7 @@ import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { formatRecipeIngredient, type RecipeIngredientItem } from "@/lib/recipe-utils"
 
-type SubRecipeFrag = { id?: string, name: string, current_cost: number }
+type SubRecipeFrag = { id: string, name: string, current_cost: number, allergens?: string[] }
 type MasterFrag = { id: string, name: string, base_unit: string, current_avg_price: number, standard_waste_pct: number, allergens?: string[] }
 
 type RawRecipeIngredient = {
@@ -189,7 +189,7 @@ export async function getRecipeForEdit(recipeId: string) {
     if (ingError) throw new Error(ingError.message)
 
     // 3. Map Ingredients - Handle Supabase array response
-    const ingredients = ingredientsRaw.map((item: any) => {
+    const ingredients = (ingredientsRaw as unknown as RawRecipeIngredient[]).map((item) => {
         // Supabase returns nested relations as arrays, extract first element
         const formattedItem: RecipeIngredientItem = {
             id: item.id || '',

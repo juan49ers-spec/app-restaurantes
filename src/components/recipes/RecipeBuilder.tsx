@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { CostBreakdownChart } from "./CostBreakdownChart"
-import { useState, useEffect } from "react"
 
 interface Props {
     ingredients: RecipeIngredientInput[]
@@ -56,7 +55,7 @@ export function RecipeBuilder({ ingredients, onUpdate, onRemove, readOnly = fals
                             const wasteQty = item.quantity_gross - item.quantity_net
 
                             return (
-                                <Card key={item.id} className={`overflow-hidden transition-all duration-200 hover:shadow-md border-l-4 ${item.type === 'RECIPE' ? 'border-l-blue-500' : 'border-l-primary/50'}`}>
+                                <Card key={item.id} className={`overflow - hidden transition - all duration - 200 hover: shadow - md border - l - 4 ${item.type === 'RECIPE' ? 'border-l-blue-500' : 'border-l-primary/50'} `}>
                                     <CardContent className="p-3 pl-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
 
                                         {/* INFO BLOCK */}
@@ -117,7 +116,7 @@ export function RecipeBuilder({ ingredients, onUpdate, onRemove, readOnly = fals
                                                     <Input
                                                         type="number"
                                                         className={`h-9 font-bold text-center ${item.yield_pct < 0.8 ? 'text-amber-600 border-amber-200 bg-amber-50' : ''
-                                                            }`}
+                                                            } `}
                                                         value={Math.round(item.yield_pct * 100)}
                                                         onChange={(e) => {
                                                             const val = parseFloat(e.target.value)
@@ -179,7 +178,6 @@ export function RecipeBuilder({ ingredients, onUpdate, onRemove, readOnly = fals
                                             </div>
                                             {!readOnly && (
                                                 <Button
-                                                    variant="ghost"
                                                     size="icon"
                                                     className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                                     onClick={() => onRemove(item.id)}

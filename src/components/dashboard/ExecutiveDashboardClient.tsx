@@ -8,24 +8,28 @@ import { DollarSign, TrendingUp, Wallet } from "lucide-react"
 
 interface ExecutiveDashboardClientProps {
     initialDateRange: DateRange
-    _restaurantName: string
     initialData: {
-        financial: any
-        engine?: any
-        staff?: any
+        financial: {
+            metrics: {
+                totalRevenue: number
+                netProfit: number
+                netProfitPct: number
+            }
+        } | null
+        engine?: unknown | null
+        staff?: unknown | null
     }
     missingRestaurant?: boolean
 }
 
 export function ExecutiveDashboardClient({
     initialDateRange,
-    _restaurantName,
     initialData,
     missingRestaurant = false,
 }: ExecutiveDashboardClientProps) {
     const searchParams = useSearchParams()
     const router = useRouter()
-    const [date, _setDate] = useState<DateRange | undefined>(initialDateRange)
+    const [date] = useState<DateRange | undefined>(initialDateRange)
 
     useEffect(() => {
         if (!date?.from || !date?.to) return

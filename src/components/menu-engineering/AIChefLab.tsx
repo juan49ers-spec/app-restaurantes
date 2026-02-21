@@ -136,7 +136,11 @@ export default function AIChefLab() {
         if (!selectedItem) return
         const cur = Number(field === 'price' ? selectedItem.price : selectedItem.cost)
         const nv = Math.round(cur * factor * 100) / 100
-        field === 'price' ? setPrice(nv) : setCost(nv)
+        if (field === 'price') {
+            setPrice(nv)
+        } else {
+            setCost(nv)
+        }
     }
 
     // KPIs

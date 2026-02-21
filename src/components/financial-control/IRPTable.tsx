@@ -5,12 +5,11 @@ import { Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface IRPTableProps {
-    restaurantId: string
     year: number
     quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4'
 }
 
-export function IRPTable({ restaurantId, year, quarter }: IRPTableProps) {
+export function IRPTable({ year, quarter }: IRPTableProps) {
     const mockData = [
         { categoria: "Nóminas", modelo: "Mod. 111", baseSujeta: 8500, porcentajeRetencion: 12 },
         { categoria: "Alquiler", modelo: "Mod. 115", baseSujeta: 2000, porcentajeRetencion: 19 },

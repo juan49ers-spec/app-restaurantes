@@ -1,19 +1,21 @@
 'use client'
 
+'use client'
+
 import { cn } from "@/lib/utils"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Grid3X3 } from "lucide-react"
 import type { BCGMetrics } from "@/app/actions/financial-engine"
 
-interface BCGItem {
-    name: string
-    popularity?: number
-    margin?: number
-}
-
 interface BCGMatrixProps {
     data: BCGMetrics | null | undefined
+}
+
+interface SectionItem {
+    name: string
+    popularity: number
+    margin: number
 }
 
 const Section = ({
@@ -23,7 +25,7 @@ const Section = ({
     tooltip
 }: {
     title: string
-    items: any[]
+    items: SectionItem[]
     bgColor: string
     tooltip: string
 }) => (

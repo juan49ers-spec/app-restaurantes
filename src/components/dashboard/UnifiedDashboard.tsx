@@ -30,7 +30,6 @@ interface UnifiedDashboardProps {
         expenses: OperatingExpense[]
     }
     fiscalMetrics: FiscalMetrics
-    _financialModuleLevel: "premium" | "basic" | "none" | undefined
     defaultDate: {
         from: Date | string
         to: Date | string
@@ -41,7 +40,6 @@ export function UnifiedDashboard({
     strategicView,
     financialHubData,
     fiscalMetrics,
-    _financialModuleLevel,
     defaultDate
 }: UnifiedDashboardProps) {
     const router = useRouter()

@@ -53,7 +53,7 @@ export function NotificationHistory({ notifications, total }: NotificationHistor
     try {
       await markNotificationAsRead(id)
       toast.success('Notificación marcada como leída')
-    } catch (_error) {
+    } catch {
       toast.error('Error al marcar como leída')
     }
   }
@@ -62,7 +62,7 @@ export function NotificationHistory({ notifications, total }: NotificationHistor
     try {
       await markAllNotificationsAsRead()
       toast.success('Todas las notificaciones marcadas como leídas')
-    } catch (_error) {
+    } catch {
       toast.error('Error al marcar como leídas')
     }
   }

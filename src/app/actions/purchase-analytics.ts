@@ -135,7 +135,7 @@ export async function getPurchaseAnalytics(): Promise<AnalyticsDashboard> {
     })
 
     const priceVolatility: PriceVolatility[] = Array.from(priceByIngredient.entries())
-        .filter(([_, prices]) => prices.length >= 3)
+        .filter(([, prices]) => prices.length >= 3)
         .map(([id, prices]) => {
             const avg = prices.reduce((a, b) => a + b, 0) / prices.length
             const variance = prices.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / prices.length

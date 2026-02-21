@@ -283,7 +283,6 @@ export function DesarrolloNegocio({
     }, [data, currentMonthIndex, lastYearData])
 
     // Insights automáticos
-    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const insights = useMemo(() => {
         const items = []
 

@@ -10,8 +10,14 @@ interface Props {
     currentCost: number
 }
 
+interface PriceHistoryPoint {
+    price: number
+    created_at: string
+    change_pct?: number
+}
+
 export function RecipeHistory({ recipeId, currentCost }: Props) {
-    const [history, setHistory] = useState<any[]>([])
+    const [history, setHistory] = useState<PriceHistoryPoint[]>([])
     const [loading, setLoading] = useState(() => !!recipeId && recipeId !== 'new')
 
     useEffect(() => {

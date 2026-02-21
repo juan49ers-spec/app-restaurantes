@@ -1,6 +1,5 @@
 
 import {
-    LayoutDashboard,
     FileText,
     BookOpen,
     BrainCircuit,

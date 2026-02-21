@@ -84,7 +84,7 @@ export const createMenuReport = safeAction(CreateReportInput, async (data, user)
     return report
 })
 
-export const updateReportItem = safeAction(UpdateItemInput, async (data, _user) => {
+export const updateReportItem = safeAction(UpdateItemInput, async (data) => {
     const supabase = await createClient()
 
     const { error } = await supabase
@@ -97,7 +97,7 @@ export const updateReportItem = safeAction(UpdateItemInput, async (data, _user) 
     return { success: true }
 })
 
-export const deleteReport = safeAction(z.object({ id: z.string().uuid() }), async (data, _user) => {
+export const deleteReport = safeAction(z.object({ id: z.string().uuid() }), async (data) => {
     const supabase = await createClient()
     const { error } = await supabase.from('menu_reports').delete().eq('id', data.id)
     if (error) throw new Error(error.message)
@@ -105,7 +105,7 @@ export const deleteReport = safeAction(z.object({ id: z.string().uuid() }), asyn
     return { success: true }
 })
 
-export const calculateMatrix = safeAction(z.object({ reportId: z.string().uuid() }), async (data, _user) => {
+export const calculateMatrix = safeAction(z.object({ reportId: z.string().uuid() }), async (data) => {
     const supabase = await createClient()
 
     // 1. Fetch Items

@@ -92,7 +92,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       )
       setUnreadCount(prev => Math.max(0, prev - 1))
-    } catch (_error) {
+    } catch {
       toast.error('Error al marcar como leído')
     }
   }
@@ -103,7 +103,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
       setUnreadCount(0)
       toast.success('Todas las notificaciones marcadas como leídas')
-    } catch (_error) {
+    } catch {
       toast.error('Error al marcar como leídas')
     }
   }

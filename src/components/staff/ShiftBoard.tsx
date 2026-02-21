@@ -168,14 +168,11 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
     }
 
     // --- POWER USER SHORTCUTS (Copy/Paste) ---
-    const [_copiedShift, setCopiedShift] = useState<Shift | null>(null)
-
     useEffect(() => {
         const handleKeyDown = async (e: KeyboardEvent) => {
             // Copy: Ctrl+C
             if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
                 if (activeShift) { // If dragging
-                    setCopiedShift(activeShift)
                     toast.info("Turno copiado al portapapeles")
                     return
                 }

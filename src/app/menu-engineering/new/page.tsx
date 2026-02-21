@@ -32,7 +32,7 @@ export default function NewReportPage() {
             } else {
                 toast.error("Error", { description: res.error || "Algo salió mal" })
             }
-        } catch (_err) {
+        } catch {
             toast.error("Error", { description: "Error de conexión" })
         } finally {
             setIsLoading(false)

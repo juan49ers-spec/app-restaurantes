@@ -72,7 +72,6 @@ export default async function DashboardPage(props: PageProps) {
         strategicView={<ExecutiveDashboard searchParams={searchParams} />}
         financialHubData={financialHubData}
         fiscalMetrics={fiscalMetrics}
-        _financialModuleLevel={restaurant.modules?.financial_control || 'basic'}
         defaultDate={{ from: fromDate, to: toDate }}
       />
     </Suspense>

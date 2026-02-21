@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-import { OperatingExpenseCategory, EXPENSE_CATEGORY_LABELS, EXPENSE_TAGS, OperatingExpenseCategorySchema } from "@/types/schema"
+import { EXPENSE_CATEGORY_LABELS, EXPENSE_TAGS, OperatingExpenseCategorySchema, OperatingExpense } from "@/types/schema"
 import { upsertOperatingExpense } from "@/app/actions/financial-control"
 
 import { Button } from "@/components/ui/button"
@@ -54,7 +54,7 @@ interface ExpensesFormModalProps {
     isOpen: boolean
     onClose: () => void
     restaurantId: string
-    expenseToEdit?: any // Optional expense object to edit
+    expenseToEdit?: OperatingExpense
 }
 
 export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit }: ExpensesFormModalProps) {
@@ -81,6 +81,7 @@ export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit
     }
 
     const form = useForm<ExpenseFormValues>({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zodResolver generic mismatch with Zod v4
         resolver: zodResolver(ExpenseFormSchema) as any,
         defaultValues
     })

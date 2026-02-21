@@ -15,7 +15,7 @@ export const PROJECTION_FACTORS = {
      * Históricamente las ventas aumentan ~20% estos días
      */
     WEEKEND_MULTIPLIER: 1.2,
-    
+
     /**
      * Multiplicador para días laborables
      * Sin ajuste significativo
@@ -45,13 +45,13 @@ export const EXPENSE_RATIOS = {
      * Estándar industria: 25-35%
      */
     DEFAULT_COGS_PCT: 0.30,     // 30%
-    
+
     /**
      * Porcentaje de ventas destinado a Personal
      * Estándar industria: 30-35%
      */
     DEFAULT_LABOR_PCT: 0.35,   // 35%
-    
+
     /**
      * Porcentaje de ventas destinado a Gastos Fijos
      * Incluye: alquiler, suministros, seguros, mantenimiento
@@ -69,13 +69,13 @@ export const TARGET_RATIOS = {
      * Ideal: 28-33%
      */
     PERSONAL_TARGET_PCT: 33,
-    
+
     /**
      * Coste Materia Prima objetivo como % de ventas
      * Ideal: 28-32%
      */
     COGS_TARGET_PCT: 33,
-    
+
     /**
      * Prime Cost objetivo (Personal + COGS)
      * Ideal: ≤ 60% de ventas
@@ -92,13 +92,13 @@ export const EXPENSE_CATEGORIES = {
         'SEGURIDAD_SOCIAL',
         'EN_MANO_PERSONAL'
     ] as const,
-    
+
     COGS: [
         'PROVEEDORES_COMIDA',
         'PROVEEDORES_BEBIDA',
         'VARIACION_EXISTENCIAS'
     ] as const,
-    
+
     INVESTMENTS: [
         'INVERSIONES'
     ] as const,
@@ -107,11 +107,11 @@ export const EXPENSE_CATEGORIES = {
 /**
  * Utilidades de validación
  */
-export const isPersonalCategory = (category: string): boolean => 
-    EXPENSE_CATEGORIES.PERSONAL.includes(category as any)
+export const isPersonalCategory = (category: string): boolean =>
+    (EXPENSE_CATEGORIES.PERSONAL as readonly string[]).includes(category)
 
 export const isCOGSCategory = (category: string): boolean =>
-    EXPENSE_CATEGORIES.COGS.includes(category as any)
+    (EXPENSE_CATEGORIES.COGS as readonly string[]).includes(category)
 
 export const isInvestmentCategory = (category: string): boolean =>
-    EXPENSE_CATEGORIES.INVESTMENTS.includes(category as any)
+    (EXPENSE_CATEGORIES.INVESTMENTS as readonly string[]).includes(category)

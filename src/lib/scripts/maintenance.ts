@@ -25,7 +25,7 @@ export async function vacuumAnalyzeTables(): Promise<{ success: boolean; message
         if (error) {
             // Si no existe la función RPC, intentar con SQL directo
             console.log('RPC not available, attempting direct SQL...')
-            
+
             const tables = [
                 'invoices',
                 'invoice_items',
@@ -155,7 +155,7 @@ export async function healthCheck(): Promise<{
             .select('id, name')
             .limit(100)
         const duration = Date.now() - start
-        
+
         checks['query_performance'] = duration < 500
         if (duration >= 500) failedChecks++
     } catch {
@@ -276,7 +276,8 @@ export async function generateSystemMetrics(): Promise<{
                 unreadAlerts: unreadAlerts || 0
             }
         }
-    } catch (error: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_error: unknown) {
         return {
             success: false,
             metrics: {

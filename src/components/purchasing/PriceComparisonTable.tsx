@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { TrendingDown, TrendingUp, Minus, Search, ArrowRight } from 'lucide-react'
+import { Minus, Search, TrendingUp, TrendingDown } from "lucide-react"
 import { Tooltip } from '@/components/ui/Tooltip'
 
 interface PriceComparisonTableProps {
@@ -19,21 +19,21 @@ export function PriceComparisonTable({ comparisons }: PriceComparisonTableProps)
   const [sortBy, setSortBy] = useState<'savings' | 'variance' | 'name'>('savings')
 
   const filteredComparisons = comparisons
-    .filter(comp => 
+    .filter(comp =>
       comp.ingredient_name.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       if (sortBy === 'name') return a.ingredient_name.localeCompare(b.ingredient_name)
-      
+
       // Calculate potential savings
       const aBest = Math.min(...a.suppliers.map(s => s.price))
       const aWorst = Math.max(...a.suppliers.map(s => s.price))
       const bBest = Math.min(...b.suppliers.map(s => s.price))
       const bWorst = Math.max(...b.suppliers.map(s => s.price))
-      
+
       const aSavings = aWorst - aBest
       const bSavings = bWorst - bBest
-      
+
       return sortBy === 'savings' ? bSavings - aSavings : bSavings - aSavings
     })
 
@@ -51,7 +51,7 @@ export function PriceComparisonTable({ comparisons }: PriceComparisonTableProps)
             Comparador de Precios
             <Badge variant="secondary">{filteredComparisons.length} productos</Badge>
           </CardTitle>
-          
+
           <div className="flex gap-2">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -64,24 +64,24 @@ export function PriceComparisonTable({ comparisons }: PriceComparisonTableProps)
             </div>
           </div>
         </div>
-        
+
         <div className="flex gap-2 mt-4">
-          <Button 
-            variant={sortBy === 'savings' ? 'default' : 'outline'} 
+          <Button
+            variant={sortBy === 'savings' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSortBy('savings')}
           >
             Mayor Ahorro
           </Button>
-          <Button 
-            variant={sortBy === 'variance' ? 'default' : 'outline'} 
+          <Button
+            variant={sortBy === 'variance' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSortBy('variance')}
           >
             Mayor Variación
           </Button>
-          <Button 
-            variant={sortBy === 'name' ? 'default' : 'outline'} 
+          <Button
+            variant={sortBy === 'name' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSortBy('name')}
           >
@@ -89,7 +89,7 @@ export function PriceComparisonTable({ comparisons }: PriceComparisonTableProps)
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         {filteredComparisons.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
@@ -103,7 +103,6 @@ export function PriceComparisonTable({ comparisons }: PriceComparisonTableProps)
               const prices = comp.suppliers.map(s => s.price)
               const bestPrice = Math.min(...prices)
               const worstPrice = Math.max(...prices)
-              const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length
               const savings = worstPrice - bestPrice
               const savingsPct = worstPrice > 0 ? (savings / worstPrice) * 100 : 0
 
@@ -116,14 +115,14 @@ export function PriceComparisonTable({ comparisons }: PriceComparisonTableProps)
                         Unidad base: <Badge variant="outline" className="text-xs">{comp.base_unit}</Badge>
                       </p>
                     </div>
-                    
+
                     <div className="text-right">
                       <div className="flex items-center gap-4">
                         <div>
                           <p className="text-xs text-muted-foreground">Mejor precio</p>
                           <p className="text-lg font-bold text-green-600">{formatPrice(bestPrice)}</p>
                         </div>
-                        
+
                         <div className="text-right">
                           <p className="text-xs text-muted-foreground">Ahorro potencial</p>
                           <p className="text-lg font-bold text-green-600">
@@ -134,7 +133,7 @@ export function PriceComparisonTable({ comparisons }: PriceComparisonTableProps)
                       </div>
                     </div>
                   </div>
-                  
+
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -149,57 +148,56 @@ export function PriceComparisonTable({ comparisons }: PriceComparisonTableProps)
                       {comp.suppliers
                         .sort((a, b) => a.price - b.price)
                         .map((supplier) => (
-                        <TableRow key={supplier.supplier_id}>
-                          <TableCell className="font-medium">
-                            {supplier.supplier_name}
-                          </TableCell>
-                          
-                          <TableCell className="text-right">
-                            <span className={`font-mono font-medium ${
-                              supplier.is_best_price ? 'text-green-600' : ''
-                            }`}>
-                              {formatPrice(supplier.price)}
-                            </span>
-                          </TableCell>
-                          
-                          <TableCell className="text-right">
-                            {supplier.variance_pct > 0 ? (
-                              <span className="text-red-600 flex items-center justify-end gap-1">
-                                <TrendingUp className="h-3 w-3" />
-                                {formatVariance(supplier.variance_pct)}
+                          <TableRow key={supplier.supplier_id}>
+                            <TableCell className="font-medium">
+                              {supplier.supplier_name}
+                            </TableCell>
+
+                            <TableCell className="text-right">
+                              <span className={`font-mono font-medium ${supplier.is_best_price ? 'text-green-600' : ''
+                                }`}>
+                                {formatPrice(supplier.price)}
                               </span>
-                            ) : supplier.variance_pct < 0 ? (
-                              <span className="text-green-600 flex items-center justify-end gap-1">
-                                <TrendingDown className="h-3 w-3" />
-                                {formatVariance(supplier.variance_pct)}
-                              </span>
-                            ) : (
-                              <span className="text-gray-500 flex items-center justify-end gap-1">
-                                <Minus className="h-3 w-3" />
-                                0%
-                              </span>
-                            )}
-                          </TableCell>
-                          
-                          <TableCell className="text-center">
-                            {supplier.is_best_price ? (
-                              <Badge className="bg-green-600">
-                                Mejor Precio
-                              </Badge>
-                            ) : (
-                              <Tooltip content={`€${(supplier.price - bestPrice).toFixed(2)} más caro`}>
-                                <Badge variant="outline" className="text-xs">
-                                  +{((supplier.price - bestPrice) / bestPrice * 100).toFixed(0)}%
+                            </TableCell>
+
+                            <TableCell className="text-right">
+                              {supplier.variance_pct > 0 ? (
+                                <span className="text-red-600 flex items-center justify-end gap-1">
+                                  <TrendingUp className="h-3 w-3" />
+                                  {formatVariance(supplier.variance_pct)}
+                                </span>
+                              ) : supplier.variance_pct < 0 ? (
+                                <span className="text-green-600 flex items-center justify-end gap-1">
+                                  <TrendingDown className="h-3 w-3" />
+                                  {formatVariance(supplier.variance_pct)}
+                                </span>
+                              ) : (
+                                <span className="text-gray-500 flex items-center justify-end gap-1">
+                                  <Minus className="h-3 w-3" />
+                                  0%
+                                </span>
+                              )}
+                            </TableCell>
+
+                            <TableCell className="text-center">
+                              {supplier.is_best_price ? (
+                                <Badge className="bg-green-600">
+                                  Mejor Precio
                                 </Badge>
-                              </Tooltip>
-                            )}
-                          </TableCell>
-                          
-                          <TableCell className="text-right text-sm text-muted-foreground">
-                            {new Date(supplier.last_updated).toLocaleDateString('es-ES')}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                              ) : (
+                                <Tooltip content={`€${(supplier.price - bestPrice).toFixed(2)} más caro`}>
+                                  <Badge variant="outline" className="text-xs">
+                                    +{((supplier.price - bestPrice) / bestPrice * 100).toFixed(0)}%
+                                  </Badge>
+                                </Tooltip>
+                              )}
+                            </TableCell>
+
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              {new Date(supplier.last_updated).toLocaleDateString('es-ES')}
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 </div>

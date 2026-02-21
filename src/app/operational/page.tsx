@@ -5,7 +5,7 @@ import { getOperationalAlerts, getOperationalKPIs, getPendingTasks } from "@/app
 export const dynamic = 'force-dynamic'
 
 export default async function OperationalDashboardPage() {
-    const restaurant = await requireRestaurant()
+    await requireRestaurant()
 
     // Fetch all operational data
     const [alerts, kpis, tasks] = await Promise.all([
@@ -27,7 +27,6 @@ export default async function OperationalDashboardPage() {
                 alerts={alerts}
                 kpis={kpis}
                 tasks={tasks}
-                restaurantName={restaurant.name}
             />
         </div>
     )

@@ -6,12 +6,11 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 
 interface IVATableProps {
-    restaurantId: string
     year: number
     quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4'
 }
 
-export function IVATable({ restaurantId, year, quarter }: IVATableProps) {
+export function IVATable({ year, quarter }: IVATableProps) {
     const quarterNum = parseInt(quarter[1])
     const quarterMonths = useMemo(() => {
         const months: string[] = []

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Supplier } from "@/types/schema"
 import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+    Table, TableBody, TableCell, TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,7 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-    Pencil, Trash2, Plus, Search, ShieldCheck, Mail, Phone, Truck
+    Pencil, Trash2, Plus, Search, ShieldCheck, Mail, Phone
 } from "lucide-react"
 import { toast } from "sonner"
 import { createSupplier, updateSupplier, deleteSupplier } from "@/app/actions/suppliers"
@@ -21,7 +21,7 @@ import { createSupplier, updateSupplier, deleteSupplier } from "@/app/actions/su
 import { SupplierDetailsModal } from "./SupplierDetailsModal"
 
 export function SupplierTable({ initialSuppliers }: { initialSuppliers: Supplier[] }) {
-    const [suppliers, setSuppliers] = useState(initialSuppliers)
+    const [suppliers] = useState(initialSuppliers)
     const [search, setSearch] = useState("")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)

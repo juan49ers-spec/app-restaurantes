@@ -91,10 +91,10 @@ export function ImpuestosDashboard() {
             {/* Row 2: Detail Tables (2 Columns) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="h-[420px]">
-                    <IVATable restaurantId="demo" year={year} quarter={quarter} />
+                    <IVATable year={year} quarter={quarter} />
                 </div>
                 <div className="h-[420px]">
-                    <IRPTable restaurantId="demo" year={year} quarter={quarter} />
+                    <IRPTable year={year} quarter={quarter} />
                 </div>
             </div>
 

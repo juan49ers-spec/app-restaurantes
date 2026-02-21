@@ -8,6 +8,7 @@ import { ExpenseDonutChart } from "./ExpenseDonutChart"
 import { ExpenseDetailTable } from "./ExpenseDetailTable"
 import { ExpensesFormModal } from "./ExpensesFormModal"
 import { ExpenseDashboardData } from "@/app/actions/financial-control"
+import { OperatingExpense } from "@/types/schema"
 import { exportExpensesToCSV } from "@/lib/export-utils"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -35,9 +36,9 @@ const item = {
 
 export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: ExpensesDashboardProps) {
     const [isFormOpen, setIsFormOpen] = useState(false)
-    const [editingExpense, setEditingExpense] = useState<unknown>(null)
+    const [editingExpense, setEditingExpense] = useState<OperatingExpense | undefined>(undefined)
 
-    const handleEditExpense = (expense: unknown) => {
+    const handleEditExpense = (expense: OperatingExpense) => {
         setEditingExpense(expense)
         setIsFormOpen(true)
     }
@@ -58,14 +59,19 @@ export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: Expense
     const handleExport = () => {
         // Flatten all expenses from all categories
         const allExpenses = data.categories.flatMap(cat =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            cat.expenses.map((exp: any) => ({
-                ...exp,
-                date: exp.expense_date || exp.date,
-                category: cat.category,
-                description: exp.description || '',
-                amount: exp.amount
-            }))
+            cat.expenses.map((exp) => {
+                const e = exp as { expense_date?: string, date?: string, description?: string, amount?: number, provider_detail?: string, tag?: string, payment_method?: string, is_paid?: boolean };
+                return {
+                    date: e.expense_date || e.date || '',
+                    category: cat.category,
+                    description: e.description || '',
+                    amount: e.amount || 0,
+                    provider_detail: e.provider_detail || '',
+                    tag: e.tag || '',
+                    payment_method: e.payment_method || '',
+                    is_paid: e.is_paid || false
+                };
+            })
         )
 
         const monthYear = data.history.length > 0 ? data.history[data.history.length - 1].month : 'current'
@@ -94,7 +100,7 @@ export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: Expense
                 </div>
                 <Button
                     onClick={() => {
-                        setEditingExpense(null)
+                        setEditingExpense(undefined)
                         setIsFormOpen(true)
                     }}
                     className="bg-neutral-900 hover:bg-neutral-800 text-white gap-2 rounded-xl px-6 py-2.5 font-bold text-sm transition-all shadow-sm hover:shadow-md active:scale-95"
@@ -123,15 +129,18 @@ export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: Expense
                 <ExpenseDetailTable
                     categories={data.categories.map(cat => ({
                         ...cat,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        expenses: cat.expenses.map((exp: any) => ({
-                            ...exp,
-                            id: exp.id || '',
-                            date: exp.expense_date || exp.date || ''
-                        }))
+                        expenses: cat.expenses.map((exp) => {
+                            const e = exp as { id?: string, expense_date?: string, date?: string, amount?: number };
+                            return {
+                                ...e,
+                                id: e.id || '',
+                                amount: e.amount || 0,
+                                date: e.expense_date || e.date || ''
+                            };
+                        })
                     }))}
                     history={data.history}
-                    onEditExpense={handleEditExpense}
+                    onEditExpense={handleEditExpense as (expense: unknown) => void}
                     onDeleteExpense={handleDeleteExpense}
                     onExport={handleExport}
                 />
@@ -142,7 +151,7 @@ export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: Expense
                 isOpen={isFormOpen}
                 onClose={() => {
                     setIsFormOpen(false)
-                    setEditingExpense(null)
+                    setEditingExpense(undefined)
                 }}
                 expenseToEdit={editingExpense} // Passed correct prop name
                 restaurantId={restaurantId}

@@ -123,7 +123,7 @@ export class FinancialAlertsService {
         }
 
         // Verificar si hay ventas en ese período
-        const { data: recentSales, error: salesError } = await supabase
+        const { data: recentSales } = await supabase
             .from('daily_sales')
             .select('date, total_sales')
             .eq('restaurant_id', restaurantId)
@@ -249,8 +249,8 @@ export class FinancialAlertsService {
                         const ing = l.ingredient as unknown as { id: string; name: string } | null
                         return ing?.id === ingId
                     })
-                    const ingredientName = logWithIngredient?.ingredient 
-                        ? (logWithIngredient.ingredient as unknown as { id: string; name: string }).name 
+                    const ingredientName = logWithIngredient?.ingredient
+                        ? (logWithIngredient.ingredient as unknown as { id: string; name: string }).name
                         : 'Ingrediente'
 
                     await this.createAlert({
@@ -353,7 +353,7 @@ export class FinancialAlertsService {
 
         const { error } = await supabase
             .from('financial_alerts')
-            .update({ 
+            .update({
                 is_resolved: true,
                 resolved_at: new Date().toISOString()
             })

@@ -35,8 +35,16 @@ export function DailyRecipeSalesForm() {
     const [isPending, startTransition] = useTransition()
 
     // Preview State
+    interface PreviewItem {
+        ingredientId: string;
+        name: string;
+        unit: string;
+        currentStock: number;
+        deduction: number;
+        estimatedStock: number;
+    }
     const [showPreview, setShowPreview] = useState(false)
-    const [previewData, setPreviewData] = useState<any[]>([])
+    const [previewData, setPreviewData] = useState<PreviewItem[]>([])
     const [calculatingPreview, setCalculatingPreview] = useState(false)
 
     // Load recipes and existing sales for the date
@@ -110,7 +118,7 @@ export function DailyRecipeSalesForm() {
             try {
                 const result = await processRecipeSales(date, salesData)
                 toast.success(`Stock actualizado. ${result.ingredientsAffected} ingredientes afectados.`)
-                 setShowPreview(false)
+                setShowPreview(false)
             } catch {
                 toast.error("Error procesando ventas")
             }

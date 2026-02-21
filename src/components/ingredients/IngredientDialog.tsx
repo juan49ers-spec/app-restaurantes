@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { CreateIngredientSchema, CreateIngredientInput, MasterIngredient } from "@/types/schema"
 import { updateIngredient, createIngredient } from "@/app/actions/ingredients"
 import { toast } from "sonner"
-import { PlusIcon, Loader2, Pencil } from "lucide-react"
+import { PlusIcon, Loader2 } from "lucide-react"
 
 import {
     Dialog,
@@ -111,7 +111,7 @@ export function IngredientDialog({ initialData, trigger, onSuccess, open: constr
                 router.refresh()
                 onSuccess?.()
             } else {
-                // @ts-ignore
+                // @ts-expect-error - legacy prop
                 toast.error(result.error || "Error al guardar ingrediente")
             }
         } catch {

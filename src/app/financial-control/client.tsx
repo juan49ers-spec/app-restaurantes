@@ -245,7 +245,6 @@ export function FinancialControlClient({
                     {activeTab === 'RESULTADOS' && (
                         <div className="max-w-5xl mx-auto">
                             <ResultadosDashboard
-                                restaurantId={restaurantId}
                                 dashboardData={resultsData?.data ?? null}
                             />
                         </div>

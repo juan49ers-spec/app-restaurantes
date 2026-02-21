@@ -71,7 +71,7 @@ async function runIntegrityTest() {
         await new Promise(r => setTimeout(r, 1000))
 
         // 4. Verify Initial Cost
-        let { data: recipeCheck } = await supabase
+        const { data: recipeCheck } = await supabase
             .from('recipes')
             .select('current_cost')
             .eq('id', recipe.id)
@@ -95,7 +95,7 @@ async function runIntegrityTest() {
         await new Promise(r => setTimeout(r, 1000))
 
         // 6. Verify Updated Cost
-        let { data: recipeFinal } = await supabase
+        const { data: recipeFinal } = await supabase
             .from('recipes')
             .select('current_cost')
             .eq('id', recipe.id)

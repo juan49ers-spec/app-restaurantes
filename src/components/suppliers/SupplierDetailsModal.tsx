@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Mail, Phone, CreditCard, Box, TrendingUp, Calendar, Star } from "lucide-react"
+import { Mail, Phone, CreditCard, Box, Star } from "lucide-react"
 import { Supplier } from "@/types/schema"
 
 interface SupplierDetailsModalProps {

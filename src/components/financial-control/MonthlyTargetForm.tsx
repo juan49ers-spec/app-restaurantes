@@ -25,6 +25,7 @@ export function MonthlyTargetForm({ restaurantId, currentMonth, initialData, onS
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const form = useForm<z.infer<typeof MonthlyTargetSchema>>({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zodResolver generic mismatch with Zod v4
         resolver: zodResolver(MonthlyTargetSchema) as any,
         defaultValues: {
             restaurant_id: restaurantId,
