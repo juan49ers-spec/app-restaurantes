@@ -254,7 +254,7 @@ const CollapsibleSection = memo(({
         onClick={toggle}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
         aria-expanded={isOpen ? "true" : "false"}
-        aria-controls={sectionId ?? undefined}
+        aria-controls={sectionId}
       >
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-neutral-500" aria-hidden="true" />

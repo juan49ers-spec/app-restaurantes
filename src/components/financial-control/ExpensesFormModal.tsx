@@ -112,7 +112,7 @@ export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit
                 : await upsertOperatingExpense(values)
             if (!result.success) throw new Error(result.error)
 
-            toast.success("Gasto registrado correctamente")
+            toast.success(expenseToEdit?.id ? "Gasto actualizado" : "Gasto registrado correctamente")
 
             // Reset and close
             form.reset({
@@ -177,8 +177,8 @@ export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between rounded-t-3xl">
                     <div>
-                        <h2 className="text-xl font-bold text-neutral-900">Añadir Gasto</h2>
-                        <p className="text-sm text-neutral-500 mt-0.5">Registra facturas de proveedores o pagos en efectivo.</p>
+                        <h2 className="text-xl font-bold text-neutral-900">{expenseToEdit?.id ? 'Editar Gasto' : 'Añadir Gasto'}</h2>
+                        <p className="text-sm text-neutral-500 mt-0.5">{expenseToEdit?.id ? 'Modifica los datos de este gasto.' : 'Registra facturas de proveedores o pagos en efectivo.'}</p>
                     </div>
                     <Button
                         variant="ghost"
@@ -391,8 +391,8 @@ export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit
                         <div className="space-y-2">
                             <Label>Forma de Pago</Label>
                             <Select
+                                value={form.watch('payment_method')}
                                 onValueChange={(val) => form.setValue('payment_method', val as ExpenseFormValues['payment_method'])}
-                                defaultValue="bank"
                             >
                                 <SelectTrigger>
                                     <SelectValue />

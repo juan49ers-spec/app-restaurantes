@@ -221,7 +221,7 @@
   /* Sophisticated Gradients */
   .bg-gastronomic-gradient {
     background: radial-gradient(circle at top left, oklch(0.98 0.02 85), transparent),
-                radial-gradient(circle at bottom right, oklch(0.95 0.05 45 / 0.1), transparent);
+      radial-gradient(circle at bottom right, oklch(0.95 0.05 45 / 0.1), transparent);
   }
 
   /* Text Gradients */
@@ -338,8 +338,8 @@
     content: '';
     @apply absolute inset-0 opacity-10;
     background: linear-gradient(90deg,
-        oklch(0.55 0.22 25) 0%,
-        oklch(0.55 0.22 25) var(--waste-pct, 0%),
+        hsl(15 75% 45%) 0%,
+        hsl(15 75% 45%) var(--waste-pct, 0%),
         transparent var(--waste-pct, 0%));
   }
 }
@@ -348,23 +348,23 @@
 @layer components {
   .badge-gross {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-    background: oklch(0.55 0.15 45 / 0.1);
-    color: oklch(0.55 0.15 45);
-    border: 1px solid oklch(0.55 0.15 45 / 0.2);
+    background: hsl(30 60% 50% / 0.1);
+    color: hsl(30 60% 50%);
+    border: 1px solid hsl(30 60% 50% / 0.2);
   }
 
   .badge-net {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-    background: oklch(0.60 0.12 155 / 0.1);
-    color: oklch(0.60 0.12 155);
-    border: 1px solid oklch(0.60 0.12 155 / 0.2);
+    background: hsl(145 40% 45% / 0.1);
+    color: hsl(145 40% 45%);
+    border: 1px solid hsl(145 40% 45% / 0.2);
   }
 
   .badge-cost {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-    background: oklch(0.65 0.18 75 / 0.1);
-    color: oklch(0.65 0.18 75);
-    border: 1px solid oklch(0.65 0.18 75 / 0.2);
+    background: hsl(45 70% 55% / 0.1);
+    color: hsl(45 70% 55%);
+    border: 1px solid hsl(45 70% 55% / 0.2);
   }
 }
 

@@ -570,22 +570,24 @@ export async function getExpenseDashboardData(
         editable: true
     }
 
-    // Fetch 6 months history for sparklines using extracted functions
-    const history: ExpenseDashboardData['history'] = []
+    // Fetch 6 months history for sparklines — single query instead of 6 sequential ones
     const historyMonths = generateHistoryMonths(targetDate)
+    const historyStart = historyMonths[0].start
+    const historyEnd = historyMonths[historyMonths.length - 1].end
 
-    for (const { month, start, end } of historyMonths) {
-        const { data: histExpenses } = await supabase
-            .from('operating_expenses')
-            .select('category, amount')
-            .eq('restaurant_id', restaurantId)
-            .gte('expense_date', start)
-            .lte('expense_date', end)
+    const { data: allHistExpenses } = await supabase
+        .from('operating_expenses')
+        .select('expense_date, category, amount')
+        .eq('restaurant_id', restaurantId)
+        .gte('expense_date', historyStart)
+        .lte('expense_date', historyEnd)
 
-        if (histExpenses) {
-            history.push(calculateHistoryEntry(month, histExpenses))
-        }
-    }
+    const history: ExpenseDashboardData['history'] = historyMonths.map(({ month }) => {
+        const monthExpenses = (allHistExpenses || []).filter(e =>
+            e.expense_date.startsWith(month)
+        )
+        return calculateHistoryEntry(month, monthExpenses)
+    })
 
     return {
         kpis: {
