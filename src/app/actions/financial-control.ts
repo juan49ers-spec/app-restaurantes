@@ -61,8 +61,19 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
     const validData = DailySalesSchema.parse(formData)
 
     // Calculate derived totals (server-side safety)
-    const revenue_total = (validData.base_10 || 0) + (validData.tax_10 || 0) +
+    const revenue_from_tax = (validData.base_10 || 0) + (validData.tax_10 || 0) +
         (validData.base_21 || 0) + (validData.tax_21 || 0)
+
+    const revenue_from_channels = (validData.revenue_dine_in || 0) +
+        (validData.revenue_takeout || 0) +
+        (validData.revenue_delivery || 0)
+
+    // Robust calculation: take the highest reliable signal to avoid data loss
+    const revenue_total = Math.max(
+        revenue_from_tax,
+        revenue_from_channels,
+        validData.revenue_total || 0
+    )
 
     const iva_total = (validData.tax_10 || 0) + (validData.tax_21 || 0)
 
@@ -83,6 +94,8 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
             total_covers: validData.total_covers,
             labor_hours: validData.labor_hours,
             day_status: validData.day_status,
+            cost_of_goods: validData.cost_of_goods,
+            labor_cost: validData.labor_cost,
             source: 'manual_entry',
             updated_at: new Date().toISOString()
         }, { onConflict: 'restaurant_id, date' })

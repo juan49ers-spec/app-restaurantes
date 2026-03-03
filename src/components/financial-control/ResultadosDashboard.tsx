@@ -53,6 +53,7 @@ interface DashboardUiData {
       margen: number
       gastosMateria: number
       gastosPersonal: number
+      gastosFijos: number
     }
   }
   breakEvenData: BreakEvenData
@@ -78,7 +79,7 @@ const EMPTY_DATA: DashboardUiData = {
   },
   sameMonthLastYear: { ingresos: 0, resultado: 0, gastosMateria: 0, gastosPersonal: 0 },
   varianceAnalysis: {
-    previousMonth: { resultado: 0, ingresos: 0, margen: 0, gastosMateria: 0, gastosPersonal: 0 },
+    previousMonth: { resultado: 0, ingresos: 0, margen: 0, gastosMateria: 0, gastosPersonal: 0, gastosFijos: 0 },
     currentMonth: { resultado: 0, ingresos: 0, margen: 0 },
     variacionVentas: 0, variacionMargen: 0,
     variacionGastosFijos: 0, variacionInversiones: 0, impactoTotal: 0
@@ -315,8 +316,11 @@ function useIntelligenceKPIs(data: DashboardUiData) {
     // Variación MoM real de gastos: compara OpEx actual vs mes anterior
     const prevExpenses =
       data.varianceAnalysis.previousMonth.gastosMateria +
-      data.varianceAnalysis.previousMonth.gastosPersonal
-    const currentComparableExpenses = current.personal.total + current.materiaPrima.total
+      data.varianceAnalysis.previousMonth.gastosPersonal +
+      data.varianceAnalysis.previousMonth.gastosFijos
+
+    // Gastos comparables actuales (sin CAPEX, es decir, OpEx)
+    const currentComparableExpenses = opExWithoutCapex
     const momExpenseVariation = prevExpenses > 0
       ? ((currentComparableExpenses - prevExpenses) / prevExpenses) * 100
       : 0
@@ -501,7 +505,8 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
         ingresos: prevIngresos,
         margen: prevMargen,
         gastosMateria: prevGastosMateria,
-        gastosPersonal: prevGastosPersonal
+        gastosPersonal: prevGastosPersonal,
+        gastosFijos: prevGastosFijos
       },
       currentMonth: {
         resultado: current.resultado_neto || 0,

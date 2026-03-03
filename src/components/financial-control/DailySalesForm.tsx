@@ -122,8 +122,8 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
                 source: 'manual_entry',
                 // Keep iva_collected for backward compatibility
                 iva_collected: (Number(values.tax_10) || 0) + (Number(values.tax_21) || 0),
-                cost_of_goods: 0,
-                labor_cost: 0
+                cost_of_goods: initialData?.cost_of_goods || 0,
+                labor_cost: initialData?.labor_cost || 0
             }
 
             const result = await upsertDailySales(submitData)

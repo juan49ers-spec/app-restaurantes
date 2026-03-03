@@ -74,13 +74,8 @@ export function TaxPulseWidget({ ivaBalance, irpfTotal, daysRemaining, quarter, 
                     </p>
                     <div className="mt-3 h-1 w-full bg-neutral-100 rounded-full overflow-hidden">
                         <div
-                            ref={(el) => {
-                                if (el) {
-                                    const quarterProgress = Math.min(100, Math.round(((90 - daysRemaining) / 90) * 100))
-                                    el.style.setProperty('--dyn-w', `${quarterProgress}%`)
-                                }
-                            }}
-                            className="h-full bg-neutral-900 dyn-bar"
+                            style={{ width: `${Math.min(100, Math.round(((90 - daysRemaining) / 90) * 100))}%` }}
+                            className="h-full bg-neutral-900"
                         />
                     </div>
                 </CardContent>

@@ -181,8 +181,8 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                             >
                                 <div className="flex items-center gap-2 overflow-hidden flex-1">
                                     <div
-                                        className="w-1.5 h-1.5 rounded-full flex-shrink-0 dyn-bg"
-                                        ref={(el) => { if (el) el.style.setProperty('--dyn-bg', item.color) }}
+                                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                        style={{ backgroundColor: item.color }}
                                     />
                                     <span className="text-neutral-600 font-medium truncate" title={item.name}>
                                         {item.name}
