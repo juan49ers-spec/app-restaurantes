@@ -20,35 +20,35 @@ export default async function InvoiceValidationPage() {
 
     if (!restaurant) redirect('/onboarding')
 
-    // Fetch pending validations
-    const { data: pendingItems } = await supabase
-        .from('ingestion_buffer')
-        .select(`
-            id,
-            raw_name,
-            raw_price,
-            raw_quantity,
-            raw_unit,
-            suggested_master_id,
-            confidence_score,
-            created_at,
-            invoice_id,
-            supplier_id,
-            invoices(invoice_number, date),
-            suppliers(name),
-            master_ingredients(id, name)
-        `)
-        .eq('restaurant_id', restaurant.id)
-        .eq('status', 'PENDING_VALIDATION')
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-    // Fetch all master ingredients for remapping
-    const { data: allIngredients } = await supabase
-        .from('master_ingredients')
-        .select('id, name, base_unit, current_avg_price')
-        .eq('restaurant_id', restaurant.id)
-        .order('name')
+    // Fetch pending validations + master ingredients in parallel
+    const [{ data: pendingItems }, { data: allIngredients }] = await Promise.all([
+        supabase
+            .from('ingestion_buffer')
+            .select(`
+                id,
+                raw_name,
+                raw_price,
+                raw_quantity,
+                raw_unit,
+                suggested_master_id,
+                confidence_score,
+                created_at,
+                invoice_id,
+                supplier_id,
+                invoices(invoice_number, date),
+                suppliers(name),
+                master_ingredients(id, name)
+            `)
+            .eq('restaurant_id', restaurant.id)
+            .eq('status', 'PENDING_VALIDATION')
+            .order('created_at', { ascending: false })
+            .limit(50),
+        supabase
+            .from('master_ingredients')
+            .select('id, name, base_unit, current_avg_price')
+            .eq('restaurant_id', restaurant.id)
+            .order('name'),
+    ])
 
     // Define raw type from Supabase query
     interface RawPendingItem {

@@ -14,7 +14,7 @@ export default async function InvoiceReviewPage({ params }: PageProps) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    // 1. Fetch Invoice
+    // 1. Fetch Invoice first (others depend on restaurant_id)
     const { data: invoice } = await supabase
         .from('invoices')
         .select('*')
@@ -23,28 +23,22 @@ export default async function InvoiceReviewPage({ params }: PageProps) {
 
     if (!invoice) notFound()
 
-    // 2. Get Public/Signed URL for Display
-    // We use signed URL because bucket is private
-    const { data: signedUrlData } = await supabase.storage
-        .from('invoices')
-        .createSignedUrl(invoice.file_url || '', 3600) // 1 hour
-
-    // Note: signedUrl may be null if invoice has no file_url (e.g., seed data)
-    // This is handled gracefully in the UI with a placeholder
-
-    // 3. Fetch Master Ingredients for Mapping (Autocomplete)
-    const { data: ingredients } = await supabase
-        .from('master_ingredients')
-        .select('id, name, base_unit, current_avg_price')
-        .eq('restaurant_id', invoice.restaurant_id)
-        .order('name')
-
-    // 4. Fetch Suppliers
-    const { data: suppliers } = await supabase
-        .from('suppliers')
-        .select('id, name')
-        .eq('restaurant_id', invoice.restaurant_id)
-        .order('name')
+    // 2. Parallelize: signed URL, ingredients, and suppliers
+    const [{ data: signedUrlData }, { data: ingredients }, { data: suppliers }] = await Promise.all([
+        supabase.storage
+            .from('invoices')
+            .createSignedUrl(invoice.file_url || '', 3600),
+        supabase
+            .from('master_ingredients')
+            .select('id, name, base_unit, current_avg_price')
+            .eq('restaurant_id', invoice.restaurant_id)
+            .order('name'),
+        supabase
+            .from('suppliers')
+            .select('id, name')
+            .eq('restaurant_id', invoice.restaurant_id)
+            .order('name'),
+    ])
 
     return (
         <div className="h-screen flex flex-col">

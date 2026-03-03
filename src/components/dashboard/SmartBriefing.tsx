@@ -1,4 +1,4 @@
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import { Sparkles, TrendingUp, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
@@ -76,7 +76,7 @@ export function SmartBriefing({ metrics, userName = "Chef" }: SmartBriefingProps
     }[status]
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className={`flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 rounded-3xl backdrop-blur-md border shadow-sm transition-all duration-500 ${colors} hover:shadow-md cursor-default`}
@@ -105,6 +105,6 @@ export function SmartBriefing({ metrics, userName = "Chef" }: SmartBriefingProps
                     <ArrowRight className="w-3 h-3 ml-1.5" />
                 </Button>
             )}
-        </motion.div>
+        </m.div>
     )
 }

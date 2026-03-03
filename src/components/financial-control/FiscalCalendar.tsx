@@ -22,9 +22,10 @@ export function FiscalCalendar({ year, quarter }: FiscalCalendarProps) {
     // Clamp now between start and end for visualization
     const clampedNow = new Date(Math.max(quarterStart.getTime(), Math.min(now.getTime(), quarterEnd.getTime())))
 
+    const isPastQuarter = now.getTime() > quarterEnd.getTime()
     const totalDays = Math.ceil((quarterEnd.getTime() - quarterStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
     const daysPassed = Math.ceil((clampedNow.getTime() - quarterStart.getTime()) / (1000 * 60 * 60 * 24))
-    const progress = (daysPassed / totalDays) * 100
+    const progress = isPastQuarter ? 100 : (daysPassed / totalDays) * 100
 
     // Month names
     const months: string[] = []
@@ -50,8 +51,8 @@ export function FiscalCalendar({ year, quarter }: FiscalCalendarProps) {
                 <div className="relative pt-2">
                     <div className="h-2.5 bg-neutral-100 rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-neutral-900 rounded-full transition-all duration-1000 ease-out"
-                            style={{ width: `${progress}%` }}
+                            className="h-full bg-neutral-900 rounded-full transition-all duration-1000 ease-out dyn-bar"
+                            ref={(el) => { if (el) el.style.setProperty('--dyn-w', `${progress}%`) }}
                         />
                     </div>
 

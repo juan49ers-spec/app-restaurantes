@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { MonthlyResult } from "@/types/resultados"
-import { OperatingExpense } from "@/types/schema"
 
 export async function insertMonthlyTestData(
     restaurantId: string,
@@ -9,6 +8,12 @@ export async function insertMonthlyTestData(
 ): Promise<{ success: boolean; error: string | null }> {
     try {
         const supabase = await createClient()
+
+        // 🛡️ Vercel Best Practice: Authenticate Server Actions
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            return { success: false, error: "No autorizado para insertar datos." }
+        }
 
         const { error } = await supabase
             .from("monthly_results")
@@ -67,7 +72,6 @@ export async function insertMonthlyTestData(
 export interface DashboardData {
     currentMonth: MonthlyResult | null
     history: MonthlyResult[]
-    expenses: OperatingExpense[]
     isClosed: boolean
 }
 
@@ -78,16 +82,17 @@ export async function getResultsDashboardData(
 ): Promise<{ data: DashboardData | null; error: string | null }> {
     try {
         const supabase = await createClient()
+
+        // 🛡️ Vercel Best Practice: Authenticate Server Actions
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            return { data: null, error: "Acceso no autorizado al dashboard." }
+        }
+
         const monthYear = `${year}-${month.toString().padStart(2, "0")}`
 
-        // Ejecutar todas las consultas en paralelo
-        const [
-            currentResult,
-            historyResult,
-            expensesResult,
-            statusResult
-        ] = await Promise.all([
-            // Resultado actual
+        // 2 queries en paralelo (antes eran 4 — se eliminaron statusResult y expensesResult por redundantes)
+        const [currentResult, historyResult] = await Promise.all([
             supabase
                 .from("monthly_results")
                 .select("*")
@@ -95,46 +100,63 @@ export async function getResultsDashboardData(
                 .eq("month_year", monthYear)
                 .single(),
 
-            // Histórico (últimos 12 meses)
             supabase
                 .from("monthly_results")
                 .select("*")
                 .eq("restaurant_id", restaurantId)
                 .order("year", { ascending: false })
                 .order("month", { ascending: false })
-                .limit(12),
-
-            // Gastos del mes
-            supabase
-                .from("operating_expenses")
-                .select("*")
-                .eq("restaurant_id", restaurantId)
-                .eq("month_year", monthYear)
-                .order("expense_date", { ascending: false }),
-
-            // Estado del mes
-            supabase
-                .from("monthly_results")
-                .select("is_closed")
-                .eq("restaurant_id", restaurantId)
-                .eq("month_year", monthYear)
-                .single()
+                .limit(12)
         ])
 
-        // Manejar errores individuales (no críticos)
         if (historyResult.error) console.error("History error:", historyResult.error)
-        if (expensesResult.error) console.error("Expenses error:", expensesResult.error)
 
         const dashboardData: DashboardData = {
             currentMonth: currentResult.data || null,
             history: historyResult.data || [],
-            expenses: expensesResult.data || [],
-            isClosed: statusResult.data?.is_closed ?? false
+            isClosed: currentResult.data?.is_closed ?? false
         }
 
         return { data: dashboardData, error: null }
     } catch (err) {
         console.error("Error fetching dashboard data:", err)
         return { data: null, error: "Error al cargar el dashboard" }
+    }
+}
+
+// ==========================================
+// CLOSE MONTH (Cierre Contable)
+// ==========================================
+
+export async function closeMonth(
+    restaurantId: string,
+    monthYear: string
+): Promise<{ success: boolean; error: string | null }> {
+    try {
+        const supabase = await createClient()
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            return { success: false, error: "No autorizado." }
+        }
+
+        const { error } = await supabase
+            .from("monthly_results")
+            .update({
+                is_closed: true,
+                closed_at: new Date().toISOString(),
+                closed_by: user.id
+            })
+            .eq("restaurant_id", restaurantId)
+            .eq("month_year", monthYear)
+
+        if (error) throw error
+
+        revalidatePath("/financial-control")
+        return { success: true, error: null }
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Error al cerrar el mes"
+        console.error("Error closing month:", err)
+        return { success: false, error: message }
     }
 }

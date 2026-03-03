@@ -28,28 +28,33 @@ export async function getFinancialMetrics(
     const supabase = await createClient()
     const now = new Date()
 
-    // Default to current month if no dates provided
     const startCurrent = startDate ? startDate : startOfMonth(now).toISOString()
     const endCurrent = endDate ? endDate : now.toISOString()
 
-    // Calculate previous period for comparison (same duration)
     const durationDays = differenceInDays(new Date(endCurrent), new Date(startCurrent))
     const startLast = new Date(new Date(startCurrent).getTime() - (durationDays * 24 * 60 * 60 * 1000)).toISOString()
 
-    // 1. Fetch Operating Expenses (Source of Truth for Spend)
-    const { data: expenses } = await supabase
-        .from('operating_expenses')
-        .select(`
-            amount,
-            expense_date,
-            category
-        `)
-        .eq('restaurant_id', restaurantId)
-        .gte('expense_date', startLast)
-        .lte('expense_date', endCurrent)
+    const [expensesResult, alertsResult] = await Promise.all([
+        supabase
+            .from('operating_expenses')
+            .select('amount, expense_date, category')
+            .eq('restaurant_id', restaurantId)
+            .gte('expense_date', startLast)
+            .lte('expense_date', endCurrent),
+        supabase
+            .from('alerts')
+            .select('id, type, title, message, created_at')
+            .eq('restaurant_id', restaurantId)
+            .gte('created_at', startCurrent)
+            .order('created_at', { ascending: false })
+            .limit(20)
+    ])
 
-    const currentExpenses = expenses?.filter(e => e.expense_date >= startCurrent) || []
-    const lastExpenses = expenses?.filter(e => e.expense_date >= startLast && e.expense_date < startCurrent) || []
+    const expenses = expensesResult.data || []
+    const alerts = alertsResult.data || []
+
+    const currentExpenses = expenses.filter(e => e.expense_date >= startCurrent)
+    const lastExpenses = expenses.filter(e => e.expense_date >= startLast && e.expense_date < startCurrent)
 
     const currentMonthSpend = currentExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
     const lastMonthSpend = lastExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
@@ -58,14 +63,12 @@ export async function getFinancialMetrics(
         ? ((currentMonthSpend - lastMonthSpend) / lastMonthSpend) * 100
         : 100
 
-    // 2. Spend by Category
     const categoryMap = new Map<string, number>()
     currentExpenses.forEach(exp => {
         const category = exp.category || 'OTHER'
         categoryMap.set(category, (categoryMap.get(category) || 0) + (Number(exp.amount) || 0))
     })
 
-    // Map categories to Financial Theme colors
     const categoryColors: Record<string, string> = {
         'COGS_FOOD': FINANCIAL_THEME.colors.vegetables,
         'COGS_BEVERAGE': FINANCIAL_THEME.colors.beverage,
@@ -73,13 +76,13 @@ export async function getFinancialMetrics(
         'LABOR_TAXES': FINANCIAL_THEME.colors.fish,
         'OCCUPANCY_RENT': FINANCIAL_THEME.colors.dryGoods,
         'OCCUPANCY_UTILITIES': FINANCIAL_THEME.colors.dairy,
-        'MARKETING': '#8b5cf6', // Violet
-        'MAINTENANCE': '#f59e0b', // Amber
-        'PROFESSIONAL_SERVICES': '#06b6d4', // Cyan
-        'INSURANCE': '#10b981', // Emerald
-        'FINANCIAL': '#6366f1', // Indigo
-        'TECH': '#ec4899', // Pink
-        'UNCATEGORIZED_CASH': '#64748b', // Slate
+        'MARKETING': '#8b5cf6',
+        'MAINTENANCE': '#f59e0b',
+        'PROFESSIONAL_SERVICES': '#06b6d4',
+        'INSURANCE': '#10b981',
+        'FINANCIAL': '#6366f1',
+        'TECH': '#ec4899',
+        'UNCATEGORIZED_CASH': '#64748b',
         'OTHER': FINANCIAL_THEME.colors.uncategorized
     }
 
@@ -88,15 +91,6 @@ export async function getFinancialMetrics(
         value,
         color: categoryColors[name] || FINANCIAL_THEME.colors.uncategorized
     })).sort((a, b) => b.value - a.value)
-
-    // 3. Inflation & Alerts
-    const { data: alerts } = await supabase
-        .from('alerts')
-        .select('*')
-        .eq('restaurant_id', restaurantId)
-        .gte('created_at', startCurrent)
-        .order('created_at', { ascending: false })
-        .limit(20)
 
     const priceSpikeAlerts = alerts?.filter(a => a.type === 'PRICE_SPIKE') || []
     const inflationImpact = priceSpikeAlerts.length * INFLATION_ESTIMATES.PER_ALERT_IMPACT_EUR

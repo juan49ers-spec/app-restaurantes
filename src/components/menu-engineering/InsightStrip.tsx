@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 import { Sparkles, Brain } from "lucide-react"
 import { useMenuEngineering, SimulatedMenuItem } from "./MenuEngineeringContext"
 import { cn } from "@/lib/utils"
@@ -100,7 +100,7 @@ export function InsightStrip({ items }: Props) {
 
                 <div className="flex-1 max-w-4xl relative h-6 overflow-hidden">
                     <AnimatePresence mode="wait">
-                        <motion.p
+                        <m.p
                             key={`${selectedCategory}-${currentInsight}`}
                             initial={{ y: 20, opacity: 0, filter: 'blur(10px)' }}
                             animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }}
@@ -112,7 +112,7 @@ export function InsightStrip({ items }: Props) {
                             )}
                         >
                             {displayInsights[currentInsight] || ""}
-                        </motion.p>
+                        </m.p>
                     </AnimatePresence>
                 </div>
 

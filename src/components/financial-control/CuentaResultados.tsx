@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, memo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 import {
     ChevronDown,
     ChevronUp,
@@ -42,6 +42,9 @@ interface CuentaResultadosProps {
         financiaciones: number
         resultadoNeto: number
     }
+    /** Si se proporciona, se usa directamente en vez de recalcular ingresosNetos+ingresosExtra.
+     *  Previene discrepancias si la BD tiene un total_ingresos diferente de la suma de partes. */
+    totalIngresos?: number
     benchmarks?: {
         personalPct?: number
         materiaPrimaPct?: number
@@ -97,7 +100,7 @@ const ProportionBar = memo(function ProportionBar({
 
     return (
         <div className="w-16 h-1 bg-neutral-100 rounded-full overflow-hidden">
-            <motion.div
+            <m.div
                 initial={{ width: 0 }}
                 animate={{ width: `${percentage}%` }}
                 transition={{ duration: 0.5, delay: 0.2 }}
@@ -149,7 +152,7 @@ const ResultRow = memo(function ResultRow({
     }, [item.benchmark, percentage, item.type])
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2 }}
@@ -221,7 +224,7 @@ const ResultRow = memo(function ResultRow({
 
             <AnimatePresence>
                 {isExpanded && item.children && (
-                    <motion.div
+                    <m.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
@@ -238,10 +241,10 @@ const ResultRow = memo(function ResultRow({
                                 />
                             ))}
                         </div>
-                    </motion.div>
+                    </m.div>
                 )}
             </AnimatePresence>
-        </motion.div>
+        </m.div>
     )
 })
 
@@ -249,11 +252,12 @@ const ResultRow = memo(function ResultRow({
 // MAIN COMPONENT
 // ==========================================
 
-export function CuentaResultados({ data, benchmarks }: CuentaResultadosProps) {
+export function CuentaResultados({ data, totalIngresos: totalIngresosProp, benchmarks }: CuentaResultadosProps) {
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['personal', 'materia']))
     const [showDetails, setShowDetails] = useState(true)
 
-    const totalIngresos = data.ingresosNetos + data.ingresosExtra
+    // Usar el totalIngresos de BD si se proporciona, sino recalcular
+    const totalIngresos = totalIngresosProp ?? (data.ingresosNetos + data.ingresosExtra)
 
     const lineItems: LineItem[] = useMemo(() => [
         {
@@ -434,7 +438,7 @@ export function CuentaResultados({ data, benchmarks }: CuentaResultadosProps) {
             {analysis.alerts.length > 0 && (
                 <div className="space-y-2">
                     {analysis.alerts.map((alert, idx) => (
-                        <motion.div
+                        <m.div
                             key={idx}
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -446,7 +450,7 @@ export function CuentaResultados({ data, benchmarks }: CuentaResultadosProps) {
                         >
                             <AlertCircle className="w-4 h-4" />
                             {alert.msg}
-                        </motion.div>
+                        </m.div>
                     ))}
                 </div>
             )}

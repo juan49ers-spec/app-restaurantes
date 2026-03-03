@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { motion } from "framer-motion"
-import { Loader2, Users, Clock, AlertTriangle, Save, CheckCircle2, Lock, Unlock } from "lucide-react"
+import { m } from "framer-motion"
+import { Loader2, Users, Clock, AlertTriangle, Save, CheckCircle2, Lock, Unlock, TrendingUp, Receipt, Percent, Banknote } from "lucide-react"
 import { toast } from "sonner"
 
 import { DailySales } from "@/types/schema"
@@ -156,167 +156,173 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
-            {/* KPI Cards - Reduced to 3 essential metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Card className="bg-white border-neutral-200/60 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-0.5 h-full bg-emerald-500" />
-                    <CardHeader className="pb-1.5 px-3 pt-2.5">
-                        <CardTitle className="text-[10px] font-medium text-neutral-500 uppercase tracking-wide">Ventas Día</CardTitle>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-white/60 backdrop-blur-xl border-neutral-200/50 shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-medium text-neutral-500 flex items-center justify-between">
+                            Ventas Día
+                            <div className="p-1.5 bg-emerald-50 rounded-lg text-emerald-600">
+                                <Banknote className="w-4 h-4" />
+                            </div>
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="px-3 pb-2.5">
-                        <div className="text-xl font-semibold text-neutral-900 tabular-nums">
+                    <CardContent>
+                        <div className="text-2xl font-bold text-neutral-900 tabular-nums tracking-tight">
                             {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(totalRevenue)}
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-white border-neutral-200/60 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-0.5 h-full bg-blue-500" />
-                    <CardHeader className="pb-1.5 px-3 pt-2.5">
-                        <CardTitle className="text-[10px] font-medium text-neutral-500 uppercase tracking-wide">Ticket Medio</CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-3 pb-2.5">
-                        <div className="flex items-center gap-1.5">
-                            <div className="text-xl font-semibold text-neutral-900 tabular-nums">
-                                {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(avgTicket)}
+                <Card className="bg-white/60 backdrop-blur-xl border-neutral-200/50 shadow-sm hover:shadow-md transition-all duration-300">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-medium text-neutral-500 flex items-center justify-between">
+                            Ticket Medio
+                            <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+                                <Receipt className="w-4 h-4" />
                             </div>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-neutral-900 tabular-nums tracking-tight">
+                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(avgTicket)}
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Live Margin Card - Simplified */}
+                {/* Live Margin Card */}
                 <LiveMarginCard totalRevenue={totalRevenue} laborHours={laborHours} />
             </div>
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Registro de Ventas</CardTitle>
+            <Card className="bg-white/80 backdrop-blur-xl border-neutral-200/50 shadow-sm overflow-hidden">
+                <CardHeader className="bg-neutral-50/50 border-b border-neutral-100/50 pb-4">
+                    <CardTitle className="text-lg font-medium tracking-tight text-neutral-900">Registro de Ventas</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-6 space-y-6">
                     {shouldDisable && (
-                        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-amber-800 text-xs">
-                                <Lock className="w-3 h-3" />
-                                <span className="text-xs font-medium">Día bloqueado</span>
+                        <div className="mb-4 p-4 bg-amber-50/80 border border-amber-200/50 rounded-xl flex items-center justify-between backdrop-blur-sm">
+                            <div className="flex items-center gap-3 text-amber-800">
+                                <div className="p-2 bg-amber-100 rounded-lg">
+                                    <Lock className="w-4 h-4" />
+                                </div>
+                                <span className="text-sm font-medium">Día bloqueado</span>
                             </div>
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={handleUnlock}
-                                className="bg-white border-amber-300 text-amber-700 hover:bg-amber-50 h-7 px-2 text-[10px]"
+                                className="bg-white/80 border-amber-300/50 text-amber-700 hover:bg-amber-100 transition-colors shadow-sm"
                             >
-                                <Unlock className="w-2.5 h-2.5 mr-1" /> Desbloquear
+                                <Unlock className="w-3.5 h-3.5 mr-2" /> Desbloquear edición
                             </Button>
                         </div>
                     )}
 
-                    <fieldset disabled={shouldDisable} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-1">
-                            <Label htmlFor="dine_in" className="text-xs">Sala / Barra</Label>
-                            <Input
-                                id="dine_in"
-                                type="number"
-                                step="0.01"
-                                {...form.register('revenue_dine_in', { valueAsNumber: true })}
-                                className="text-sm font-mono h-9"
-                            />
+                    <fieldset disabled={shouldDisable} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-2 group">
+                            <Label htmlFor="dine_in" className="text-sm font-medium text-neutral-600 group-focus-within:text-neutral-900 transition-colors">Sala / Barra</Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">€</span>
+                                <Input
+                                    id="dine_in"
+                                    type="number"
+                                    step="0.01"
+                                    {...form.register('revenue_dine_in', { valueAsNumber: true })}
+                                    className="pl-8 text-base font-mono h-11 bg-white/50 border-neutral-200 focus:bg-white transition-all shadow-sm"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="takeout" className="text-xs">Take Away</Label>
-                            <Input
-                                id="takeout"
-                                type="number"
-                                step="0.01"
-                                {...form.register('revenue_takeout', { valueAsNumber: true })}
-                                className="text-sm font-mono h-9"
-                            />
+                        <div className="space-y-2 group">
+                            <Label htmlFor="takeout" className="text-sm font-medium text-neutral-600 group-focus-within:text-neutral-900 transition-colors">Take Away</Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">€</span>
+                                <Input
+                                    id="takeout"
+                                    type="number"
+                                    step="0.01"
+                                    {...form.register('revenue_takeout', { valueAsNumber: true })}
+                                    className="pl-8 text-base font-mono h-11 bg-white/50 border-neutral-200 focus:bg-white transition-all shadow-sm"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="delivery" className="text-xs">Delivery</Label>
-                            <Input
-                                id="delivery"
-                                type="number"
-                                step="0.01"
-                                {...form.register('revenue_delivery', { valueAsNumber: true })}
-                                className="text-sm font-mono h-9"
-                            />
+                        <div className="space-y-2 group">
+                            <Label htmlFor="delivery" className="text-sm font-medium text-neutral-600 group-focus-within:text-neutral-900 transition-colors">Delivery</Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">€</span>
+                                <Input
+                                    id="delivery"
+                                    type="number"
+                                    step="0.01"
+                                    {...form.register('revenue_delivery', { valueAsNumber: true })}
+                                    className="pl-8 text-base font-mono h-11 bg-white/50 border-neutral-200 focus:bg-white transition-all shadow-sm"
+                                />
+                            </div>
                         </div>
                     </fieldset>
 
-                    <Separator className="my-4" />
+                    <Separator className="bg-neutral-100" />
 
-                    <fieldset disabled={shouldDisable} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <Label htmlFor="covers" className="flex items-center gap-1.5 text-xs">
-                                <Users className="w-3.5 h-3.5 text-neutral-500" /> Comensales
+                    <fieldset disabled={shouldDisable} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2 group">
+                            <Label htmlFor="covers" className="flex items-center gap-2 text-sm font-medium text-neutral-600 group-focus-within:text-neutral-900 transition-colors">
+                                <Users className="w-4 h-4 text-neutral-400 group-focus-within:text-indigo-500 transition-colors" /> Comensales
                             </Label>
                             <Input
                                 id="covers"
                                 type="number"
                                 {...form.register('total_covers', { valueAsNumber: true })}
-                                className="h-9 text-sm"
+                                className="h-11 text-base bg-white/50 border-neutral-200 focus:bg-white transition-all shadow-sm"
                             />
                         </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="labor" className="flex items-center gap-1.5 text-xs">
-                                <Clock className="w-3.5 h-3.5 text-neutral-500" /> Horas Equipo
+                        <div className="space-y-2 group">
+                            <Label htmlFor="labor" className="flex items-center gap-2 text-sm font-medium text-neutral-600 group-focus-within:text-neutral-900 transition-colors">
+                                <Clock className="w-4 h-4 text-neutral-400 group-focus-within:text-indigo-500 transition-colors" /> Horas Equipo
                             </Label>
                             <Input
                                 id="labor"
                                 type="number"
                                 step="0.5"
                                 {...form.register('labor_hours', { valueAsNumber: true })}
-                                className="h-9 text-sm"
+                                className="h-11 text-base bg-white/50 border-neutral-200 focus:bg-white transition-all shadow-sm"
                             />
                         </div>
                     </fieldset>
 
                     {/* Logic Integrity Alert */}
                     {isTicketLow && (
-                        <Alert variant="destructive" className="mt-3 py-2 px-3">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            <AlertTitle className="text-xs">Verificar datos</AlertTitle>
-                            <AlertDescription className="text-xs">
-                                Ticket medio bajo ({avgTicket.toFixed(1)}€)
+                        <Alert variant="destructive" className="bg-rose-50/50 border-rose-200/50 text-rose-800 rounded-xl">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle className="text-sm font-semibold">Alerta de Integridad</AlertTitle>
+                            <AlertDescription className="text-xs mt-1 text-rose-700/80">
+                                Ticket medio excepcionalmente bajo ({new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(avgTicket)}).
+                                Por favor, verifica el número de comensales o la recaudación.
                             </AlertDescription>
                         </Alert>
                     )}
-
                 </CardContent>
-
-                <CardFooter className="flex justify-between items-center bg-slate-50/50 border-t py-2.5 px-4">
-                    <div className="flex items-center gap-1.5 text-[10px] text-neutral-500">
-                        {lastSaved && (
-                            <>
-                                <CheckCircle2 className="w-3 h-3" />
-                                <span>{lastSaved.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
-                            </>
-                        )}
-                    </div>
-                    <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="bg-neutral-900 text-white hover:bg-neutral-800 text-[10px] h-7 px-3 rounded-md font-medium"
-                    >
-                        {isSubmitting ? <Loader2 className="w-3 h-3 animate-spin" /> : "Guardar"}
-                    </Button>
-                </CardFooter>
             </Card>
 
-            <div className="flex items-center justify-between pt-4">
-                <div className="text-sm text-neutral-500">
-                    {lastSaved && `Guardado hace ${Math.floor((new Date().getTime() - lastSaved.getTime()) / 1000)}s`}
+            <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center gap-2 text-xs font-medium text-neutral-500 bg-neutral-100/50 px-3 py-1.5 rounded-full border border-neutral-200/50">
+                    {lastSaved ? (
+                        <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>Guardado a las {lastSaved.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </>
+                    ) : (
+                        <span className="text-neutral-400">Sin cambios guardados</span>
+                    )}
                 </div>
 
                 {!shouldDisable ? (
-                    <Button type="submit" size="lg" disabled={isSubmitting} className="w-full md:w-auto min-w-[200px] shadow-lg hover:shadow-xl transition-all">
+                    <Button type="submit" size="lg" disabled={isSubmitting} className="w-full md:w-auto min-w-[200px] shadow-md hover:shadow-lg transition-all rounded-full bg-neutral-900 hover:bg-neutral-800 text-white font-medium">
                         {isSubmitting ? (
                             <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Procesando...
                             </>
                         ) : (
                             <>
-                                <Save className="mr-2 h-4 w-4" /> Guardar Cierre
+                                <Save className="mr-2 h-4 w-4" /> Guardar Cierre de Caja
                             </>
                         )}
                     </Button>
@@ -325,9 +331,10 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
                         type="button"
                         onClick={handleUnlock}
                         variant="outline"
-                        className="w-full md:w-auto opacity-80 hover:opacity-100"
+                        size="lg"
+                        className="w-full md:w-auto rounded-full bg-white shadow-sm hover:bg-neutral-50 hover:text-neutral-900 border-neutral-200 font-medium transition-all"
                     >
-                        <Unlock className="mr-2 h-4 w-4" /> Desbloquear para Editar
+                        <Unlock className="mr-2 h-4 w-4" /> Desbloquear Edición
                     </Button>
                 )}
             </div>
@@ -347,49 +354,53 @@ function LiveMarginCard({ totalRevenue, laborHours }: { totalRevenue: number, la
     const marginPct = totalRevenue > 0 ? (estimatedMargin / totalRevenue) * 100 : 0
 
     let color = "bg-slate-500"
+    let bgLight = "bg-slate-50"
     let textColor = "text-slate-600"
     let statusText = "Calculando..."
-    let emoji = "🤔"
 
     if (totalRevenue > 0) {
         if (marginPct >= 20) {
             color = "bg-emerald-500"
+            bgLight = "bg-emerald-50"
             textColor = "text-emerald-600"
-            statusText = "¡Excelente!"
-            emoji = "🚀"
+            statusText = "Excelente"
         } else if (marginPct >= 10) {
             color = "bg-amber-500"
+            bgLight = "bg-amber-50"
             textColor = "text-amber-600"
             statusText = "Aceptable"
-            emoji = "👌"
         } else {
             color = "bg-rose-500"
+            bgLight = "bg-rose-50"
             textColor = "text-rose-600"
             statusText = "Crítico"
-            emoji = "⚠️"
         }
     }
 
     return (
-        <Card className="bg-white border-neutral-200/60 shadow-sm relative overflow-hidden">
-            <div className={`absolute top-0 left-0 w-0.5 h-full ${color}`} />
-            <CardHeader className="pb-1.5 px-3 pt-2.5">
-                <CardTitle className="text-[10px] font-medium text-neutral-500 uppercase tracking-wide flex justify-between">
-                    Margen Est. <span className="text-[10px] grayscale">{emoji}</span>
+        <Card className="bg-white/60 backdrop-blur-xl border-neutral-200/50 shadow-sm hover:shadow-md transition-all duration-300">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium text-neutral-500 flex items-center justify-between">
+                    Margen Est.
+                    <div className={`p-1.5 rounded-lg ${bgLight} ${textColor}`}>
+                        <Percent className="w-4 h-4" />
+                    </div>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="px-3 pb-2.5">
-                <div className="space-y-1.5">
+            <CardContent>
+                <div className="space-y-3">
                     <div className="flex justify-between items-baseline">
-                        <span className={`text-xl font-semibold tabular-nums ${textColor}`}>
+                        <span className={`text-2xl font-bold tabular-nums tracking-tight ${textColor}`}>
                             {totalRevenue > 0 ? `${marginPct.toFixed(0)}%` : "--"}
                         </span>
-                        <span className="text-[10px] font-medium text-muted-foreground">{statusText}</span>
+                        <span className="text-xs font-medium text-muted-foreground bg-white/50 px-2 py-0.5 rounded-full border border-neutral-100">
+                            {statusText}
+                        </span>
                     </div>
                     {/* Progress Bar */}
-                    <div className="h-1 w-full bg-neutral-100 rounded-full overflow-hidden">
-                        <motion.div
-                            className={`h-full ${color}`}
+                    <div className="h-1.5 w-full bg-neutral-100/80 rounded-full overflow-hidden">
+                        <m.div
+                            className={`h-full ${color} rounded-full`}
                             initial={{ width: 0 }}
                             animate={{ width: `${Math.max(0, Math.min(100, marginPct))}%` }}
                             transition={{ duration: 0.5, ease: "easeOut" }}

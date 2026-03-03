@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import { Wallet, AlertTriangle, Euro, Percent, Sparkles } from "lucide-react"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { cn } from "@/lib/utils"
@@ -73,10 +73,10 @@ export function FinancialMetrics({ data, ghostRisk = 0 }: FinancialMetricsProps)
 
     return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {metrics.map((m, idx) => {
-                const Icon = m.icon
+            {metrics.map((metric, idx) => {
+                const Icon = metric.icon
                 return (
-                    <motion.div
+                    <m.div
                         key={idx}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -86,35 +86,35 @@ export function FinancialMetrics({ data, ghostRisk = 0 }: FinancialMetricsProps)
                         {/* Subtle Background Glow */}
                         <div className={cn(
                             "absolute -right-4 -top-4 w-16 h-16 rounded-full blur-3xl opacity-20 transition-all duration-700 group-hover:scale-150",
-                            m.status === 'good' || m.status === 'perfect' ? "bg-emerald-500" :
-                                m.status === 'warn' ? "bg-amber-500" :
-                                    m.status === 'bad' ? "bg-rose-500" : "bg-indigo-500"
+                            metric.status === 'good' || metric.status === 'perfect' ? "bg-emerald-500" :
+                                metric.status === 'warn' ? "bg-amber-500" :
+                                    metric.status === 'bad' ? "bg-rose-500" : "bg-indigo-500"
                         )} />
 
                         <div className="relative z-10">
                             <div className="flex items-center justify-between mb-3">
                                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">
-                                    {m.label}
+                                    {metric.label}
                                 </span>
                                 <div className="flex items-center gap-1.5">
-                                    <Tooltip content={m.tooltip} asIcon />
-                                    <Icon className={cn("w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity duration-500", m.color)} />
+                                    <Tooltip content={metric.tooltip} asIcon />
+                                    <Icon className={cn("w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity duration-500", metric.color)} />
                                 </div>
                             </div>
 
                             <div className="flex items-baseline gap-2">
                                 <p className={cn(
                                     "font-serif text-3xl font-black tracking-tighter transition-all duration-500",
-                                    m.color
+                                    metric.color
                                 )}>
-                                    {m.value}
+                                    {metric.value}
                                 </p>
-                                {m.status === 'perfect' && ghostRisk === 0 && (
+                                {metric.status === 'perfect' && ghostRisk === 0 && (
                                     <Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
                                 )}
                             </div>
                         </div>
-                    </motion.div>
+                    </m.div>
                 )
             })}
         </div>

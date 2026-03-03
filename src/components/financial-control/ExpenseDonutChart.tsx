@@ -17,14 +17,14 @@ interface ExpenseDonutChartProps {
 }
 
 const COLORS = [
-    "#3b82f6", // blue-500
-    "#10b981", // emerald-500
-    "#f59e0b", // amber-500
-    "#ef4444", // red-500
-    "#8b5cf6", // violet-500
-    "#ec4899", // pink-500
-    "#06b6d4", // cyan-500
-    "#f97316", // orange-500
+    { hex: "#3b82f6", bgClass: "bg-blue-500" },
+    { hex: "#10b981", bgClass: "bg-emerald-500" },
+    { hex: "#f59e0b", bgClass: "bg-amber-500" },
+    { hex: "#ef4444", bgClass: "bg-red-500" },
+    { hex: "#8b5cf6", bgClass: "bg-violet-500" },
+    { hex: "#ec4899", bgClass: "bg-pink-500" },
+    { hex: "#06b6d4", bgClass: "bg-cyan-500" },
+    { hex: "#f97316", bgClass: "bg-orange-500" },
 ]
 
 interface CustomTooltipProps {
@@ -58,10 +58,12 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
             name: EXPENSE_CATEGORY_LABELS[e.category],
             value: e.amount,
             category: e.category, // Para filtrar después
-            color: "" // Se asignará abajo
+            color: "" as string, // Se asignará abajo
+            bgClass: "" as string
         })).sort((a, b) => b.value - a.value).map((item, index) => ({
             ...item,
-            color: COLORS[index % COLORS.length]
+            color: COLORS[index % COLORS.length].hex,
+            bgClass: COLORS[index % COLORS.length].bgClass
         }))
     }, [expenses])
 
@@ -78,7 +80,8 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
             return {
                 name: label,
                 value: amount,
-                color: COLORS[index % COLORS.length] // Reusar colores para tags
+                color: COLORS[index % COLORS.length].hex,
+                bgClass: COLORS[index % COLORS.length].bgClass
             }
         }).sort((a, b) => b.value - a.value)
     }, [expenses, selectedCategory])
@@ -97,56 +100,54 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
         <Card className="shadow-sm border-neutral-200 bg-white h-full flex flex-col overflow-hidden">
             <CardHeader className="pb-2 pt-4 px-4 flex-none border-b border-neutral-100">
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-xs font-semibold text-neutral-500 uppercase tracking-wider flex items-center gap-2">
-                        <PieChartIcon className="w-4 h-4" />
-                        Distribución de Gastos
-                    </CardTitle>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-neutral-50 rounded-lg text-neutral-500">
+                            <PieChartIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-sm font-bold text-neutral-900 leading-none">
+                                {selectedCategory ? EXPENSE_CATEGORY_LABELS[selectedCategory] : "Distribución de Gastos"}
+                            </CardTitle>
+                            <p className="text-[10px] text-neutral-500 mt-1 uppercase tracking-wider font-semibold">
+                                {selectedCategory ? "Desglose por proveedor" : "Vista por categorías"}
+                            </p>
+                        </div>
+                    </div>
                     {selectedCategory && (
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setSelectedCategory(null)}
-                            className="h-6 text-[10px] px-2 text-neutral-500 hover:text-neutral-900"
+                            className="h-7 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1 pr-3"
                         >
-                            <ChevronLeft className="w-3 h-3 mr-1" />
+                            <ChevronLeft className="w-3 h-3" />
                             Volver
                         </Button>
                     )}
                 </div>
-                {selectedCategory && (
-                    <p className="text-sm font-bold text-blue-600 mt-1">
-                        {EXPENSE_CATEGORY_LABELS[selectedCategory]}
-                    </p>
-                )}
             </CardHeader>
-            <CardContent className="flex-1 p-0 flex flex-col sm:flex-row items-center h-full min-h-[160px]">
-                {/* Chart Section */}
-                <div className="relative w-full sm:w-1/2 h-[160px] sm:h-full min-h-[160px]">
+            <CardContent className="flex-1 flex flex-col sm:flex-row items-center p-0 overflow-hidden min-h-[220px]">
+                <div className="relative w-full sm:w-1/2 h-[180px] sm:h-full p-4 flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
                                 data={activeData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={40}
-                                outerRadius={60}
+                                innerRadius={55}
+                                outerRadius={80}
                                 paddingAngle={2}
                                 dataKey="value"
+                                stroke="none"
                                 onClick={(data) => {
                                     if (!selectedCategory && 'category' in data) {
                                         setSelectedCategory(data.category as OperatingExpenseCategory)
                                     }
                                 }}
-                                cursor={!selectedCategory ? "pointer" : "default"}
+                                className="cursor-pointer focus:outline-none"
                             >
                                 {activeData.map((entry, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={entry.color}
-                                        strokeWidth={1}
-                                        stroke="#fff"
-                                        className="hover:opacity-80 transition-opacity"
-                                    />
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Pie>
                             <Tooltip content={<CustomTooltip totalValue={totalValue} />} />
@@ -163,14 +164,14 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                 </div>
 
                 {/* Legend Section */}
-                <div className="w-full sm:w-1/2 p-3 h-[160px] sm:h-full overflow-y-auto border-t sm:border-t-0 sm:border-l border-neutral-100 bg-neutral-50/30">
-                    <div className="space-y-1.5">
+                <div className="w-full sm:w-1/2 h-full p-4 bg-neutral-50/50 border-t sm:border-t-0 sm:border-l border-neutral-100 overflow-y-auto max-h-[180px] sm:max-h-none">
+                    <div className="space-y-1">
                         {activeData.map((item, index) => (
                             <div
                                 key={index}
                                 className={cn(
-                                    "flex items-center justify-between text-[10px] p-1.5 rounded-md hover:bg-white transition-colors cursor-pointer",
-                                    !selectedCategory && "hover:shadow-sm"
+                                    "flex items-center justify-between text-[10px] p-1.5 rounded-lg transition-all",
+                                    !selectedCategory ? "hover:bg-white hover:shadow-sm cursor-pointer" : ""
                                 )}
                                 onClick={() => {
                                     if (!selectedCategory && 'category' in item) {
@@ -178,13 +179,23 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                                     }
                                 }}
                             >
-                                <div className="flex items-center gap-2 overflow-hidden">
-
-
-                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                                    <span className="text-neutral-600 truncate flex-1 min-w-0" title={item.name}>{item.name}</span>
+                                <div className="flex items-center gap-2 overflow-hidden flex-1">
+                                    <div
+                                        className="w-1.5 h-1.5 rounded-full flex-shrink-0 dyn-bg"
+                                        ref={(el) => { if (el) el.style.setProperty('--dyn-bg', item.color) }}
+                                    />
+                                    <span className="text-neutral-600 font-medium truncate" title={item.name}>
+                                        {item.name}
+                                    </span>
                                 </div>
-                                <span className="font-semibold text-neutral-900 ml-1">{((item.value / totalValue) * 100).toFixed(0)}%</span>
+                                <div className="flex items-center gap-2 ml-2">
+                                    <span className="font-mono text-neutral-400">
+                                        {totalValue > 0 ? Math.round((item.value / totalValue) * 100) : 0}%
+                                    </span>
+                                    <span className="font-bold text-neutral-900 min-w-[50px] text-right">
+                                        {formatCurrency(item.value)}
+                                    </span>
+                                </div>
                             </div>
                         ))}
                     </div>

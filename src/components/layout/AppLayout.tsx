@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
+import React, { useState, useEffect, useTransition } from "react"
 import { User } from "@supabase/supabase-js"
 import { Sidebar } from "./Sidebar"
 import { cn } from "@/lib/utils"
@@ -19,9 +20,10 @@ export function AppLayout({ children, user }: AppLayoutProps) {
     const [isMobile, setIsMobile] = useState(false)
     const [scenarioId, setScenarioId] = useState<string | null>(null)
     const [isGuideOpen, setIsGuideOpen] = useState(false)
-    // Handle localStorage and responsive behavior
+    const [isPending, startTransition] = useTransition()
+    
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
+        startTransition(() => {
             const savedState = localStorage.getItem("sidebar-collapsed")
             if (savedState) {
                 setCollapsed(JSON.parse(savedState))
@@ -32,20 +34,21 @@ export function AppLayout({ children, user }: AppLayoutProps) {
             if (window.innerWidth < 1024 && !mobile && !localStorage.getItem("sidebar-collapsed")) {
                 setCollapsed(true)
             }
-        }, 0)
+        })
 
         const handleResize = () => {
-            const mobile = window.innerWidth < 768
-            setIsMobile(mobile)
-            if (window.innerWidth < 1024 && !mobile) {
-                setCollapsed(true)
-            }
+            startTransition(() => {
+                const mobile = window.innerWidth < 768
+                setIsMobile(mobile)
+                if (window.innerWidth < 1024 && !mobile) {
+                    setCollapsed(true)
+                }
+            })
         }
 
-        window.addEventListener("resize", handleResize)
+        window.addEventListener("resize", handleResize, { passive: true })
 
         return () => {
-            clearTimeout(timeoutId)
             window.removeEventListener("resize", handleResize)
         }
     }, [])
@@ -54,6 +57,13 @@ export function AppLayout({ children, user }: AppLayoutProps) {
         const newState = !collapsed
         setCollapsed(newState)
         localStorage.setItem("sidebar-collapsed", JSON.stringify(newState))
+    }
+
+    const pathname = usePathname()
+    const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/auth')
+
+    if (isAuthPage) {
+        return <>{children}</>
     }
 
     return (
@@ -76,7 +86,7 @@ export function AppLayout({ children, user }: AppLayoutProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsGuideOpen(true)}
-                        className="hidden md:flex gap-2 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+                        className="hidden md:flex gap-2 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
                     >
                         <Wand2 className="w-4 h-4" />
                         <span className="text-xs font-medium">Guía Interactiva</span>

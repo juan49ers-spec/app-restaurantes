@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Activity, Brain, Star, X, AlertOctagon, LucideIcon, Lightbulb } from "lucide-react"
 import { useMenuEngineering } from "./MenuEngineeringContext"
 import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 import { useRef, useState } from "react"
 
 interface MenuItem {
@@ -133,7 +133,7 @@ const StrategyCard = ({ title, items, type, className, index }: { title: string,
                 '225, 29, 72';
 
     return (
-        <motion.div
+        <m.div
             ref={divRef}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{
@@ -154,10 +154,12 @@ const StrategyCard = ({ title, items, type, className, index }: { title: string,
         >
             {/* Spotlight Effect */}
             <div
-                style={{
-                    '--opacity': opacity,
-                    '--spotlight': `radial-gradient(400px circle at ${position.x}px ${position.y}px, rgba(${spotlightColor}, 0.15), transparent 40%)`
-                } as React.CSSProperties}
+                ref={(el) => {
+                    if (el) {
+                        el.style.setProperty('--opacity', String(opacity))
+                        el.style.setProperty('--spotlight', `radial-gradient(400px circle at ${position.x}px ${position.y}px, rgba(${spotlightColor}, 0.15), transparent 40%)`)
+                    }
+                }}
                 className={cn(
                     "pointer-events-none absolute -inset-px transition duration-500 group-hover:opacity-100",
                     "opacity-[var(--opacity)] bg-[var(--spotlight)]"
@@ -167,14 +169,14 @@ const StrategyCard = ({ title, items, type, className, index }: { title: string,
             {/* Selection Indicator */}
             <AnimatePresence>
                 {isSelected && (
-                    <motion.div
+                    <m.div
                         initial={{ scale: 0, opacity: 0, rotate: -45 }}
                         animate={{ scale: 1, opacity: 1, rotate: 0 }}
                         exit={{ scale: 0, opacity: 0, rotate: 45 }}
                         className={cn("absolute top-3 right-3 p-1.5 rounded-full z-20 shadow-lg", theme.bgColor, theme.color)}
                     >
                         <X className="w-3.5 h-3.5" />
-                    </motion.div>
+                    </m.div>
                 )}
             </AnimatePresence>
 
@@ -252,7 +254,7 @@ const StrategyCard = ({ title, items, type, className, index }: { title: string,
                     </div>
                 )}
             </div>
-        </motion.div>
+        </m.div>
     )
 }
 

@@ -1,14 +1,14 @@
+import { cache } from "react"
 import { createClient } from "@/lib/supabaseServer"
 import { redirect } from "next/navigation"
 
-export async function getRestaurant() {
+// React.cache() deduplicates within the same server request
+export const getRestaurant = cache(async () => {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    // Fetch the first restaurant owned by user
-    // In future: support multiple or use profile.active_restaurant_id
     const { data: restaurant } = await supabase
         .from('restaurants')
         .select('*')
@@ -17,7 +17,7 @@ export async function getRestaurant() {
         .maybeSingle()
 
     return restaurant
-}
+})
 
 export async function requireRestaurant() {
     const restaurant = await getRestaurant()
@@ -26,3 +26,4 @@ export async function requireRestaurant() {
     }
     return restaurant
 }
+

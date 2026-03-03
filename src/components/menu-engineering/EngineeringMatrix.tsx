@@ -1,7 +1,7 @@
 "use client"
 
 import { ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, Label, Cell, ReferenceArea } from "recharts"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 import { Slider } from "@/components/ui/slider"
 import React, { useState, useMemo } from "react"
 import { Badge } from "@/components/ui/badge"
@@ -566,7 +566,7 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                 {/* 1. Initial Banner — shown when simulation active but no item selected */}
                 <AnimatePresence>
                     {isSimulationMode && !editingItem && simStats.itemsChanged === 0 && (
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 24 }}
@@ -624,14 +624,14 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                                     ))}
                                 </div>
                             </div>
-                        </motion.div>
+                        </m.div>
                     )}
                 </AnimatePresence>
 
                 {/* 2. Floating KPI Dashboard — shown when items have been changed */}
                 <AnimatePresence>
                     {isSimulationMode && !editingItem && simStats.itemsChanged > 0 && (
-                        <motion.div
+                        <m.div
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 24 }}
@@ -694,14 +694,14 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                                     </div>
                                 </div>
                             </div>
-                        </motion.div>
+                        </m.div>
                     )}
                 </AnimatePresence>
 
                 {/* 3. Enhanced Inline Editor Panel */}
                 <AnimatePresence>
                     {isSimulationMode && editingItem && (
-                        <motion.div
+                        <m.div
                             key={editingItemId}
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -848,7 +848,7 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                                         <div className="px-4 py-2 border-t border-black/5 dark:border-white/5">
                                             {/* Celebration banner when class improves */}
                                             {improvedClass && (
-                                                <motion.div
+                                                <m.div
                                                     initial={{ opacity: 0, scale: 0.9 }}
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     className="mb-2 p-2 rounded-lg bg-gradient-to-r from-emerald-500/10 to-amber-500/10 border border-emerald-500/20 flex items-center gap-2 text-[11px]"
@@ -857,7 +857,7 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                                                     <span className="font-bold text-emerald-700 dark:text-emerald-400">
                                                         ¡{editingItem.name} ha ascendido a {CLASSIFICATION_LABELS[editingItem.classification || 'DOG']}!
                                                     </span>
-                                                </motion.div>
+                                                </m.div>
                                             )}
                                             {topAdvice && (
                                                 <div className="flex items-start gap-2 text-[10px]">
@@ -912,7 +912,7 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                                     </div>
                                 </div>
                             </div>
-                        </motion.div>
+                        </m.div>
                     )}
                 </AnimatePresence>
 

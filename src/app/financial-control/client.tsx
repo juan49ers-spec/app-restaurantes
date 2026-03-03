@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 import {
     TrendingUp,
     Receipt,
@@ -100,50 +100,60 @@ export function FinancialControlClient({
 
     return (
         <div className="flex flex-col gap-8 pb-20">
-            {/* Executive Tab Navigation */}
-            <div className="bg-white/80 backdrop-blur-md sticky top-0 z-30 py-4 border-b border-neutral-100 -mx-4 px-4 sm:mx-0 sm:px-0 rounded-b-3xl shadow-sm">
-                <div className="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar pb-2 sm:pb-0">
-                    <div className="flex items-center gap-1 p-1 bg-neutral-100/50 rounded-2xl w-full sm:w-auto">
-                        {tabs.map((tab) => (
+            {/* Premium Floated Navigation Bar */}
+            <div className="sticky top-6 z-40 mb-8 mx-auto w-full max-w-fit pointer-events-none">
+                <div className="pointer-events-auto bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-full px-2 py-2 flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
+                    {tabs.map((tab) => {
+                        const isActive = activeTab === tab.id
+                        return (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={cn(
-                                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 relative whitespace-nowrap flex-1 sm:flex-none",
-                                    activeTab === tab.id
-                                        ? "bg-white text-neutral-900 shadow-sm"
-                                        : "text-neutral-500 hover:text-neutral-700 hover:bg-white/50"
+                                    "relative flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50",
+                                    isActive
+                                        ? "text-neutral-900 dark:text-white"
+                                        : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200"
                                 )}
                             >
-                                <tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-neutral-900" : "text-neutral-400")} />
-                                <span>{tab.label}</span>
-                                {activeTab === tab.id && (
-                                    <motion.div
-                                        layoutId="activeTab"
-                                        className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-neutral-900 rounded-full"
+                                {isActive && (
+                                    <m.div
+                                        layoutId="activeTabBadge"
+                                        className="absolute inset-0 bg-white dark:bg-white/10 rounded-full shadow-sm border border-neutral-200/50 dark:border-white/5"
+                                        initial={false}
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                     />
                                 )}
+                                <span className="relative z-10 flex items-center gap-2">
+                                    <tab.icon className={cn("w-4 h-4", isActive ? "text-emerald-500" : "")} />
+                                    <span>{tab.label}</span>
+                                </span>
                             </button>
-                        ))}
-                    </div>
+                        )
+                    })}
 
-                    <div className="hidden lg:flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-xl border-neutral-200 text-neutral-500 gap-2 hover:bg-neutral-50"
-                            onClick={() => setIsMenuLocked(!isMenuLocked)}
-                        >
-                            {isMenuLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-                            <span className="text-[10px] uppercase tracking-widest font-bold">Estado Menú</span>
-                        </Button>
-                    </div>
+                    {/* Divider */}
+                    <div className="hidden sm:block w-[1px] h-6 bg-border/40 mx-1" />
+
+                    {/* Lock Toggle */}
+                    <button
+                        onClick={() => setIsMenuLocked(!isMenuLocked)}
+                        className={cn(
+                            "hidden lg:flex items-center justify-center w-10 h-10 rounded-full transition-colors relative group",
+                            isMenuLocked
+                                ? "bg-neutral-100/50 dark:bg-white/5 text-neutral-400 hover:text-neutral-600"
+                                : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                        )}
+                        title={isMenuLocked ? "Desbloquear menús secundarios" : "Bloquear menús"}
+                    >
+                        {isMenuLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                    </button>
                 </div>
             </div>
 
             {/* Dynamic Content Area */}
             <AnimatePresence mode="wait">
-                <motion.div
+                <m.div
                     key={activeTab}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -190,7 +200,7 @@ export function FinancialControlClient({
                                                         <span className="text-[10px] text-neutral-400">Meta: {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(target)}</span>
                                                     </div>
                                                     <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                                        <motion.div
+                                                        <m.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${progress}%` }}
                                                             className="h-full bg-emerald-500 rounded-full"
@@ -238,7 +248,7 @@ export function FinancialControlClient({
 
                     {activeTab === 'IMPUESTOS' && (
                         <div className="max-w-5xl mx-auto space-y-6">
-                            <ImpuestosDashboard />
+                            <ImpuestosDashboard restaurantId={restaurantId} />
                         </div>
                     )}
 
@@ -249,7 +259,7 @@ export function FinancialControlClient({
                             />
                         </div>
                     )}
-                </motion.div>
+                </m.div>
             </AnimatePresence>
 
             {/* Drilldown Modal */}
@@ -275,6 +285,6 @@ export function FinancialControlClient({
                     />
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     )
 }

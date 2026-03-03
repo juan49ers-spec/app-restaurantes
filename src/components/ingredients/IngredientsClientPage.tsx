@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from "react"
+import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 import { MasterIngredient } from "@/types/schema"
 import { IngredientsTable } from "./IngredientsTable"
 import { IngredientSummaryCards } from "./IngredientSummaryCards"
@@ -31,9 +32,10 @@ export function IngredientsClientPage({ initialIngredients }: Props) {
         setIngredients(initialIngredients)
     }, [initialIngredients])
 
+    const debouncedSearch = useDebouncedValue(searchTerm, 300)
     const filteredIngredients = ingredients.filter(ing =>
-        ing.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ing.category?.toLowerCase().includes(searchTerm.toLowerCase())
+        ing.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        ing.category?.toLowerCase().includes(debouncedSearch.toLowerCase())
     )
 
     const handleImportSuccess = () => {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react"
+import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 import { RecipeWithCost } from "@/app/actions/recipes"
 import { RecipesTable } from "./RecipesTable"
 import { RecipeSummaryCards } from "./RecipeSummaryCards"
@@ -16,8 +17,9 @@ interface Props {
 export function RecipesClientPage({ initialRecipes }: Props) {
     const [searchTerm, setSearchTerm] = useState("")
 
+    const debouncedSearch = useDebouncedValue(searchTerm, 300)
     const filteredRecipes = initialRecipes.filter(recipe =>
-        recipe.name.toLowerCase().includes(searchTerm.toLowerCase())
+        recipe.name.toLowerCase().includes(debouncedSearch.toLowerCase())
     )
 
     return (

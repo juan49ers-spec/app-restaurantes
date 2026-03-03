@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Plus } from "lucide-react"
-import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
+import { Plus, PieChart } from "lucide-react"
+import { m } from "framer-motion"
 import { ExpenseIntelligenceWidget } from "./ExpenseIntelligenceWidget"
 import { ExpenseDonutChart } from "./ExpenseDonutChart"
 import { ExpenseDetailTable } from "./ExpenseDetailTable"
@@ -35,6 +36,7 @@ const item = {
 }
 
 export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: ExpensesDashboardProps) {
+    const router = useRouter()
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [editingExpense, setEditingExpense] = useState<OperatingExpense | undefined>(undefined)
 
@@ -50,7 +52,7 @@ export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: Expense
             await deleteOperatingExpense(id)
             toast.success("Gasto eliminado")
             // Force refresh
-            window.location.reload()
+            router.refresh()
         } catch {
             toast.error("Error al eliminar")
         }
@@ -86,14 +88,14 @@ export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: Expense
     }
 
     return (
-        <motion.div
+        <m.div
             className="space-y-6"
             variants={container}
             initial="hidden"
             animate="show"
         >
             {/* Header with Title and Add Button */}
-            <motion.div variants={item} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-200 pb-6">
+            <m.div variants={item} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-200 pb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-neutral-900 tracking-tight">Control de Gastos</h2>
                     <p className="text-sm text-neutral-500 mt-1">Gestiona y analiza todos los gastos operativos del mes</p>
@@ -108,43 +110,67 @@ export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: Expense
                     <Plus className="w-4 h-4" />
                     <span>Añadir Gasto</span>
                 </Button>
-            </motion.div>
+            </m.div>
 
-            {/* Top Row: KPIs (66%) + Chart (33%) */}
-            <motion.div variants={item} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="xl:col-span-2">
-                    <ExpenseIntelligenceWidget
-                        kpis={data.kpis}
-                        insight={data.insight}
-                        onInsightEdit={handleInsightEdit}
-                    />
-                </div>
-                <div className="xl:col-span-1 h-full">
-                    <ExpenseDonutChart expenses={data.categories} />
-                </div>
-            </motion.div>
+            {data.categories.length === 0 ? (
+                <m.div variants={item} className="flex flex-col items-center justify-center py-16 px-4 bg-white rounded-2xl border border-neutral-200">
+                    <div className="p-3 bg-neutral-100 rounded-xl mb-4">
+                        <PieChart className="w-8 h-8 text-neutral-400" />
+                    </div>
+                    <h3 className="text-lg font-bold text-neutral-700">Sin gastos este mes</h3>
+                    <p className="text-sm text-neutral-500 mt-1 text-center max-w-md">
+                        No se han registrado gastos operativos en este periodo. Añade tu primer gasto para comenzar a analizar la estructura de costes.
+                    </p>
+                    <Button
+                        onClick={() => {
+                            setEditingExpense(undefined)
+                            setIsFormOpen(true)
+                        }}
+                        className="mt-6 bg-neutral-900 hover:bg-neutral-800 text-white gap-2 rounded-xl px-6 py-2.5 font-bold text-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Añadir primer gasto
+                    </Button>
+                </m.div>
+            ) : (
+                <>
+                    {/* Top Row: KPIs (66%) + Chart (33%) */}
+                    <m.div variants={item} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        <div className="xl:col-span-2">
+                            <ExpenseIntelligenceWidget
+                                kpis={data.kpis}
+                                insight={data.insight}
+                                onInsightEdit={handleInsightEdit}
+                            />
+                        </div>
+                        <div className="xl:col-span-1 h-full">
+                            <ExpenseDonutChart expenses={data.categories} />
+                        </div>
+                    </m.div>
 
-            {/* Bottom Row: Detail Table */}
-            <motion.div variants={item}>
-                <ExpenseDetailTable
-                    categories={data.categories.map(cat => ({
-                        ...cat,
-                        expenses: cat.expenses.map((exp) => {
-                            const e = exp as { id?: string, expense_date?: string, date?: string, amount?: number };
-                            return {
-                                ...e,
-                                id: e.id || '',
-                                amount: e.amount || 0,
-                                date: e.expense_date || e.date || ''
-                            };
-                        })
-                    }))}
-                    history={data.history}
-                    onEditExpense={handleEditExpense as (expense: unknown) => void}
-                    onDeleteExpense={handleDeleteExpense}
-                    onExport={handleExport}
-                />
-            </motion.div>
+                    {/* Bottom Row: Detail Table */}
+                    <m.div variants={item}>
+                        <ExpenseDetailTable
+                            categories={data.categories.map(cat => ({
+                                ...cat,
+                                expenses: cat.expenses.map((exp) => {
+                                    const e = exp as { id?: string, expense_date?: string, date?: string, amount?: number };
+                                    return {
+                                        ...e,
+                                        id: e.id || '',
+                                        amount: e.amount || 0,
+                                        date: e.expense_date || e.date || ''
+                                    };
+                                })
+                            }))}
+                            history={data.history}
+                            onEditExpense={handleEditExpense as (expense: unknown) => void}
+                            onDeleteExpense={handleDeleteExpense}
+                            onExport={handleExport}
+                        />
+                    </m.div>
+                </>
+            )}
 
             {/* Add/Edit Expense Modal */}
             <ExpensesFormModal
@@ -156,6 +182,6 @@ export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: Expense
                 expenseToEdit={editingExpense} // Passed correct prop name
                 restaurantId={restaurantId}
             />
-        </motion.div>
+        </m.div>
     )
 }

@@ -12,7 +12,7 @@ import {
     Trash2
 } from "lucide-react"
 import type { Employee, Shift, ShiftType } from "@/types/schema"
-import { upsertShift, deleteShift } from "@/app/actions/staff-actions"
+import { upsertShift, deleteShift } from "@/app/actions/staff"
 import { format } from "date-fns"
 
 interface ShiftFormProps {
@@ -85,11 +85,16 @@ export function ShiftForm({
         if (!confirm("¿Estás seguro de eliminar este turno?")) return
 
         setLoading(true)
+        setError(null)
         try {
-            await deleteShift(formData.id)
-            onSuccess()
+            const result = await deleteShift(formData.id, restaurantId)
+            if (result.success) {
+                onSuccess()
+            } else {
+                setError(result.error || "No se pudo eliminar el turno")
+            }
         } catch (err: unknown) {
-            const errorMsg = err instanceof Error ? err.message : "Error al eliminar el turno"
+            const errorMsg = err instanceof Error ? err.message : "Error inesperado al eliminar el turno"
             setError(errorMsg)
         } finally {
             setLoading(false)
@@ -103,13 +108,18 @@ export function ShiftForm({
 
         try {
             const estimated_cost = calculateEstimatedCost()
-            await upsertShift({
+            const result = await upsertShift({
                 ...formData,
                 estimated_cost
             } as Shift)
-            onSuccess()
+
+            if (result.success) {
+                onSuccess()
+            } else {
+                setError(result.error || "Error al guardar el turno")
+            }
         } catch (err: unknown) {
-            const errorMsg = err instanceof Error ? err.message : "Error al guardar el turno"
+            const errorMsg = err instanceof Error ? err.message : "Error inesperado al guardar el turno"
             setError(errorMsg)
         } finally {
             setLoading(false)

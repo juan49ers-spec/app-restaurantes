@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, memo, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 import {
   FileDown,
   Lock,
@@ -58,66 +58,34 @@ interface DashboardUiData {
   breakEvenData: BreakEvenData
 }
 
-// Mock data - Extraído fuera del componente para evitar re-creación
-const MOCK_DATA: DashboardUiData = {
+// Datos vacíos para los hooks cuando no hay datos reales. 
+// Los hooks necesitan ejecutarse siempre (reglas de React) pero
+// el early return previene render con datos vacíos.
+const EMPTY_DATA: DashboardUiData = {
   currentMonth: {
-    month: 'Enero',
-    year: 2026,
-    monthIndex: 0,
-    ingresosNetos: 45000,
-    ingresosExtra: 2300,
-    totalIngresos: 47300,
-    personal: { sueldosNetos: 12000, seguridadSocial: 3600, irpf: 2400, total: 18000 },
-    materiaPrima: { comida: 9500, bebida: 4200, variacionExistencias: -300, total: 13400 },
-    suministros: 1800,
-    mantenimiento: 600,
-    marketing: 1200,
-    gastosExtra: 800,
-    financiaciones: 900,
-    inversiones: 2500,
-    resultadoBruto: 10200,
-    resultadoNeto: 7700,
-    margenNeto: 16.3,
-    ratioPersonal: 38.1,
-    ratioMateriaPrima: 28.3,
-    ratioGastosFijos: 33.6
+    month: '', year: 0, monthIndex: 0,
+    ingresosNetos: 0, ingresosExtra: 0, totalIngresos: 0,
+    personal: { sueldosNetos: 0, seguridadSocial: 0, irpf: 0, total: 0 },
+    materiaPrima: { comida: 0, bebida: 0, variacionExistencias: 0, total: 0 },
+    suministros: 0, mantenimiento: 0, marketing: 0,
+    gastosExtra: 0, financiaciones: 0, inversiones: 0,
+    resultadoBruto: 0, resultadoNeto: 0, margenNeto: 0,
+    ratioPersonal: 0, ratioMateriaPrima: 0, ratioGastosFijos: 0
   },
   historicalData: {
-    months: ['Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic', 'Ene'],
-    ingresos: [35000, 38000, 42000, 45000, 48000, 55000, 52000, 42000, 40000, 46000, 52000, 47300],
-    gastos: [30800, 32900, 35200, 37500, 39100, 43000, 41500, 35500, 34200, 37800, 41000, 39600],
-    resultados: [4200, 5100, 6800, 7500, 8900, 12000, 10500, 6500, 5800, 8200, 11000, 7700],
-    gastosMateria: [12500, 11800, 12100, 11900, 11500, 12800, 12200, 11600, 11400, 12000, 12600, 13400],
-    gastosPersonal: [16500, 16800, 17200, 17500, 17800, 18500, 18200, 17500, 17400, 17600, 18100, 18000]
+    months: [], ingresos: [], gastos: [], resultados: [],
+    gastosMateria: [], gastosPersonal: []
   },
-  sameMonthLastYear: {
-    ingresos: 38000,
-    resultado: 5100,
-    gastosMateria: 11800,
-    gastosPersonal: 16800
-  },
+  sameMonthLastYear: { ingresos: 0, resultado: 0, gastosMateria: 0, gastosPersonal: 0 },
   varianceAnalysis: {
-    previousMonth: {
-      resultado: 11000,
-      ingresos: 52000,
-      margen: 21.2,
-      gastosMateria: 12600,
-      gastosPersonal: 18100
-    },
-    currentMonth: { resultado: 7700, ingresos: 47300, margen: 16.3 },
-    variacionVentas: -9.0,
-    variacionMargen: -4.9,
-    variacionGastosFijos: 500,
-    variacionInversiones: 1500,
-    impactoTotal: -30.0
+    previousMonth: { resultado: 0, ingresos: 0, margen: 0, gastosMateria: 0, gastosPersonal: 0 },
+    currentMonth: { resultado: 0, ingresos: 0, margen: 0 },
+    variacionVentas: 0, variacionMargen: 0,
+    variacionGastosFijos: 0, variacionInversiones: 0, impactoTotal: 0
   },
   breakEvenData: {
-    puntoEquilibrio: 35000,
-    diaBreakEven: 22,
-    alcanzado: true,
-    ventasActuales: 47300,
-    costesFijos: 22700,
-    margenContribucion: 48.0
+    puntoEquilibrio: 0, diaBreakEven: null, alcanzado: false,
+    ventasActuales: 0, costesFijos: 0, margenContribucion: 0
   }
 }
 
@@ -154,7 +122,6 @@ interface KpiCardProps {
   value: string
   subtitle: string
   trend?: number
-  isPositive?: boolean
   icon: React.ElementType
 }
 
@@ -227,7 +194,7 @@ const DiagnosisCardComponent = memo(function DiagnosisCardComponent({ card }: Di
   const Icon = card.icon
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn("p-4 rounded-xl border", style.container)}
@@ -252,7 +219,7 @@ const DiagnosisCardComponent = memo(function DiagnosisCardComponent({ card }: Di
           )}
         </div>
       </div>
-    </motion.div>
+    </m.div>
   )
 })
 
@@ -287,7 +254,7 @@ const CollapsibleSection = memo(({
         onClick={toggle}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
         aria-expanded={isOpen ? "true" : "false"}
-        aria-controls={sectionId}
+        aria-controls={sectionId ?? undefined}
       >
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-neutral-500" aria-hidden="true" />
@@ -304,7 +271,7 @@ const CollapsibleSection = memo(({
       </button>
       <AnimatePresence initial={false}>
         {isOpen && (
-          <motion.div
+          <m.div
             id={sectionId}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -314,7 +281,7 @@ const CollapsibleSection = memo(({
             <div className="border-t border-neutral-100">
               {children}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
@@ -326,21 +293,40 @@ CollapsibleSection.displayName = "CollapsibleSection"
 // KPIs FOR INTELLIGENCE WIDGET
 // ==========================================
 
-// ==========================================
-// KPIs FOR INTELLIGENCE WIDGET
-// ==========================================
-
 function useIntelligenceKPIs(data: DashboardUiData) {
   return useMemo(() => {
     const current = data.currentMonth
     const totalRevenue = current.totalIngresos || 0
 
+    // Suma real de TODOS los gastos operativos
+    const allExpenses =
+      current.personal.total +
+      current.materiaPrima.total +
+      current.suministros +
+      current.mantenimiento +
+      current.marketing +
+      current.gastosExtra +
+      current.financiaciones +
+      current.inversiones
+
+    // OpEx sin CAPEX (inversiones no son gasto operativo recurrente)
+    const opExWithoutCapex = allExpenses - current.inversiones
+
+    // Variación MoM real de gastos: compara OpEx actual vs mes anterior
+    const prevExpenses =
+      data.varianceAnalysis.previousMonth.gastosMateria +
+      data.varianceAnalysis.previousMonth.gastosPersonal
+    const currentComparableExpenses = current.personal.total + current.materiaPrima.total
+    const momExpenseVariation = prevExpenses > 0
+      ? ((currentComparableExpenses - prevExpenses) / prevExpenses) * 100
+      : 0
+
     return {
-      totalExpenses: current.personal.total + current.materiaPrima.total || 0,
-      totalExpensesExcludingCAPEX: current.personal.total + current.materiaPrima.total || 0,
-      totalCashFlow: current.resultadoNeto || 0,
-      momVariation: data.varianceAnalysis.variacionMargen || 0,
-      expenseToSalesRatio: totalRevenue > 0 ? ((current.personal.total + current.materiaPrima.total) / totalRevenue) * 100 : 0,
+      totalExpenses: allExpenses,
+      totalExpensesExcludingCAPEX: opExWithoutCapex,
+      totalCashFlow: current.resultadoNeto,
+      momVariation: momExpenseVariation,
+      expenseToSalesRatio: totalRevenue > 0 ? (opExWithoutCapex / totalRevenue) * 100 : 0,
       personalRatio: totalRevenue > 0 ? (current.personal.total / totalRevenue) * 100 : 0,
       cogsRatio: totalRevenue > 0 ? (current.materiaPrima.total / totalRevenue) * 100 : 0
     }
@@ -359,48 +345,60 @@ function useDiagnoses(data: DashboardUiData): DiagnosisCard[] {
     const prev = data.varianceAnalysis.previousMonth
     const lastYear = data.sameMonthLastYear
 
-    // REGLA A: Anomalía de Stock
-    const ventasCaen = current.totalIngresos < prev.ingresos
-    const materiaSeMantiene = current.materiaPrima.total >= (prev.gastosMateria * 0.98)
+    // Guard: sin ingresos actuales, no hay diagnósticos posibles
+    if (current.totalIngresos === 0) return diagnoses
 
-    if (ventasCaen && materiaSeMantiene) {
-      diagnoses.push({
-        id: 'stock-anomaly',
-        type: 'alert',
-        icon: Package,
-        title: 'Anomalía de Stock',
-        description: 'Las ventas han caído, pero el gasto en materia prima se mantiene. Posible acumulación de stock no registrada o exceso de compras.',
-        metric: `Materia prima: ${((current.materiaPrima.total / current.totalIngresos) * 100).toFixed(1)}% de ventas`
-      })
+    // REGLA A: Anomalía de Stock
+    // Solo evalúa si hay datos del mes anterior para comparar
+    if (prev.ingresos > 0 && prev.gastosMateria > 0) {
+      const ventasCaen = current.totalIngresos < prev.ingresos
+      const materiaSeMantiene = current.materiaPrima.total >= (prev.gastosMateria * 0.98)
+
+      if (ventasCaen && materiaSeMantiene) {
+        diagnoses.push({
+          id: 'stock-anomaly',
+          type: 'alert',
+          icon: Package,
+          title: 'Anomalía de Stock',
+          description: 'Las ventas han caído, pero el gasto en materia prima se mantiene. Posible acumulación de stock no registrada o exceso de compras.',
+          metric: `Materia prima: ${((current.materiaPrima.total / current.totalIngresos) * 100).toFixed(1)}% de ventas`
+        })
+      }
     }
 
     // REGLA B: Rigidez Laboral
-    const ventasCaenMucho = ((current.totalIngresos - prev.ingresos) / prev.ingresos) < -0.15
-    const personalConstante = Math.abs((current.personal.total - prev.gastosPersonal) / prev.gastosPersonal) < 0.05
+    // Requiere ingresos y personal del mes anterior para calcular variaciones
+    if (prev.ingresos > 0 && prev.gastosPersonal > 0) {
+      const ventasCaenMucho = ((current.totalIngresos - prev.ingresos) / prev.ingresos) < -0.15
+      const personalConstante = Math.abs((current.personal.total - prev.gastosPersonal) / prev.gastosPersonal) < 0.05
 
-    if (ventasCaenMucho && personalConstante) {
-      diagnoses.push({
-        id: 'labor-rigidity',
-        type: 'info',
-        icon: Users,
-        title: 'Rigidez Laboral',
-        description: 'La caída de ventas no se ha compensado con ajustes en los turnos de personal, lo que está penalizando el margen este mes.',
-        metric: `Personal: ${((current.personal.total / current.totalIngresos) * 100).toFixed(1)}% de ventas`
-      })
+      if (ventasCaenMucho && personalConstante) {
+        diagnoses.push({
+          id: 'labor-rigidity',
+          type: 'info',
+          icon: Users,
+          title: 'Rigidez Laboral',
+          description: 'La caída de ventas no se ha compensado con ajustes en los turnos de personal, lo que está penalizando el margen este mes.',
+          metric: `Personal: ${((current.personal.total / current.totalIngresos) * 100).toFixed(1)}% de ventas`
+        })
+      }
     }
 
     // REGLA C: Consolidación Estructural
-    const crecimientoYoY = (current.totalIngresos - lastYear.ingresos) / lastYear.ingresos
+    // Solo si hay datos del mismo mes del año anterior
+    if (lastYear.ingresos > 0) {
+      const crecimientoYoY = (current.totalIngresos - lastYear.ingresos) / lastYear.ingresos
 
-    if (crecimientoYoY > 0.20) {
-      diagnoses.push({
-        id: 'structural-growth',
-        type: 'success',
-        icon: TrendingUp,
-        title: 'Consolidación Estructural',
-        description: `${current.month} ${current.year} supera ampliamente a ${current.month} del año anterior, confirmando que el negocio ha elevado su suelo de facturación.`,
-        metric: `+${(crecimientoYoY * 100).toFixed(1)}% vs año anterior`
-      })
+      if (crecimientoYoY > 0.20) {
+        diagnoses.push({
+          id: 'structural-growth',
+          type: 'success',
+          icon: TrendingUp,
+          title: 'Consolidación Estructural',
+          description: `${current.month} ${current.year} supera ampliamente a ${current.month} del año anterior, confirmando que el negocio ha elevado su suelo de facturación.`,
+          metric: `+${(crecimientoYoY * 100).toFixed(1)}% vs año anterior`
+        })
+      }
     }
 
     // REGLA D: Viabilidad Post-Temporada
@@ -419,7 +417,12 @@ function useDiagnoses(data: DashboardUiData): DiagnosisCard[] {
     }
 
     // EXTRA: Break-Even Temprano
-    if (data.breakEvenData.alcanzado && data.breakEvenData.diaBreakEven && data.breakEvenData.diaBreakEven <= 20) {
+    if (
+      data.breakEvenData.alcanzado &&
+      data.breakEvenData.diaBreakEven &&
+      data.breakEvenData.diaBreakEven <= 20 &&
+      data.breakEvenData.puntoEquilibrio > 0
+    ) {
       diagnoses.push({
         id: 'break-early',
         type: 'success',
@@ -446,103 +449,214 @@ export interface ResultadosDashboardProps {
 export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps) {
   const [isClosingMonth, setIsClosingMonth] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [closeError, setCloseError] = useState<string | null>(null)
 
-  // Data memoizada - Use real data if available, otherwise mock
+  // Data memoizada - Calcula comparativas desde el histórico real
   const data = useMemo(() => {
-    if (dashboardData?.currentMonth) {
-      const current = dashboardData.currentMonth
+    if (!dashboardData?.currentMonth) return null
 
-      return {
-        currentMonth: {
-          month: current.month_name || 'Enero',
-          year: current.year || 2026,
-          monthIndex: 0,
-          ingresosNetos: current.ingresos_netos || 0,
-          ingresosExtra: current.ingresos_extra || 0,
-          totalIngresos: current.total_ingresos || 0,
-          personal: {
-            sueldosNetos: current.personal_sueldos_netos || 0,
-            seguridadSocial: current.personal_seguridad_social || 0,
-            irpf: current.personal_irpf || 0,
-            total: current.personal_total || 0
-          },
-          materiaPrima: {
-            comida: current.materia_prima_comida || 0,
-            bebida: current.materia_prima_bebida || 0,
-            variacionExistencias: current.materia_prima_variacion_existencias || 0,
-            total: current.materia_prima_total || 0
-          },
-          suministros: current.suministros || 0,
-          mantenimiento: current.mantenimiento || 0,
-          marketing: current.marketing || 0,
-          gastosExtra: current.gastos_extra || 0,
-          financiaciones: current.financiaciones || 0,
-          inversiones: current.inversiones || 0,
-          resultadoBruto: current.resultado_bruto || 0,
-          resultadoNeto: current.resultado_neto || 0,
-          margenNeto: current.margen_neto || 0,
-          ratioPersonal: current.ratio_personal || 0,
-          ratioMateriaPrima: current.ratio_materia_prima || 0,
-          ratioGastosFijos: current.ratio_gastos_fijos || 0
+    const current = dashboardData.currentMonth
+    const history = dashboardData.history || []
+
+    // Buscar el mismo mes del año anterior en el histórico
+    const lastYearMonth = history.find(
+      (m: MonthlyResult) => m.month === current.month && m.year === current.year - 1
+    )
+
+    const sameMonthLastYear = lastYearMonth
+      ? {
+        ingresos: lastYearMonth.total_ingresos || 0,
+        resultado: lastYearMonth.resultado_neto || 0,
+        gastosMateria: lastYearMonth.materia_prima_total || 0,
+        gastosPersonal: lastYearMonth.personal_total || 0
+      }
+      : { ingresos: 0, resultado: 0, gastosMateria: 0, gastosPersonal: 0 }
+
+    // Buscar el mes anterior en el histórico
+    const prevMonthIndex = current.month === 1 ? 12 : current.month - 1
+    const prevMonthYear = current.month === 1 ? current.year - 1 : current.year
+    const prevMonth = history.find(
+      (m: MonthlyResult) => m.month === prevMonthIndex && m.year === prevMonthYear
+    )
+
+    // Calcular variance analysis desde datos reales
+    const prevIngresos = prevMonth?.total_ingresos || 0
+    const prevResultado = prevMonth?.resultado_neto || 0
+    const prevMargen = prevMonth?.margen_neto || 0
+    const prevGastosMateria = prevMonth?.materia_prima_total || 0
+    const prevGastosPersonal = prevMonth?.personal_total || 0
+    const prevGastosFijos = (prevMonth?.suministros || 0) + (prevMonth?.mantenimiento || 0) + (prevMonth?.marketing || 0) + (prevMonth?.gastos_extra || 0) + (prevMonth?.financiaciones || 0)
+    const currentGastosFijos = (current.suministros || 0) + (current.mantenimiento || 0) + (current.marketing || 0) + (current.gastos_extra || 0) + (current.financiaciones || 0)
+
+    const variacionVentas = prevIngresos > 0
+      ? ((current.total_ingresos - prevIngresos) / prevIngresos) * 100
+      : 0
+    // Variación en puntos porcentuales absolutos (pp), no variación relativa.
+    // Ej: pasar de 21.2% a 16.3% = -4.9pp. Consistente con análisis financiero estándar.
+    const variacionMargen = (current.margen_neto || 0) - prevMargen
+
+    const varianceAnalysis = {
+      previousMonth: {
+        resultado: prevResultado,
+        ingresos: prevIngresos,
+        margen: prevMargen,
+        gastosMateria: prevGastosMateria,
+        gastosPersonal: prevGastosPersonal
+      },
+      currentMonth: {
+        resultado: current.resultado_neto || 0,
+        ingresos: current.total_ingresos || 0,
+        margen: current.margen_neto || 0
+      },
+      variacionVentas,
+      variacionMargen,
+      variacionGastosFijos: currentGastosFijos - prevGastosFijos,
+      variacionInversiones: (current.inversiones || 0) - (prevMonth?.inversiones || 0),
+      impactoTotal: prevResultado > 0
+        ? (((current.resultado_neto || 0) - prevResultado) / prevResultado) * 100
+        : 0
+    }
+
+    // Break-even: personal se clasifica 100% como coste fijo.
+    // En restauración hay componente variable (eventuales/extras), pero para un MVP
+    // esta simplificación es conservadora — sobreestima el punto de equilibrio,
+    // lo cual es preferible a subestimarlo.
+    const totalIngresos = current.total_ingresos || 0
+    const costoVariable = (current.materia_prima_total || 0)
+    const costoFijo = (current.personal_total || 0) + currentGastosFijos
+    const margenContribucionPct = totalIngresos > 0
+      ? ((totalIngresos - costoVariable) / totalIngresos) * 100
+      : 0
+    const puntoEquilibrio = margenContribucionPct > 0
+      ? (costoFijo / (margenContribucionPct / 100))
+      : 0
+
+    return {
+      currentMonth: {
+        month: current.month_name || 'Enero',
+        year: current.year || 2026,
+        monthIndex: (current.month || 1) - 1,
+        ingresosNetos: current.ingresos_netos || 0,
+        ingresosExtra: current.ingresos_extra || 0,
+        totalIngresos,
+        personal: {
+          sueldosNetos: current.personal_sueldos_netos || 0,
+          seguridadSocial: current.personal_seguridad_social || 0,
+          irpf: current.personal_irpf || 0,
+          total: current.personal_total || 0
         },
-        historicalData: {
-          months: (dashboardData.history || []).map((m: MonthlyResult) => `${m.month_name} ${m.year}`).reverse() || [],
-          ingresos: (dashboardData.history || []).map((m: MonthlyResult) => m.total_ingresos || 0).reverse() || [],
-          gastos: (dashboardData.history || []).map((m: MonthlyResult) => (m.total_ingresos || 0) - (m.resultado_neto || 0)).reverse() || [],
-          resultados: (dashboardData.history || []).map((m: MonthlyResult) => m.resultado_neto || 0).reverse() || [],
-          gastosMateria: (dashboardData.history || []).map((m: MonthlyResult) => m.materia_prima_total || 0).reverse() || [],
-          gastosPersonal: (dashboardData.history || []).map((m: MonthlyResult) => m.personal_total || 0).reverse() || []
+        materiaPrima: {
+          comida: current.materia_prima_comida || 0,
+          bebida: current.materia_prima_bebida || 0,
+          variacionExistencias: current.materia_prima_variacion_existencias || 0,
+          total: current.materia_prima_total || 0
         },
-        sameMonthLastYear: { ingresos: 0, resultado: 0, gastosMateria: 0, gastosPersonal: 0 },
-        varianceAnalysis: {
-          previousMonth: { resultado: 0, ingresos: 0, margen: 0, gastosMateria: 0, gastosPersonal: 0 },
-          currentMonth: { resultado: current.resultado_neto || 0, ingresos: current.total_ingresos || 0, margen: current.margen_neto || 0 },
-          variacionVentas: 0,
-          variacionMargen: 0,
-          variacionGastosFijos: 0,
-          variacionInversiones: 0,
-          impactoTotal: 0
-        },
-        breakEvenData: {
-          puntoEquilibrio: current.break_even_punto || 0,
-          diaBreakEven: current.break_even_dia || 0,
-          alcanzado: current.break_even_alcanzado || false,
-          ventasActuales: current.total_ingresos || 0,
-          costesFijos: 0,
-          margenContribucion: 0
-        }
+        suministros: current.suministros || 0,
+        mantenimiento: current.mantenimiento || 0,
+        marketing: current.marketing || 0,
+        gastosExtra: current.gastos_extra || 0,
+        financiaciones: current.financiaciones || 0,
+        inversiones: current.inversiones || 0,
+        resultadoBruto: current.resultado_bruto || 0,
+        resultadoNeto: current.resultado_neto || 0,
+        margenNeto: current.margen_neto || 0,
+        ratioPersonal: current.ratio_personal || 0,
+        ratioMateriaPrima: current.ratio_materia_prima || 0,
+        ratioGastosFijos: current.ratio_gastos_fijos || 0
+      },
+      historicalData: {
+        months: history.map((m: MonthlyResult) => `${m.month_name} ${m.year}`).reverse(),
+        ingresos: history.map((m: MonthlyResult) => m.total_ingresos || 0).reverse(),
+        // Suma explícita de categorías (consistente con KPI Gastos — fix #14)
+        gastos: history.map((m: MonthlyResult) =>
+          (m.personal_total || 0) + (m.materia_prima_total || 0) +
+          (m.suministros || 0) + (m.mantenimiento || 0) + (m.marketing || 0) +
+          (m.gastos_extra || 0) + (m.inversiones || 0) + (m.financiaciones || 0)
+        ).reverse(),
+        resultados: history.map((m: MonthlyResult) => m.resultado_neto || 0).reverse(),
+        gastosMateria: history.map((m: MonthlyResult) => m.materia_prima_total || 0).reverse(),
+        gastosPersonal: history.map((m: MonthlyResult) => m.personal_total || 0).reverse()
+      },
+      sameMonthLastYear,
+      varianceAnalysis,
+      breakEvenData: {
+        puntoEquilibrio,
+        diaBreakEven: current.break_even_dia || null,
+        alcanzado: current.break_even_alcanzado || totalIngresos >= puntoEquilibrio,
+        ventasActuales: totalIngresos,
+        costesFijos: costoFijo,
+        margenContribucion: margenContribucionPct
       }
     }
-    return MOCK_DATA
   }, [dashboardData])
 
+  // Resolved data — los hooks necesitan ejecutarse siempre (regla de React)
+  // pero el early return garantiza que el JSX no se renderiza sin datos
+  const safeData: DashboardUiData = data ?? EMPTY_DATA
+
   // Diagnósticos memoizados
-  const diagnoses = useDiagnoses(data)
+  const diagnoses = useDiagnoses(safeData)
 
   // KPIs para Widget de Inteligencia
-  const intelligenceKPIs = useIntelligenceKPIs(data)
+  const intelligenceKPIs = useIntelligenceKPIs(safeData)
 
   // Cálculos memoizados
-  const isProfitable = useMemo(() => data.currentMonth.resultadoNeto >= 0, [data.currentMonth.resultadoNeto])
+  const isProfitable = useMemo(() => safeData.currentMonth.resultadoNeto >= 0, [safeData])
 
   const momChange = useMemo(() => {
-    const current = data.currentMonth.resultadoNeto
-    const previous = data.varianceAnalysis.previousMonth.resultado
+    const current = safeData.currentMonth.resultadoNeto
+    const previous = safeData.varianceAnalysis.previousMonth.resultado
+    if (previous === 0) return 0
     return ((current - previous) / previous) * 100
-  }, [data.currentMonth.resultadoNeto, data.varianceAnalysis.previousMonth.resultado])
+  }, [safeData])
 
   const yoyChange = useMemo(() => {
-    return ((data.currentMonth.totalIngresos - data.sameMonthLastYear.ingresos) / data.sameMonthLastYear.ingresos) * 100
-  }, [data.currentMonth.totalIngresos, data.sameMonthLastYear.ingresos])
+    const lastYear = safeData.sameMonthLastYear.ingresos
+    if (lastYear === 0) return 0
+    return ((safeData.currentMonth.totalIngresos - lastYear) / lastYear) * 100
+  }, [safeData])
 
-  // Handler memoizado
+  // Handler de cierre de mes — llama a server action real
   const handleCloseMonth = useCallback(async () => {
+    if (!dashboardData?.currentMonth) return
     setIsClosingMonth(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setIsClosingMonth(false)
-    setShowSuccess(true)
-    setTimeout(() => setShowSuccess(false), 2000)
-  }, [])
+    setCloseError(null)
+    try {
+      const { closeMonth } = await import("@/app/actions/resultados")
+      const result = await closeMonth(
+        dashboardData.currentMonth.restaurant_id,
+        dashboardData.currentMonth.month_year
+      )
+      if (result.success) {
+        setShowSuccess(true)
+        setTimeout(() => setShowSuccess(false), 2000)
+      } else {
+        setCloseError(result.error || 'Error desconocido al cerrar el mes')
+        setTimeout(() => setCloseError(null), 4000)
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error de conexión'
+      setCloseError(msg)
+      setTimeout(() => setCloseError(null), 4000)
+    } finally {
+      setIsClosingMonth(false)
+    }
+  }, [dashboardData])
+
+  // Empty state si no hay datos
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="p-4 bg-neutral-100 rounded-2xl mb-4">
+          <PieChart className="w-8 h-8 text-neutral-400" />
+        </div>
+        <h3 className="font-bold text-lg text-neutral-900 mb-2">Sin datos de resultados</h3>
+        <p className="text-sm text-neutral-500 max-w-sm">
+          Registra ventas diarias y gastos operativos desde las pestañas de Facturación y Gastos para ver tus resultados aquí.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 pb-12 max-w-5xl mx-auto">
@@ -558,13 +672,22 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
           size="sm"
           className={cn(
             "rounded-lg gap-1.5 text-xs font-bold h-8",
-            showSuccess ? "bg-emerald-600" : "bg-neutral-900"
+            dashboardData?.isClosed ? "bg-emerald-600" : showSuccess ? "bg-emerald-600" : "bg-neutral-900"
           )}
           onClick={handleCloseMonth}
-          disabled={isClosingMonth}
-          aria-label={isClosingMonth ? "Cerrando mes" : showSuccess ? "Mes cerrado correctamente" : "Cerrar mes y generar informe"}
+          disabled={isClosingMonth || dashboardData?.isClosed === true}
+          aria-label={
+            dashboardData?.isClosed
+              ? "Mes ya cerrado"
+              : isClosingMonth ? "Cerrando mes" : showSuccess ? "Mes cerrado correctamente" : "Cerrar mes y generar informe"
+          }
         >
-          {isClosingMonth ? (
+          {dashboardData?.isClosed ? (
+            <>
+              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Cerrado</span>
+            </>
+          ) : isClosingMonth ? (
             <>
               <Lock className="w-3.5 h-3.5 animate-pulse" aria-hidden="true" />
               <span>Cerrando...</span>
@@ -582,6 +705,14 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
           )}
         </Button>
       </header>
+
+      {/* Mensaje de Error (Cierre de mes) */}
+      {closeError && (
+        <div className="bg-rose-50 text-rose-600 px-4 py-3 rounded-xl border border-rose-200 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          <p>{closeError}</p>
+        </div>
+      )}
 
       {/* Resultado Principal */}
       <section
@@ -646,16 +777,27 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
           trend={data.varianceAnalysis.variacionVentas}
           icon={TrendingUp}
         />
+        {/* Gastos: suma explícita de categorías, no derivación ingresos-resultado,
+            para detectar discrepancias en la BD si las hubiera */}
         <KpiCard
           title="Gastos"
-          value={formatCurrency(data.currentMonth.totalIngresos - data.currentMonth.resultadoNeto)}
+          value={formatCurrency(
+            data.currentMonth.personal.total +
+            data.currentMonth.materiaPrima.total +
+            data.currentMonth.suministros +
+            data.currentMonth.mantenimiento +
+            data.currentMonth.marketing +
+            data.currentMonth.gastosExtra +
+            data.currentMonth.inversiones +
+            data.currentMonth.financiaciones
+          )}
           subtitle="Operativos + Inversiones"
           icon={AlertTriangle}
         />
         <KpiCard
           title="Break-Even"
-          value={`Día ${data.breakEvenData.diaBreakEven}`}
-          subtitle={data.breakEvenData.alcanzado ? 'Alcanzado ✓' : 'Pendiente'}
+          value={data.breakEvenData.diaBreakEven != null ? `Día ${data.breakEvenData.diaBreakEven}` : 'Sin dato'}
+          subtitle={data.breakEvenData.alcanzado ? 'Alcanzado ✓' : data.breakEvenData.puntoEquilibrio > 0 ? `Meta: ${formatCurrency(data.breakEvenData.puntoEquilibrio)}` : 'Pendiente'}
           icon={Calendar}
         />
 
@@ -678,7 +820,20 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
         <ExpenseIntelligenceWidget
           kpis={intelligenceKPIs}
           insight={{
-            summary: 'Sistema de análisis automático con IA activado',
+            summary: (() => {
+              const ratio = intelligenceKPIs.expenseToSalesRatio
+              const personal = intelligenceKPIs.personalRatio
+              const materia = intelligenceKPIs.cogsRatio
+              if (ratio === 0) return 'Sin datos suficientes para generar análisis.'
+              const parts: string[] = []
+              if (ratio > 85) parts.push(`Gastos al ${ratio.toFixed(0)}% de ventas — margen muy ajustado.`)
+              else if (ratio > 70) parts.push(`Gastos operativos contenidos al ${ratio.toFixed(0)}% de ventas.`)
+              else parts.push(`Estructura de gastos eficiente al ${ratio.toFixed(0)}% de ventas.`)
+              if (personal > 35) parts.push(`Personal (${personal.toFixed(0)}%) por encima del benchmark del 33%.`)
+              if (materia > 35) parts.push(`Materia prima (${materia.toFixed(0)}%) por encima del benchmark del 33%.`)
+              if (personal <= 33 && materia <= 33) parts.push('Ambos ratios principales dentro de objetivo.')
+              return parts.join(' ')
+            })(),
             editable: false
           }}
         />
@@ -722,7 +877,7 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
               inversiones: data.currentMonth.inversiones,
               financiaciones: data.currentMonth.financiaciones,
               resultadoNeto: data.currentMonth.resultadoNeto
-            }} />
+            }} totalIngresos={data.currentMonth.totalIngresos} />
           </div>
         </CollapsibleSection>
 
@@ -737,7 +892,7 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
                 months: data.historicalData.months,
                 ingresos: data.historicalData.ingresos
               }}
-              currentMonthIndex={11}
+              currentMonthIndex={Math.max(0, data.historicalData.months.length - 1)}
             />
             <ProfitBridge data={data.varianceAnalysis} />
           </div>

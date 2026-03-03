@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from "next/navigation"
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import { DashboardDatePicker } from "@/components/dashboard/DashboardDatePicker"
 import { TrendingUp, ShieldCheck } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -44,26 +44,22 @@ export function UnifiedDashboard({
 }: UnifiedDashboardProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const [date, setDate] = useState<DateRange | undefined>(() => ({
+    const date: DateRange = {
         from: new Date(defaultDate.from),
-        to: new Date(defaultDate.to)
-    }))
+        to: defaultDate.to ? new Date(defaultDate.to) : undefined
+    }
 
-    useEffect(() => {
-        if (date?.from) {
-            const params = new URLSearchParams(searchParams.toString())
-            const fromDate = date.from instanceof Date ? date.from : new Date(date.from)
-            const toDate = date.to && (date.to instanceof Date ? date.to : new Date(date.to))
-
-            if (!isNaN(fromDate.getTime())) params.set("from", fromDate.toISOString())
-            if (toDate && !isNaN(toDate.getTime())) params.set("to", toDate.toISOString())
-
-            const currentFrom = searchParams.get("from")
-            if (currentFrom !== fromDate.toISOString()) {
-                router.push(`/?${params.toString()}`, { scroll: false })
-            }
+    const setDate = React.useCallback((newDate: DateRange | undefined) => {
+        if (!newDate?.from) return;
+        const params = new URLSearchParams(searchParams.toString())
+        params.set("from", newDate.from.toISOString())
+        if (newDate.to) {
+            params.set("to", newDate.to.toISOString())
+        } else {
+            params.delete("to")
         }
-    }, [date, router, searchParams])
+        router.push(`/?${params.toString()}`, { scroll: false })
+    }, [router, searchParams])
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
@@ -75,13 +71,13 @@ export function UnifiedDashboard({
             </div>
 
             {/* SECTION 1: CEO STRATEGY (Briefing & Hero Numbers) */}
-            <motion.div
+            <m.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
             >
                 {strategicView}
-            </motion.div>
+            </m.div>
 
             {/* MINIMAL DIVIDER */}
             <div className="relative py-4">
@@ -96,7 +92,7 @@ export function UnifiedDashboard({
             </div>
 
             {/* SECTION 2: CFO CONTROL (Taxes & Margins) */}
-            <motion.div
+            <m.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
@@ -121,7 +117,7 @@ export function UnifiedDashboard({
                     kpis={financialHubData.kpis}
                     fiscalMetrics={fiscalMetrics}
                 />
-            </motion.div>
+            </m.div>
         </div>
     )
 }

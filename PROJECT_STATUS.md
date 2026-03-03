@@ -91,10 +91,9 @@ npm run post-refactor    # Después de refactor
    - Matrix: Node.js 18.x y 20.x
    - Incluye security audit
 
-3. **deploy.yml** - Deploy a Producción
-   - Ejecuta en: tags v*
-   - Build y push a GitHub Container Registry
-   - Deploy con notificación Slack
+3. **Deploy a Producción (Vercel)**
+   - Despliegue automático configurado en Vercel conectado al repositorio GitHub.
+   - Variables de entorno de Supabase configuradas directamente en Vercel.
 
 ### Variables de Entorno Necesarias
 
@@ -144,7 +143,7 @@ TEST_PASSWORD=TestPassword123
 
 ### Medio Prioridad
 
-4. **Optimizaciones**
+1. **Optimizaciones**
    - Analizar bundle size
    - Revisar Core Web Vitals
    - Optimizar imágenes
@@ -161,7 +160,7 @@ TEST_PASSWORD=TestPassword123
 
 ### Bajo Prioridad
 
-7. **Monitoreo**
+1. **Monitoreo**
    - Integrar Sentry o similar
    - Analytics básico
    - Logs estructurados
@@ -225,4 +224,4 @@ TEST_PASSWORD=TestPassword123
 
 ---
 
-**Estado**: 🟢 Listo para producción (con configuración de secrets)
+**Estado**: 🟢 **EN PRODUCCIÓN (Vercel)** - Deploy exitoso y funcional.

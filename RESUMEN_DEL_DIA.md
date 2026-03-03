@@ -278,7 +278,20 @@ No, una vez cerrado el mes, `is_closed = true`. Para corregir, usa `UPDATE` en l
 
 ---
 
-**Estado: 🟢 EN CURSO**
-**Próximo paso: Insertar datos de prueba en Supabase**
+**Estado: 🟢 EN CURSO / DEPLOY APROBADO**
+**Próximo paso: Insertar datos de prueba en Supabase e iterar.**
 
 ---
+
+## 🎉 ACTUALIZACIÓN IMPORTANTE: DEPLOY EXITOSO EN VERCEL
+
+Se ha resuelto exitosamente el despliegue a producción en Vercel.
+
+**Problemas resueltos:**
+
+- **Resolución DNS de Supabase (`net::ERR_NAME_NOT_RESOLVED`)**: Configuración correcta de variables de entorno de Supabase directamente en Vercel.
+- **Sincronización de Repositorio**: Asegurado que Vercel apunte al repositorio correcto (`juan49ers-spec/app-finanzas-restaurante`).
+- **Problemas de Caché en Build**: Forzado un redeploy sin caché ("Use Build Cache" deshabilitado) para aplicar las nuevas variables y dependencias.
+- **Resolución de Autenticación / Next.js**: Verificada la compatibilidad con el pipeline de build de Vercel y su runtime.
+
+**El proyecto está ahora 100% operativo en producción.** 🚀

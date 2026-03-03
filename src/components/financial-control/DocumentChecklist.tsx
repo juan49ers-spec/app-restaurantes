@@ -24,104 +24,104 @@ interface Category {
 
 export function DocumentChecklist({ quarter }: DocumentChecklistProps) {
     const [isExpanded, setIsExpanded] = useState(false)
-    
+
     const [categories, setCategories] = useState<Category[]>([
         {
             name: "Ingresos",
             items: [
-                { 
-                    id: '1', 
-                    label: 'Zetas diarias de TPV', 
+                {
+                    id: '1',
+                    label: 'Zetas diarias de TPV',
                     description: 'Cierres de caja de todos los días del trimestre',
                     tip: 'Debe coincidir con lo declarado en el 303',
-                    required: true, 
-                    checked: false 
+                    required: true,
+                    checked: false
                 },
             ]
         },
         {
             name: "Compras y Gastos",
             items: [
-                { 
-                    id: '2', 
-                    label: 'Facturas de proveedores', 
+                {
+                    id: '2',
+                    label: 'Facturas de proveedores',
                     description: 'Alimentos, bebidas y materia prima',
                     tip: 'Incluye facturas de 4%, 10% y 21%',
-                    required: true, 
-                    checked: false 
+                    required: true,
+                    checked: false
                 },
-                { 
-                    id: '3', 
-                    label: 'Factura de alquiler', 
+                {
+                    id: '3',
+                    label: 'Factura de alquiler',
                     description: 'Arrendamiento del local con retención IRPF',
                     tip: 'Debe incluir retención del 19% (Modelo 115)',
-                    required: true, 
-                    checked: false 
+                    required: true,
+                    checked: false
                 },
-                { 
-                    id: '4', 
-                    label: 'Suministros', 
+                {
+                    id: '4',
+                    label: 'Suministros',
                     description: 'Luz, agua, gas y otros servicios básicos',
-                    required: true, 
-                    checked: false 
+                    required: true,
+                    checked: false
                 },
             ]
         },
         {
             name: "Personal",
             items: [
-                { 
-                    id: '5', 
-                    label: 'Nóminas y Seguridad Social', 
+                {
+                    id: '5',
+                    label: 'Nóminas y Seguridad Social',
                     description: 'Recibos de nómina y pago de SS de todos los empleados',
                     tip: 'Incluye retenciones IRPF (Modelo 111)',
-                    required: true, 
-                    checked: false 
+                    required: true,
+                    checked: false
                 },
             ]
         },
         {
             name: "Otros",
             items: [
-                { 
-                    id: '6', 
-                    label: 'Servicios', 
+                {
+                    id: '6',
+                    label: 'Servicios',
                     description: 'Teléfono, internet, limpieza, mantenimiento',
-                    required: false, 
-                    checked: false 
+                    required: false,
+                    checked: false
                 },
-                { 
-                    id: '7', 
-                    label: 'Formación y otros gastos', 
+                {
+                    id: '7',
+                    label: 'Formación y otros gastos',
                     description: 'Cursos, material de oficina, equipamiento',
-                    required: false, 
-                    checked: false 
+                    required: false,
+                    checked: false
                 },
             ]
         },
     ])
-    
+
     const toggleItem = (categoryIdx: number, itemId: string) => {
         setCategories(categories.map((cat, cIdx) => {
             if (cIdx !== categoryIdx) return cat
             return {
                 ...cat,
-                items: cat.items.map(item => 
+                items: cat.items.map(item =>
                     item.id === itemId ? { ...item, checked: !item.checked } : item
                 )
             }
         }))
     }
-    
+
     const allItems = categories.flatMap(cat => cat.items)
     const completedCount = allItems.filter(item => item.checked).length
     const requiredItems = allItems.filter(item => item.required)
     const requiredCompleted = requiredItems.filter(item => item.checked).length
     const progress = Math.round((completedCount / allItems.length) * 100)
-    
+
     const allRequiredCompleted = requiredCompleted === requiredItems.length
     const missingRequired = requiredItems.filter(item => !item.checked)
-    
+
     return (
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
             <button
@@ -149,12 +149,14 @@ export function DocumentChecklist({ quarter }: DocumentChecklistProps) {
                 <div className="flex items-center gap-2">
                     <div className="hidden sm:flex items-center gap-2">
                         <div className="w-20 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-                            <div 
+                            <div
+                                ref={(el) => {
+                                    if (el) el.style.setProperty('--dyn-w', `${progress}%`)
+                                }}
                                 className={cn(
-                                    "h-full rounded-full transition-all",
+                                    "h-full rounded-full transition-all dyn-bar",
                                     allRequiredCompleted ? "bg-emerald-500" : "bg-neutral-800"
                                 )}
-                                style={{ width: `${progress}%` }}
                             />
                         </div>
                         <span className="text-xs text-neutral-500">{progress}%</span>
@@ -166,7 +168,7 @@ export function DocumentChecklist({ quarter }: DocumentChecklistProps) {
                     )}
                 </div>
             </button>
-            
+
             {isExpanded && (
                 <div className="border-t border-neutral-100">
                     {/* Alerta si faltan documentos obligatorios */}
@@ -185,7 +187,7 @@ export function DocumentChecklist({ quarter }: DocumentChecklistProps) {
                             </div>
                         </div>
                     )}
-                    
+
                     {/* Lista por categorías */}
                     <div className="p-4 space-y-4">
                         {categories.map((category, catIdx) => (
@@ -202,8 +204,8 @@ export function DocumentChecklist({ quarter }: DocumentChecklistProps) {
                                             <div className="pt-0.5">
                                                 <div className={cn(
                                                     "w-5 h-5 rounded border flex items-center justify-center transition-colors",
-                                                    item.checked 
-                                                        ? "bg-neutral-900 border-neutral-900" 
+                                                    item.checked
+                                                        ? "bg-neutral-900 border-neutral-900"
                                                         : "border-neutral-300 bg-white"
                                                 )}>
                                                     {item.checked && <Check className="w-3 h-3 text-white" />}
@@ -247,7 +249,7 @@ export function DocumentChecklist({ quarter }: DocumentChecklistProps) {
                             </div>
                         ))}
                     </div>
-                    
+
                     {allRequiredCompleted && (
                         <div className="px-4 pb-4">
                             <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">

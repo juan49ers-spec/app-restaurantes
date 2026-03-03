@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 import { Supplier } from "@/types/schema"
 import {
     Table, TableBody, TableCell, TableRow,
@@ -21,6 +23,7 @@ import { createSupplier, updateSupplier, deleteSupplier } from "@/app/actions/su
 import { SupplierDetailsModal } from "./SupplierDetailsModal"
 
 export function SupplierTable({ initialSuppliers }: { initialSuppliers: Supplier[] }) {
+    const router = useRouter()
     const [suppliers] = useState(initialSuppliers)
     const [search, setSearch] = useState("")
     const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -30,9 +33,10 @@ export function SupplierTable({ initialSuppliers }: { initialSuppliers: Supplier
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
 
+    const debouncedSearch = useDebouncedValue(search, 300)
     const filteredSuppliers = suppliers.filter(s =>
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.contact_email?.toLowerCase().includes(search.toLowerCase())
+        s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        s.contact_email?.toLowerCase().includes(debouncedSearch.toLowerCase())
     )
 
     const handleSubmit = async (formData: FormData) => {
@@ -46,7 +50,7 @@ export function SupplierTable({ initialSuppliers }: { initialSuppliers: Supplier
             }
             setIsDialogOpen(false)
             setEditingSupplier(null)
-            window.location.reload()
+            router.refresh()
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : "Error desconocido"
             toast.error("Error al guardar: " + msg)
@@ -58,7 +62,7 @@ export function SupplierTable({ initialSuppliers }: { initialSuppliers: Supplier
         try {
             await deleteSupplier(id)
             toast.success("Proveedor eliminado")
-            window.location.reload()
+            router.refresh()
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : "Error desconocido"
             toast.error("Error al borrar: " + msg)

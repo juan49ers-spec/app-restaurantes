@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion, useSpring, useTransform } from "framer-motion"
+import { m, useSpring, useTransform } from "framer-motion"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import { calculateMatrix, deleteReport } from "@/app/actions/menu-engineering"
@@ -63,7 +63,7 @@ function CountUp({ value, prefix = "", suffix = "", decimals = 0 }: { value: num
         spring.set(value)
     }, [value, spring])
 
-    return <motion.span>{display}</motion.span>
+    return <m.span>{display}</m.span>
 }
 
 export default function MenuEngineeringReportPage({ report }: Props) {

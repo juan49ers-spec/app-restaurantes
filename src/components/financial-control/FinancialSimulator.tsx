@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 import {
     Target,
     TrendingUp,
@@ -304,7 +304,7 @@ export default function FinancialSimulator({ restaurantId: propRestaurantId, fin
             {/* Menu Impact Notification */}
             <AnimatePresence>
                 {activeMenuImpact && !isMenuImpactApplied && (
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95 }}
@@ -331,7 +331,7 @@ export default function FinancialSimulator({ restaurantId: propRestaurantId, fin
                                 <Activity className="w-4 h-4 mr-2" /> Aplicar a Proyección
                             </Button>
                         </div>
-                    </motion.div>
+                    </m.div>
                 )}
             </AnimatePresence>
 
@@ -409,7 +409,7 @@ export default function FinancialSimulator({ restaurantId: propRestaurantId, fin
                             <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                 <AnimatePresence mode="popLayout">
                                     {scenarios.map((s) => (
-                                        <motion.div
+                                        <m.div
                                             key={s.id}
                                             layout
                                             initial={{ opacity: 0, x: -10 }}
@@ -437,7 +437,7 @@ export default function FinancialSimulator({ restaurantId: propRestaurantId, fin
                                             >
                                                 <X className="w-3.5 h-3.5" />
                                             </button>
-                                        </motion.div>
+                                        </m.div>
                                     ))}
                                 </AnimatePresence>
                             </div>
@@ -635,12 +635,11 @@ function SmallMetric({ label, value, trend, invertTrend, color }: SmallMetricPro
 }
 
 function WaterfallLegend({ color, label }: { color: string, label: string }) {
-    const helperStyle = { '--legend-color': color } as React.CSSProperties;
     return (
         <div className="flex items-center gap-2">
             <div
-                className="w-2.5 h-2.5 rounded-full bg-[var(--legend-color)]"
-                style={helperStyle}
+                className="w-2.5 h-2.5 rounded-full dyn-bg"
+                ref={(el) => { if (el) el.style.setProperty('--dyn-bg', color) }}
             />
             <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">{label}</span>
         </div>

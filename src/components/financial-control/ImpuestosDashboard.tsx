@@ -1,29 +1,48 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { TaxPulseWidget } from "./TaxPulseWidget"
 import { IVATable } from "./IVATable"
 import { IRPTable } from "./IRPTable"
 import { FiscalCalendar } from "./FiscalCalendar"
 import { DocumentChecklist } from "./DocumentChecklist"
-import { TaxSimulator } from "./TaxSimulator"
-import { Download, ChevronLeft, ChevronRight, FileText } from "lucide-react"
+import { Download, ChevronLeft, ChevronRight, FileText, Loader2 } from "lucide-react"
+import { getQuarterlyFiscalData, QuarterlyFiscalData } from "@/app/actions/financial-control"
 
-export function ImpuestosDashboard() {
+interface ImpuestosDashboardProps {
+    restaurantId: string;
+}
+
+export function ImpuestosDashboard({ restaurantId }: ImpuestosDashboardProps) {
     const [date, setDate] = useState(() => new Date())
+    const [data, setData] = useState<QuarterlyFiscalData | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
 
     // Derived state for year and quarter to ensure consistency
     const year = date.getFullYear()
     const currentMonth = date.getMonth()
-    const quarter = `Q${Math.floor(currentMonth / 3) + 1}` as 'Q1' | 'Q2' | 'Q3' | 'Q4'
+    const quarterNum = Math.floor(currentMonth / 3) + 1
+    const quarter = `Q${quarterNum}` as 'Q1' | 'Q2' | 'Q3' | 'Q4'
 
-    // Mock data for the pulse widget
-    const pulseData = {
-        ivaBalance: 1250.50, // Positive = To Pay
-        irpfTotal: 2450.00,
-        daysRemaining: 12
-    }
+    useEffect(() => {
+        let isMounted = true;
+        setIsLoading(true);
+        getQuarterlyFiscalData(restaurantId, year, quarterNum)
+            .then(res => {
+                if (isMounted) {
+                    setData(res)
+                }
+            })
+            .catch(err => {
+                console.error("Failed to load fiscal data:", err)
+            })
+            .finally(() => {
+                if (isMounted) setIsLoading(false)
+            });
+
+        return () => { isMounted = false }
+    }, [restaurantId, year, quarterNum])
 
     const handlePeriodChange = (direction: 'prev' | 'next') => {
         setDate(prev => {
@@ -35,6 +54,15 @@ export function ImpuestosDashboard() {
             }
             return newDate
         })
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[500px] gap-4">
+                <Loader2 className="w-8 h-8 text-neutral-400 animate-spin" />
+                <p className="text-sm text-neutral-500">Cargando datos fiscales...</p>
+            </div>
+        )
     }
 
     return (
@@ -81,9 +109,9 @@ export function ImpuestosDashboard() {
 
             {/* Row 1: Pulse Widget (Full Width) */}
             <TaxPulseWidget
-                ivaBalance={pulseData.ivaBalance}
-                irpfTotal={pulseData.irpfTotal}
-                daysRemaining={pulseData.daysRemaining}
+                ivaBalance={data?.pulseData?.ivaBalance || 0}
+                irpfTotal={data?.pulseData?.irpfTotal || 0}
+                daysRemaining={data?.pulseData?.daysRemaining || 0}
                 quarter={quarter}
                 year={year}
             />
@@ -91,10 +119,10 @@ export function ImpuestosDashboard() {
             {/* Row 2: Detail Tables (2 Columns) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="h-[420px]">
-                    <IVATable year={year} quarter={quarter} />
+                    <IVATable year={year} quarter={quarter} data={data?.ivaByMonth || []} />
                 </div>
                 <div className="h-[420px]">
-                    <IRPTable year={year} quarter={quarter} />
+                    <IRPTable year={year} quarter={quarter} data={data?.irpfByConcept || []} />
                 </div>
             </div>
 
@@ -106,11 +134,6 @@ export function ImpuestosDashboard() {
                 <div className="h-full min-h-[200px]">
                     <FiscalCalendar year={year} quarter={quarter} />
                 </div>
-            </div>
-
-            {/* Row 4: Simulator (Full Width) */}
-            <div>
-                <TaxSimulator />
             </div>
 
             {/* Footer info */}

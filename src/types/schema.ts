@@ -422,18 +422,31 @@ export const EmployeeSchema = z.object({
     restaurant_id: z.string().uuid(),
     first_name: z.string().min(1, "First name is required"),
     last_name: z.string().min(1, "Last name is required"),
+
+    // HR Details
     role: StaffRoleSchema,
-    hourly_rate: z.number().min(0).default(0),
-    monthly_base_salary: z.number().min(0).optional(),
+    system_access_level: z.enum(['ADMIN', 'MANAGER', 'STAFF', 'NONE']).default('NONE'),
+    status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
+    is_active: z.boolean().default(true).optional(),
+
+    // Contact & Identifiers
+    email: z.string().email().optional().or(z.literal('')),
+    phone: z.string().optional(),
+    social_security_number: z.string().optional(), // Sensitive data
+    emergency_contact: z.string().optional(),
+
+    // Contract & Compensation
     contract_type: ContractTypeSchema.default('INDEFINIDO'),
     contract_hours_weekly: z.number().min(0).default(40),
-    phone: z.string().optional(),
-    email: z.string().email().optional().or(z.literal('')),
-    emergency_contact: z.string().optional(),
-    social_security_number: z.string().optional(), // Sensitive data
+    wage_type: z.enum(['HOURLY', 'SALARIED', 'MIXED']).default('HOURLY'),
+    hourly_rate: z.number().min(0).default(0),
+    monthly_base_salary: z.number().min(0).default(0),
+
+    // UI Helpers
     color_code: z.string().default("#3b82f6"),
-    is_active: z.boolean().default(true),
-    created_at: z.string().optional()
+
+    created_at: z.string().optional(),
+    updated_at: z.string().optional()
 });
 
 export type Employee = z.infer<typeof EmployeeSchema>;
@@ -449,15 +462,27 @@ export const ShiftSchema = z.object({
     id: z.string().uuid().optional(),
     restaurant_id: z.string().uuid(),
     employee_id: z.string().uuid(),
+
+    // Scheduling
     date: z.string(), // ISO Date YYYY-MM-DD
     start_time: z.string(), // HH:mm
     end_time: z.string(),   // HH:mm
+
+    // Actuals (for time tracking & variance)
+    actual_start_time: z.string().optional(), // HH:mm
+    actual_end_time: z.string().optional(),   // HH:mm
+
     break_minutes: z.number().default(0),
     shift_type: ShiftTypeSchema.optional(),
     status: ShiftStatusSchema.default('scheduled'),
-    estimated_cost: z.number().optional(),
+
+    // Estimated/Actual Cost tracking
+    estimated_cost: z.number().default(0).optional(),
+    actual_cost: z.number().default(0).optional(),
+
     notes: z.string().optional(),
-    created_at: z.string().optional()
+    created_at: z.string().optional(),
+    updated_at: z.string().optional()
 });
 
 export type Shift = z.infer<typeof ShiftSchema>;

@@ -11,9 +11,9 @@ import {
     AlertCircle,
     Info
 } from "lucide-react"
+import { getEmployees, getShifts, upsertShift, deleteShift, getStaffingForecast, type DailyForecast } from "@/app/actions/staff"
 import { format, startOfWeek, addDays, subWeeks, addWeeks, isSameDay } from "date-fns"
 import { es } from "date-fns/locale"
-import { getEmployees, getShifts, upsertShift, deleteShift, getStaffingForecast, DailyForecast } from "@/app/actions/staff-actions"
 import type { Employee, Shift } from "@/types/schema"
 import { ShiftForm } from "./ShiftForm"
 import { toast } from "sonner"
@@ -31,6 +31,7 @@ import {
 import { ShiftBoardCell } from "./ShiftBoardCell"
 import { ShiftCard } from "./ShiftCard"
 import { ShiftContextMenuPortal } from "./ShiftContextMenuPortal"
+import { SkeletonTable } from "@/components/shared/LoadingSkeletons"
 
 interface ShiftBoardProps {
     restaurantId: string
@@ -100,16 +101,18 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
     const fetchData = useCallback(async () => {
         setLoading(true)
         try {
-            const [staffData, shiftsData, forecastData] = await Promise.all([
+            const [staffRes, shiftsRes, forecastData] = await Promise.all([
                 getEmployees(restaurantId),
                 getShifts(restaurantId, startStr, endStr),
                 getStaffingForecast(restaurantId, startStr, endStr)
             ])
-            setEmployees(staffData)
-            setShifts(shiftsData)
+
+            if (staffRes.data) setEmployees(staffRes.data)
+            if (shiftsRes.data) setShifts(shiftsRes.data)
             setForecasts(forecastData)
         } catch (err) {
             console.error("Error fetching board data:", err)
+            toast.error("Error al cargar los datos del cuadrante")
         } finally {
             setLoading(false)
         }
@@ -145,11 +148,15 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
                 id: undefined // Create new
             }
 
-            await upsertShift(newShift as Shift)
-            toast.success("Turno duplicado al día siguiente")
-            fetchData()
+            const result = await upsertShift(newShift as Shift)
+            if (result.success) {
+                toast.success("Turno duplicado al día siguiente")
+                fetchData()
+            } else {
+                toast.error(result.error || "Error al duplicar turno")
+            }
         } catch {
-            toast.error("Error al duplicar turno")
+            toast.error("Error inesperado al duplicar turno")
         }
     }
 
@@ -158,12 +165,16 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
 
         try {
             if (shift.id) {
-                await deleteShift(shift.id)
-                toast.success("Turno eliminado")
-                fetchData()
+                const result = await deleteShift(shift.id, restaurantId)
+                if (result.success) {
+                    toast.success("Turno eliminado")
+                    fetchData()
+                } else {
+                    toast.error(result.error || "No se pudo eliminar el turno")
+                }
             }
         } catch {
-            toast.error("Error al eliminar turno")
+            toast.error("Error inesperado al eliminar turno")
         }
     }
 
@@ -282,13 +293,18 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
         setShifts(prev => prev.map(s => s.id === shift.id ? updatedShift : s))
 
         try {
-            await upsertShift(updatedShift)
-            toast.success("Turno movido correctamente")
-            // Fetch to update costs
-            fetchData()
+            const result = await upsertShift(updatedShift)
+            if (result.success) {
+                toast.success("Turno movido correctamente")
+                // Fetch to update costs
+                fetchData()
+            } else {
+                toast.error(result.error || "Error al mover el turno")
+                setShifts(originalShifts) // Revert
+            }
         } catch (error) {
             console.error("Failed to move shift", error)
-            toast.error("Error al mover el turno")
+            toast.error("Error inesperado al mover el turno")
             setShifts(originalShifts) // Revert
         }
     }
@@ -307,7 +323,7 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
                     <div className="flex items-center gap-4 bg-card border rounded-lg p-1 shadow-sm">
                         <button
                             onClick={prevWeek}
-                            className="p-2 hover:bg-muted rounded-md transition-colors"
+                            className="p-3 md:p-2 hover:bg-muted rounded-md transition-colors cursor-pointer"
                             aria-label="Semana anterior"
                             title="Semana anterior"
                         >
@@ -318,7 +334,7 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
                         </span>
                         <button
                             onClick={nextWeek}
-                            className="p-2 hover:bg-muted rounded-md transition-colors"
+                            className="p-3 md:p-2 hover:bg-muted rounded-md transition-colors cursor-pointer"
                             aria-label="Semana siguiente"
                             title="Semana siguiente"
                         >
@@ -371,28 +387,28 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
                                     <div className="flex gap-0.5 mt-1">
                                         <button
                                             onClick={() => setDemandFactor(dateStr, 0.8)}
-                                            className={`w-3 h-3 rounded-full border flex items-center justify-center transition-colors ${factor === 0.8 ? 'bg-blue-200 border-blue-400' : 'bg-transparent border-muted hover:bg-muted'}`}
+                                            className={`w-6 h-6 md:w-3 md:h-3 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${factor === 0.8 ? 'bg-blue-200 border-blue-400' : 'bg-transparent border-muted hover:bg-muted'}`}
                                             title="Baja demanda (0.8x)"
                                         >
                                             <span className="sr-only">Baja</span>
                                         </button>
                                         <button
                                             onClick={() => setDemandFactor(dateStr, 1.0)}
-                                            className={`w-3 h-3 rounded-full border flex items-center justify-center transition-colors ${factor === 1.0 ? 'bg-gray-200 border-gray-400' : 'bg-transparent border-muted hover:bg-muted'}`}
+                                            className={`w-6 h-6 md:w-3 md:h-3 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${factor === 1.0 ? 'bg-gray-200 border-gray-400' : 'bg-transparent border-muted hover:bg-muted'}`}
                                             title="Demanda normal (1.0x)"
                                         >
                                             <span className="sr-only">Normal</span>
                                         </button>
                                         <button
                                             onClick={() => setDemandFactor(dateStr, 1.2)}
-                                            className={`w-3 h-3 rounded-full border flex items-center justify-center transition-colors ${factor === 1.2 ? 'bg-orange-200 border-orange-400' : 'bg-transparent border-muted hover:bg-muted'}`}
+                                            className={`w-6 h-6 md:w-3 md:h-3 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${factor === 1.2 ? 'bg-orange-200 border-orange-400' : 'bg-transparent border-muted hover:bg-muted'}`}
                                             title="Alta demanda (1.2x)"
                                         >
                                             <span className="sr-only">Alta</span>
                                         </button>
                                         <button
                                             onClick={() => setDemandFactor(dateStr, 1.5)}
-                                            className={`w-3 h-3 rounded-full border flex items-center justify-center transition-colors ${factor === 1.5 ? 'bg-purple-200 border-purple-400' : 'bg-transparent border-muted hover:bg-muted'}`}
+                                            className={`w-6 h-6 md:w-3 md:h-3 rounded-full border flex items-center justify-center transition-colors cursor-pointer ${factor === 1.5 ? 'bg-purple-200 border-purple-400' : 'bg-transparent border-muted hover:bg-muted'}`}
                                             title="Evento (1.5x)"
                                         >
                                             <span className="sr-only">Evento</span>
@@ -406,10 +422,7 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
                     <div className="divide-y relative min-h-[200px] overflow-x-auto">
                         {loading ? (
                             <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
-                                <div className="flex items-center gap-2 text-primary">
-                                    <Clock className="w-5 h-5 animate-spin" />
-                                    <span className="font-bold uppercase tracking-tighter italic">Cargando Cuadrante...</span>
-                                </div>
+                                <SkeletonTable rows={3} />
                             </div>
                         ) : null}
 
@@ -418,8 +431,8 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
                             return (
                                 <div key={employee.id} className="grid grid-cols-[140px_repeat(7,1fr)] hover:bg-muted/5 transition-colors group border-b last:border-0">
                                     <div className="px-2 py-1.5 border-r flex flex-col justify-center relative bg-card group-hover:bg-muted/10 transition-colors whitespace-nowrap overflow-hidden sticky left-0 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-
-                                        <div className="absolute left-0 top-0 bottom-0 w-1" style={indicatorStyle} />
+                                        {/* eslint-disable-next-line react/forbid-dom-props */}
+                                        <div className="absolute left-0 top-0 bottom-0 w-1 dyn-bg" ref={(el) => { if (el) el.style.setProperty('--dyn-bg', employee.color_code) }} />
                                         <span className="text-[10px] font-bold uppercase tracking-tight truncate pl-2 text-foreground/90">
                                             {employee.first_name} {employee.last_name}
                                         </span>
@@ -502,7 +515,8 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
                                 return (
                                     <div key={`eff-${day.toISOString()}`} className="p-1.5 border-r last:border-r-0 flex flex-col items-center justify-center gap-1 bg-white">
                                         <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                            <div className={`h-full ${statusColor}`} style={{ width: `${Math.min(efficiency, 100)}%` }} />
+                                            {/* eslint-disable-next-line react/forbid-dom-props */}
+                                            <div className={`h-full ${statusColor} dyn-bar`} ref={(el) => { if (el) el.style.setProperty('--dyn-w', `${Math.min(efficiency, 100)}%`) }} />
                                         </div>
                                         <span className={`text-[9px] font-bold tabular-nums ${efficiency > target + 5 ? 'text-red-600' : 'text-emerald-600'}`}>
                                             {efficiency.toFixed(1)}%
@@ -576,17 +590,19 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
                 ) : null}
             </DragOverlay>
 
-            {contextMenu && (
-                <ShiftContextMenuPortal
-                    x={contextMenu.x}
-                    y={contextMenu.y}
-                    shift={contextMenu.shift}
-                    onClose={() => setContextMenu(null)}
-                    onEdit={handleEditShift}
-                    onDuplicate={handleDuplicateShift}
-                    onDelete={handleDeleteShift}
-                />
-            )}
-        </DndContext>
+            {
+                contextMenu && (
+                    <ShiftContextMenuPortal
+                        x={contextMenu.x}
+                        y={contextMenu.y}
+                        shift={contextMenu.shift}
+                        onClose={() => setContextMenu(null)}
+                        onEdit={handleEditShift}
+                        onDuplicate={handleDuplicateShift}
+                        onDelete={handleDeleteShift}
+                    />
+                )
+            }
+        </DndContext >
     )
 }

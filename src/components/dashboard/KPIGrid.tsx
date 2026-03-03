@@ -1,7 +1,7 @@
 'use client'
 
 import { Euro, TrendingUp, AlertTriangle, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react"
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import { DashboardMetrics } from "@/app/actions/dashboard"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { cn } from "@/lib/utils"
@@ -61,7 +61,7 @@ export function KPIGrid({ metrics }: KPIGridProps) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {kpis.map((kpi, idx) => (
-                <motion.div
+                <m.div
                     key={idx}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -121,7 +121,7 @@ export function KPIGrid({ metrics }: KPIGridProps) {
                             </p>
                         )}
                     </div>
-                </motion.div>
+                </m.div>
             ))}
         </div>
     )

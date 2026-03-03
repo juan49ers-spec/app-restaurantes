@@ -19,7 +19,7 @@ import {
 interface DashboardDatePickerProps {
     className?: string
     date?: DateRange
-    setDate?: React.Dispatch<React.SetStateAction<DateRange | undefined>>
+    setDate?: (date: DateRange | undefined) => void
 }
 
 export function DashboardDatePicker({
@@ -135,66 +135,80 @@ export function DashboardDatePicker({
 
     const { isSmartPeriod, isCurrentYear } = smartLabel
 
-    return (
-        <div className={cn("grid gap-2", className)}>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        id="date"
-                        variant={"outline"}
-                        className={cn(
-                            "w-[260px] justify-between text-left font-normal bg-white/50 backdrop-blur-sm border-slate-200 dark:border-slate-800 hover:bg-white/80 transition-all",
-                            !date && "text-muted-foreground"
-                        )}
-                    >
-                        <div className="flex items-center gap-2">
-                            <div className="bg-blue-50 dark:bg-blue-900/20 p-1.5 rounded-md text-blue-600 dark:text-blue-400">
-                                <CalendarIcon className="h-4 w-4" />
-                            </div>
-                            {date?.from ? (
-                                date.to ? (
-                                    <div className="flex flex-col leading-none gap-0.5">
-                                        {/* Smart Formatting Logic - Client Side Only */}
-                                        {isSmartPeriod ? (
-                                            <>
-                                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Últimos 30 días</span>
-                                                <span className="text-[10px] text-slate-400 font-medium">Periodo automático</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                                                    <span>{format(date.from, "d MMM", { locale: es })}</span>
-                                                    <span className="text-slate-400">→</span>
-                                                    <span>{format(date.to, "d MMM", { locale: es })}</span>
-                                                </div>
-                                                <span className="text-[10px] text-slate-400">
-                                                    {isCurrentYear ? 'Año actual' : date.from.getFullYear()}
-                                                </span>
-                                            </>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <span>{format(date.from, "d MMM, y", { locale: es })}</span>
-                                )
+    // Hydration fix: Only render Radix components after mount
+    const [mounted, setMounted] = React.useState(false)
+    React.useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    const triggerButton = (
+        <Button
+            id="date"
+            variant={"outline"}
+            className={cn(
+                "w-[260px] justify-between text-left font-normal bg-white/50 dark:bg-white/10 backdrop-blur-sm border-slate-200 dark:border-slate-800 hover:bg-white/80 dark:hover:bg-white/20 transition-all cursor-pointer",
+                !date && "text-muted-foreground"
+            )}
+        >
+            <div className="flex items-center gap-2">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-1.5 rounded-md text-blue-600 dark:text-blue-400">
+                    <CalendarIcon className="h-4 w-4" />
+                </div>
+                {date?.from ? (
+                    date.to ? (
+                        <div className="flex flex-col leading-none gap-0.5">
+                            {/* Smart Formatting Logic - Client Side Only */}
+                            {isSmartPeriod ? (
+                                <>
+                                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Últimos 30 días</span>
+                                    <span className="text-[10px] text-slate-400 font-medium">Periodo automático</span>
+                                </>
                             ) : (
-                                <span>Selecciona periodo</span>
+                                <>
+                                    <div className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                                        <span>{format(date.from, "d MMM", { locale: es })}</span>
+                                        <span className="text-slate-400">→</span>
+                                        <span>{format(date.to, "d MMM", { locale: es })}</span>
+                                    </div>
+                                    <span className="text-[10px] text-slate-400">
+                                        {isCurrentYear ? 'Año actual' : date.from.getFullYear()}
+                                    </span>
+                                </>
                             )}
                         </div>
-                        <ChevronDown className="h-4 w-4 text-slate-400" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={date?.from}
-                        selected={date}
-                        onSelect={setDate}
-                        numberOfMonths={2}
-                        locale={es}
-                    />
-                </PopoverContent>
-            </Popover>
+                    ) : (
+                        <span>{format(date.from, "d MMM, y", { locale: es })}</span>
+                    )
+                ) : (
+                    <span>Selecciona periodo</span>
+                )}
+            </div>
+            <ChevronDown className="h-4 w-4 text-slate-400" />
+        </Button>
+    )
+
+    return (
+        <div className={cn("grid gap-2", className)}>
+            {!mounted ? (
+                triggerButton
+            ) : (
+                <Popover>
+                    <PopoverTrigger asChild>
+                        {triggerButton}
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={date?.from}
+                            selected={date}
+                            onSelect={setDate}
+                            numberOfMonths={2}
+                            locale={es}
+                        />
+                    </PopoverContent>
+                </Popover>
+            )}
         </div>
     )
 }

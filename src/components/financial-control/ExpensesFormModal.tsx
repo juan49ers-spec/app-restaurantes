@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { motion } from "framer-motion"
+import { useState, useEffect } from "react"
+import { m } from "framer-motion"
 import { useForm, SubmitHandler } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -15,7 +15,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 import { EXPENSE_CATEGORY_LABELS, EXPENSE_TAGS, OperatingExpenseCategorySchema, OperatingExpense } from "@/types/schema"
-import { upsertOperatingExpense } from "@/app/actions/financial-control"
+import { upsertOperatingExpense, updateOperatingExpense } from "@/app/actions/financial-control"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -88,34 +88,28 @@ export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit
 
     // Effect to populate form when editing
     const { reset } = form
-    useState(() => {
+    useEffect(() => {
         if (isOpen) {
             if (expenseToEdit) {
                 reset({
                     ...defaultValues,
                     ...expenseToEdit,
                     // Ensure dates are formatted correctly if needed
-                    expense_date: expenseToEdit.expense_date.split('T')[0]
+                    expense_date: expenseToEdit.expense_date?.split('T')[0] || format(new Date(), 'yyyy-MM-dd')
                 })
             } else {
                 reset(defaultValues)
             }
         }
-    })
-    // Note: The previous useState logic for reset is actually bad practice (derived state in render). 
-    // Better to use useEffect.
-
-    // Changing to useEffect:
-    const [mounted, setMounted] = useState(false)
-    if (!mounted) {
-        // logic to run once
-        setMounted(true)
-    }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, expenseToEdit, reset])
 
     const onSubmit: SubmitHandler<ExpenseFormValues> = async (values) => {
         setIsSubmitting(true)
         try {
-            const result = await upsertOperatingExpense(values)
+            const result = expenseToEdit?.id
+                ? await updateOperatingExpense(expenseToEdit.id, values)
+                : await upsertOperatingExpense(values)
             if (!result.success) throw new Error(result.error)
 
             toast.success("Gasto registrado correctamente")
@@ -160,7 +154,7 @@ export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit
             !isOpen && "pointer-events-none"
         )}>
             {/* Backdrop */}
-            <motion.div
+            <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: isOpen ? 1 : 0 }}
                 onClick={onClose}
@@ -171,7 +165,7 @@ export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit
             />
 
             {/* Modal Content */}
-            <motion.div
+            <m.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: isOpen ? 1 : 0, scale: isOpen ? 1 : 0.95, y: isOpen ? 0 : 20 }}
                 transition={{ duration: 0.2 }}
@@ -444,7 +438,7 @@ export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit
                         </Button>
                     </div>
                 </form>
-            </motion.div>
+            </m.div>
         </div>
     )
 }

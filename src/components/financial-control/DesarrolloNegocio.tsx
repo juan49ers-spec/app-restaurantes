@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, memo } from "react"
-import { motion } from "framer-motion"
+import { m } from "framer-motion"
 import {
     Bar,
     XAxis,
@@ -221,12 +221,12 @@ export function DesarrolloNegocio({
             const lastYearValue = lastYearData?.ingresos[idx]
 
             // Calcular variación vs mes anterior
-            const variation = idx > 0
+            const variation = idx > 0 && data.ingresos[idx - 1] > 0
                 ? ((currentValue - data.ingresos[idx - 1]) / data.ingresos[idx - 1]) * 100
                 : 0
 
             // Calcular variación vs año anterior
-            const variationYoY = lastYearValue
+            const variationYoY = lastYearValue && lastYearValue > 0
                 ? ((currentValue - lastYearValue) / lastYearValue) * 100
                 : undefined
 
@@ -274,8 +274,8 @@ export function DesarrolloNegocio({
             previous,
             lastYear,
             avgLastQuarter,
-            momChange: ((current - previous) / previous) * 100,
-            yoyChange: lastYear ? ((current - lastYear) / lastYear) * 100 : undefined,
+            momChange: previous > 0 ? ((current - previous) / previous) * 100 : 0,
+            yoyChange: lastYear && lastYear > 0 ? ((current - lastYear) / lastYear) * 100 : undefined,
             trend: slope,
             projection,
             totalAnnual: data.ingresos.reduce((a, b) => a + b, 0)
@@ -539,7 +539,7 @@ export function DesarrolloNegocio({
                 {targets?.annual && (
                     <div className="mt-3">
                         <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <motion.div
+                            <m.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${Math.min((metrics.totalAnnual / targets.annual) * 100, 100)}%` }}
                                 transition={{ duration: 1 }}

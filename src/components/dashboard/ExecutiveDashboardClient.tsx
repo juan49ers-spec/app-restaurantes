@@ -27,24 +27,6 @@ export function ExecutiveDashboardClient({
     initialData,
     missingRestaurant = false,
 }: ExecutiveDashboardClientProps) {
-    const searchParams = useSearchParams()
-    const router = useRouter()
-    const [date] = useState<DateRange | undefined>(initialDateRange)
-
-    useEffect(() => {
-        if (!date?.from || !date?.to) return
-        const currentFrom = searchParams.get("from")
-        const currentTo = searchParams.get("to")
-        const newFrom = date.from.toISOString()
-        const newTo = date.to.toISOString()
-
-        if (currentFrom !== newFrom || currentTo !== newTo) {
-            const params = new URLSearchParams(searchParams)
-            params.set("from", newFrom)
-            params.set("to", newTo)
-            router.push(`?${params.toString()}`, { scroll: false })
-        }
-    }, [date, router, searchParams])
 
     const { financial: financialData } = initialData
 
@@ -83,7 +65,7 @@ export function ExecutiveDashboardClient({
 
             {/* ZEN KPI ROW */}
             <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="group bg-neutral-900 text-white rounded-[1.5rem] p-5 flex items-center justify-between transition-all hover:bg-black">
+                <div className="group bg-neutral-900 text-white rounded-[1.5rem] p-5 flex items-center justify-between transition-all hover:bg-black cursor-pointer">
                     <div className="space-y-0.5">
                         <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400/80">EBITDA Real</span>
                         <div className="text-2xl font-serif font-black">{formatCurrency(metrics.netProfit)}</div>
@@ -93,7 +75,7 @@ export function ExecutiveDashboardClient({
                     </div>
                 </div>
 
-                <div className="group bg-white dark:bg-neutral-900 border border-border/40 rounded-[1.5rem] p-5 flex items-center justify-between transition-all hover:border-primary/50">
+                <div className="group bg-white dark:bg-neutral-900 border border-border/40 rounded-[1.5rem] p-5 flex items-center justify-between transition-all hover:border-primary/50 cursor-pointer">
                     <div className="space-y-0.5">
                         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Ingresos</span>
                         <div className="text-2xl font-serif font-black">{formatCurrency(metrics.totalRevenue)}</div>
@@ -103,7 +85,7 @@ export function ExecutiveDashboardClient({
                     </div>
                 </div>
 
-                <div className="group bg-primary/5 border border-primary/10 rounded-[1.5rem] p-5 flex items-center justify-between transition-all hover:bg-primary/10">
+                <div className="group bg-primary/5 border border-primary/10 rounded-[1.5rem] p-5 flex items-center justify-between transition-all hover:bg-primary/10 cursor-pointer">
                     <div className="space-y-0.5">
                         <span className="text-[9px] font-black uppercase tracking-widest text-primary/70">Disponible</span>
                         <div className="text-2xl font-serif font-black text-primary">{formatCurrency(metrics.cashFlow)}</div>

@@ -27,7 +27,7 @@ export async function getDailySales(restaurantId: string, date: string) {
         .eq('date', date)
         .single()
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "No rows returned"
+    if (error && error.code !== 'PGRST116') {
         console.error("Error fetching daily sales:", error)
         throw new Error("Failed to fetch daily sales")
     }
@@ -107,7 +107,7 @@ export async function getOperatingExpenses(restaurantId: string, startDate: stri
 
     const { data, error } = await supabase
         .from('operating_expenses')
-        .select('*')
+        .select('id, restaurant_id, expense_date, category, amount, description, provider_detail, tag, payment_method, recurrence, is_paid, taxable_amount, tax_rate, tax_amount, withholding_rate, withholding_amount, is_professional_invoice')
         .eq('restaurant_id', restaurantId)
         .gte('expense_date', startDate)
         .lte('expense_date', endDate)
@@ -136,6 +136,8 @@ export async function upsertOperatingExpense(formData: z.infer<typeof OperatingE
             category: validData.category,
             amount: validData.amount,
             description: validData.description,
+            provider_detail: validData.provider_detail,
+            tag: validData.tag,
             payment_method: validData.payment_method,
             recurrence: validData.recurrence,
             is_paid: validData.is_paid,
@@ -376,6 +378,7 @@ export interface ExpenseDashboardData {
     categories: {
         category: OperatingExpenseCategory
         amount: number
+        prevAmount?: number
         weight: number
         momVariation: number
         ratioToSales: number
@@ -536,6 +539,7 @@ export async function getExpenseDashboardData(
             return {
                 category: cat.category as OperatingExpenseCategory,
                 amount: cat.amount,
+                prevAmount: cat.prevAmount,
                 weight,
                 momVariation: cat.prevAmount > 0 ? ((cat.amount - cat.prevAmount) / cat.prevAmount) * 100 : 0,
                 ratioToSales,
@@ -616,7 +620,7 @@ export async function getFiscalMetrics(restaurantId: string, startDate: string, 
     // 1. Fetch Sales (IVA Repercutido)
     const { data: sales, error: salesError } = await supabase
         .from('daily_sales')
-        .select('base_10, base_21, iva_collected, tax_10, tax_21')
+        .select('base_10, base_21, iva_collected, tax_10, tax_21, revenue_total')
         .eq('restaurant_id', restaurantId)
         .gte('date', startDate)
         .lte('date', endDate)
@@ -635,7 +639,12 @@ export async function getFiscalMetrics(restaurantId: string, startDate: string, 
 
     // 3. Aggregation Logic
     const ivaCollected = sales?.reduce((sum, day) => sum + (day.iva_collected || 0), 0) || 0
-    const revenueTaxableBase = sales?.reduce((sum, day) => sum + (day.base_10 || 0) + (day.base_21 || 0), 0) || 0
+
+    // Fallback: si base_10/base_21 no están desglosados, calcular desde revenue_total - iva_collected
+    const baseFromFields = sales?.reduce((sum, day) => sum + (day.base_10 || 0) + (day.base_21 || 0), 0) || 0
+    const revenueTaxableBase = baseFromFields > 0
+        ? baseFromFields
+        : sales?.reduce((sum, day) => sum + (day.revenue_total || 0) - (day.iva_collected || 0), 0) || 0
 
     // Filter for valid deductible expenses (Professional Invoice OR Explicit Tax Amount)
     const deductibleExpenses = expenses?.filter(e => e.is_professional_invoice || (e.tax_amount && e.tax_amount > 0)) || []
@@ -653,5 +662,157 @@ export async function getFiscalMetrics(restaurantId: string, startDate: string, 
         netTaxPayable: ivaCollected - ivaDeductible,
         revenueTaxableBase,
         expensesTaxableBase
+    }
+}
+
+export interface QuarterlyFiscalData {
+    pulseData: {
+        ivaBalance: number;
+        irpfTotal: number;
+        daysRemaining: number;
+    };
+    ivaByMonth: {
+        month: string;
+        baseImponible: number;
+        ivaDevengado: number;
+        ivaDeducible: number;
+    }[];
+    irpfByConcept: {
+        categoria: string;
+        modelo: string;
+        baseSujeta: number;
+        porcentajeRetencion: number;
+        cuotaIngresar: number;
+    }[];
+}
+
+export async function getQuarterlyFiscalData(restaurantId: string, year: number, quarter: number): Promise<QuarterlyFiscalData> {
+    const supabase = await createClient()
+
+    const startMonth = (quarter - 1) * 3 + 1
+    const endMonth = startMonth + 2
+
+    const startDate = `${year}-${startMonth.toString().padStart(2, '0')}-01`
+    const endDate = format(endOfMonth(new Date(`${year}-${endMonth.toString().padStart(2, '0')}-01`)), 'yyyy-MM-dd')
+
+    // Fetch Sales
+    const { data: sales, error: salesError } = await supabase
+        .from('daily_sales')
+        .select('date, base_10, base_21, iva_collected, tax_10, tax_21, revenue_total')
+        .eq('restaurant_id', restaurantId)
+        .gte('date', startDate)
+        .lte('date', endDate)
+
+    if (salesError) throw new Error("Failed to fetch sales fiscal data")
+
+    // Fetch Expenses
+    const { data: expenses, error: expensesError } = await supabase
+        .from('operating_expenses')
+        .select('expense_date, category, taxable_amount, tax_amount, withholding_amount, is_professional_invoice, withholding_rate')
+        .eq('restaurant_id', restaurantId)
+        .gte('expense_date', startDate)
+        .lte('expense_date', endDate)
+
+    if (expensesError) throw new Error("Failed to fetch expenses fiscal data")
+
+    const safeSales = sales || []
+    const safeExpenses = expenses || []
+
+    const ivaByMonth = []
+    let totalIvaDevengado = 0
+    let totalIvaDeducible = 0
+    let totalIrpf = 0
+
+    // Month Logic
+    for (let i = 0; i < 3; i++) {
+        const currentMonthNum = startMonth + i
+        const monthDate = new Date(year, currentMonthNum - 1, 1)
+        const monthName = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(monthDate)
+        const monthString = `${year}-${currentMonthNum.toString().padStart(2, '0')}`
+
+        const monthlySales = safeSales.filter(s => s.date.startsWith(monthString))
+        const monthlyExpenses = safeExpenses.filter(e => e.expense_date.startsWith(monthString))
+
+        // Fallback robusto: si los campos desglosados (base_10/21, tax_10/21) están vacíos,
+        // calcular desde revenue_total e iva_collected que sí tienen datos.
+        const baseFromFields = monthlySales.reduce((sum, s) => sum + (s.base_10 || 0) + (s.base_21 || 0), 0)
+        const baseImponible = baseFromFields > 0
+            ? baseFromFields
+            : monthlySales.reduce((sum, s) => sum + (s.revenue_total || 0) - (s.iva_collected || 0), 0)
+
+        const taxFromFields = monthlySales.reduce((sum, s) => sum + (s.tax_10 || 0) + (s.tax_21 || 0), 0)
+        const ivaDevengado = taxFromFields > 0
+            ? taxFromFields
+            : monthlySales.reduce((sum, s) => sum + (s.iva_collected || 0), 0)
+
+        const deductibleExpenses = monthlyExpenses.filter(e => e.is_professional_invoice || (e.tax_amount && e.tax_amount > 0))
+        const ivaDeducible = deductibleExpenses.reduce((sum, e) => sum + (e.tax_amount || 0), 0)
+
+        totalIvaDevengado += ivaDevengado
+        totalIvaDeducible += ivaDeducible
+
+        ivaByMonth.push({
+            month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+            baseImponible,
+            ivaDevengado,
+            ivaDeducible
+        })
+    }
+
+    // IRPF Concept grouping
+    const irpfConceptsMap: Record<string, any> = {
+        "Nóminas": { categoria: "Nóminas", modelo: "Mod. 111", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 },
+        "Alquiler": { categoria: "Alquiler", modelo: "Mod. 115", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 },
+        "Profesionales": { categoria: "Profesionales", modelo: "Mod. 111", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 }
+    }
+
+    safeExpenses.forEach(exp => {
+        if (exp.withholding_amount && exp.withholding_amount > 0) {
+            totalIrpf += exp.withholding_amount
+
+            let conceptKey = "Profesionales"
+            if (exp.category === 'NOMINAS_LIQUIDAS') conceptKey = "Nóminas"
+            if (exp.category === 'ALQUILER') conceptKey = "Alquiler"
+
+            const target = irpfConceptsMap[conceptKey]
+            target.baseSujeta += (exp.taxable_amount || 0)
+            target.cuotaIngresar += exp.withholding_amount
+            if (exp.withholding_rate) {
+                target.porcentajeRetencion += exp.withholding_rate;
+                target.count++;
+            }
+        }
+    })
+
+    const irpfByConcept = Object.values(irpfConceptsMap)
+        .filter(c => c.cuotaIngresar > 0)
+        .map(c => ({
+            categoria: c.categoria,
+            modelo: c.modelo,
+            baseSujeta: c.baseSujeta,
+            porcentajeRetencion: c.count > 0 ? Math.round(c.porcentajeRetencion / c.count) : (c.baseSujeta > 0 ? Math.round((c.cuotaIngresar / c.baseSujeta) * 100) : 0),
+            cuotaIngresar: c.cuotaIngresar
+        }))
+
+    // Calculate Days Remaining securely:
+    const today = new Date();
+    // deadline is the 20th of the month following the quarter
+    const deadlineDate = new Date(year, endMonth, 20);
+
+    // Normalize to start of day
+    today.setHours(0, 0, 0, 0);
+    deadlineDate.setHours(0, 0, 0, 0);
+
+    const diffTime = deadlineDate.getTime() - today.getTime();
+    const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+    return {
+        pulseData: {
+            ivaBalance: totalIvaDevengado - totalIvaDeducible,
+            irpfTotal: totalIrpf,
+            daysRemaining
+        },
+        ivaByMonth,
+        irpfByConcept
     }
 }

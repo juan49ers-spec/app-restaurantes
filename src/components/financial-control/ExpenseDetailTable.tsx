@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 import { ChevronDown, TrendingUp, TrendingDown, Minus, Edit2, Trash2, FileText, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { EXPENSE_CATEGORY_LABELS, EXPENSE_CATEGORY_ICONS, OperatingExpenseCategory } from "@/types/schema"
@@ -48,6 +48,7 @@ interface ExpenseDetailTableProps {
     categories: {
         category: string
         amount: number
+        prevAmount?: number
         weight: number
         momVariation: number
         ratioToSales: number
@@ -240,12 +241,12 @@ export function ExpenseDetailTable({ categories, history, onEditExpense, onDelet
                                 >
                                     {/* Category */}
                                     <div className="col-span-3 flex items-center gap-2">
-                                        <motion.div
+                                        <m.div
                                             animate={{ rotate: isExpanded ? 180 : 0 }}
                                             transition={{ duration: 0.2 }}
                                         >
                                             <ChevronDown className="w-4 h-4 text-neutral-400" />
-                                        </motion.div>
+                                        </m.div>
                                         <div
                                             className={cn(
                                                 "p-1.5 rounded-lg",
@@ -279,8 +280,8 @@ export function ExpenseDetailTable({ categories, history, onEditExpense, onDelet
                                                     </span>
                                                     <div className="w-12 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
                                                         <div
-                                                            className="h-full bg-neutral-900 rounded-full"
-                                                            style={{ width: `${cat.weight.toFixed(1)}%` }} // Extract to variable if possible, but inside map
+                                                            className="h-full bg-neutral-900 rounded-full dyn-bar"
+                                                            ref={(el) => { if (el) el.style.setProperty('--dyn-w', `${cat.weight.toFixed(1)}%`) }}
                                                         />
                                                     </div>
                                                 </div>
@@ -313,7 +314,7 @@ export function ExpenseDetailTable({ categories, history, onEditExpense, onDelet
                                                     </span>
                                                 </div>
                                                 <div className="text-[9px] text-neutral-400 tabular-nums">
-                                                    {formatCurrency(cat.amount - (cat.amount / (1 + cat.momVariation / 100)))}
+                                                    {formatCurrency(cat.prevAmount !== undefined ? cat.amount - cat.prevAmount : 0)}
                                                 </div>
                                             </div>
 
@@ -335,7 +336,7 @@ export function ExpenseDetailTable({ categories, history, onEditExpense, onDelet
                                 {/* Expanded Detail (Drill-down) */}
                                 <AnimatePresence>
                                     {isExpanded && (
-                                        <motion.div
+                                        <m.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
@@ -407,7 +408,7 @@ export function ExpenseDetailTable({ categories, history, onEditExpense, onDelet
                                                     )}
                                                 </div>
                                             </div>
-                                        </motion.div>
+                                        </m.div>
                                     )}
                                 </AnimatePresence>
                             </div>

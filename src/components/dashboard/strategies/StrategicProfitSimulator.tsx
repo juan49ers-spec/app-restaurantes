@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 import {
     Target,
     DollarSign,
@@ -239,7 +239,7 @@ export function StrategicProfitSimulator({ currentMetrics }: StrategicProfitSimu
 
                         <AnimatePresence>
                             {suggestions.map((s, i) => (
-                                <motion.div
+                                <m.div
                                     key={i}
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
@@ -253,7 +253,7 @@ export function StrategicProfitSimulator({ currentMetrics }: StrategicProfitSimu
                                         <h4 className="font-bold text-sm leading-tight">{s.title}</h4>
                                         <p className="text-xs opacity-80 mt-1 leading-snug">{s.desc}</p>
                                     </div>
-                                </motion.div>
+                                </m.div>
                             ))}
                         </AnimatePresence>
                     </div>

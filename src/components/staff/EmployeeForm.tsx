@@ -212,7 +212,7 @@ export function EmployeeForm({ restaurantId, employee, onClose, onSuccess }: Emp
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-muted rounded-full transition-colors"
+                        className="p-3 md:p-2 hover:bg-muted rounded-full transition-colors cursor-pointer"
                         title="Cerrar formulario"
                         aria-label="Cerrar formulario"
                     >

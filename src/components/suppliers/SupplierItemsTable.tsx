@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { MasterIngredient } from "@/types/schema"
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -35,6 +36,7 @@ export function SupplierItemsTable({
     initialItems: SupplierItem[],
     masterIngredients: MasterIngredient[]
 }) {
+    const router = useRouter()
     const [items] = useState(initialItems)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingItem, setEditingItem] = useState<SupplierItem | null>(null)
@@ -51,7 +53,7 @@ export function SupplierItemsTable({
             }
             setIsDialogOpen(false)
             setEditingItem(null)
-            window.location.reload()
+            router.refresh()
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : "Error desconocido"
             toast.error("Error al guardar: " + msg)
@@ -63,7 +65,7 @@ export function SupplierItemsTable({
         try {
             await deleteSupplierItem(id, supplierId)
             toast.success("Item eliminado")
-            window.location.reload()
+            router.refresh()
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : "Error desconocido"
             toast.error("Error al borrar: " + msg)

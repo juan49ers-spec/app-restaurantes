@@ -74,7 +74,7 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
     return (
         <aside
             className={cn(
-                "fixed left-0 top-0 z-40 h-screen transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+                "fixed left-0 top-0 z-40 h-screen transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
                 "bg-white/70 dark:bg-black/40 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-800/50 shadow-2xl shadow-indigo-500/5",
                 collapsed ? "w-24" : "w-72",
                 "hidden md:flex flex-col",
@@ -105,6 +105,8 @@ interface SidebarContentProps {
 }
 
 function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout }: SidebarContentProps) {
+    const router = useRouter()
+
     const getInitials = () => {
         const fullName = user?.user_metadata?.full_name
         const email = user?.email
@@ -159,6 +161,7 @@ function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGro
                                         <Link
                                             key={item.href}
                                             href={item.href}
+                                            onMouseEnter={() => router.prefetch(item.href)}
                                             className={cn(
                                                 "group flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-300 relative overflow-hidden",
                                                 collapsed ? "justify-center px-0 h-10" : "",

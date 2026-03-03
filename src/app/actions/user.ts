@@ -1,14 +1,16 @@
 'use server'
 
+import { cache } from "react"
 import { createClient } from "@/lib/supabaseServer"
 
-export async function getCurrentRestaurant() {
+// React.cache() deduplicates this call within the same server request.
+// If layout.tsx and page.tsx both call getCurrentRestaurant(), Supabase is hit only once.
+export const getCurrentRestaurant = cache(async () => {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    // Fetch the first restaurant owned by user
     const { data: restaurant } = await supabase
         .from('restaurants')
         .select('*')
@@ -17,4 +19,4 @@ export async function getCurrentRestaurant() {
         .maybeSingle()
 
     return restaurant
-}
+})

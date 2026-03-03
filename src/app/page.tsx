@@ -69,7 +69,7 @@ export default async function DashboardPage(props: PageProps) {
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center text-muted-foreground">Cargando Centro de Comando...</div>}>
       <UnifiedDashboard
-        strategicView={<ExecutiveDashboard searchParams={searchParams} />}
+        strategicView={<ExecutiveDashboard searchParams={{ from: searchParams.from, to: searchParams.to }} />}
         financialHubData={financialHubData}
         fiscalMetrics={fiscalMetrics}
         defaultDate={{ from: fromDate, to: toDate }}

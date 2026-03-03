@@ -13,7 +13,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-space-grotesk);
+  --font-sans: var(--font-inter);
   --font-serif: var(--font-instrument-serif);
   --font-mono: var(--font-jetbrains-mono);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -85,7 +85,7 @@
 
   /* Accents */
   --muted: oklch(0.94 0.01 85);
-  --muted-foreground: oklch(0.55 0.01 50);
+  --muted-foreground: oklch(0.40 0.02 50);
   --accent: oklch(0.65 0.18 75);
   /* Golden ochre */
   --accent-foreground: oklch(0.98 0.01 85);
@@ -300,6 +300,18 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: oklch(0.55 0.01 50);
+  }
+
+  /* Dynamic width/color utilities for runtime values via CSS custom properties.
+     Usage: style={{ '--dyn-w': '75%' } as React.CSSProperties} + className="dyn-bar" 
+     These exist because runtime-computed values (percentages, DB colors) 
+     cannot be expressed as static Tailwind classes. */
+  .dyn-bar {
+    width: var(--dyn-w, 0%);
+  }
+
+  .dyn-bg {
+    background-color: var(--dyn-bg, currentColor);
   }
 }
 

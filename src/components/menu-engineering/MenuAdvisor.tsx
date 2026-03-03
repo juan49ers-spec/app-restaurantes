@@ -21,7 +21,7 @@ import {
 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { MenuIntelligence, MenuAdvice } from "./menu-intelligence"
-import { motion, AnimatePresence } from "framer-motion"
+import { m, AnimatePresence } from "framer-motion"
 
 const CATEGORY_CONFIG: Record<string, { icon: React.ElementType; color: string; bg: string; border: string; label: string }> = {
     PRICE: { icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Precio' },
@@ -49,7 +49,7 @@ function InsightCard({ rec, index }: { rec: MenuAdvice; index: number }) {
     const actionName = titleParts[1]?.trim() || rec.title
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.04, duration: 0.25 }}
@@ -98,7 +98,7 @@ function InsightCard({ rec, index }: { rec: MenuAdvice; index: number }) {
                 {/* Expanded Detail */}
                 <AnimatePresence>
                     {expanded && (
-                        <motion.div
+                        <m.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
@@ -120,11 +120,11 @@ function InsightCard({ rec, index }: { rec: MenuAdvice; index: number }) {
                                     )}
                                 </div>
                             </div>
-                        </motion.div>
+                        </m.div>
                     )}
                 </AnimatePresence>
             </div>
-        </motion.div>
+        </m.div>
     )
 }
 

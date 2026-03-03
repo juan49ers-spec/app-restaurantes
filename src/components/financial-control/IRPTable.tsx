@@ -7,19 +7,17 @@ import { Badge } from "@/components/ui/badge"
 interface IRPTableProps {
     year: number
     quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4'
+    data: {
+        categoria: string
+        modelo: string
+        baseSujeta: number
+        porcentajeRetencion: number
+        cuotaIngresar: number
+    }[]
 }
 
-export function IRPTable({ year, quarter }: IRPTableProps) {
-    const mockData = [
-        { categoria: "Nóminas", modelo: "Mod. 111", baseSujeta: 8500, porcentajeRetencion: 12 },
-        { categoria: "Alquiler", modelo: "Mod. 115", baseSujeta: 2000, porcentajeRetencion: 19 },
-        { categoria: "Profesionales", modelo: "Mod. 111", baseSujeta: 3500, porcentajeRetencion: 7 },
-    ].map(item => ({
-        ...item,
-        cuotaIngresar: item.baseSujeta * (item.porcentajeRetencion / 100)
-    }))
-
-    const totalRetenido = mockData.reduce((sum, item) => sum + item.cuotaIngresar, 0)
+export function IRPTable({ year, quarter, data }: IRPTableProps) {
+    const totalRetenido = data.reduce((sum, item) => sum + item.cuotaIngresar, 0)
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
 
@@ -41,46 +39,54 @@ export function IRPTable({ year, quarter }: IRPTableProps) {
             </div>
 
             <div className="flex-1 overflow-auto">
-                <table className="w-full text-xs">
-                    <thead>
-                        <tr className="bg-neutral-50/50 border-b border-neutral-100">
-                            <th className="px-3 py-2 text-left font-medium text-neutral-500">Concepto</th>
-                            <th className="px-3 py-2 text-left font-medium text-neutral-500">Modelo</th>
-                            <th className="px-3 py-2 text-right font-medium text-neutral-500">Base</th>
-                            <th className="px-3 py-2 text-right font-medium text-neutral-500">%</th>
-                            <th className="px-3 py-2 text-right font-medium text-rose-600">Cuota</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-50">
-                        {mockData.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-neutral-50/50 transition-colors">
-                                <td className="px-3 py-2 font-medium text-neutral-700">{row.categoria}</td>
-                                <td className="px-3 py-2">
-                                    <span className="px-1.5 py-0.5 bg-neutral-100 rounded text-[9px] font-medium text-neutral-600 border border-neutral-200">
-                                        {row.modelo}
-                                    </span>
-                                </td>
-                                <td className="px-3 py-2 text-right tabular-nums text-neutral-500">
-                                    {formatCurrency(row.baseSujeta)}
-                                </td>
-                                <td className="px-3 py-2 text-right tabular-nums text-neutral-700">
-                                    {row.porcentajeRetencion}%
-                                </td>
-                                <td className="px-3 py-2 text-right tabular-nums font-bold text-rose-600">
-                                    {formatCurrency(row.cuotaIngresar)}
+                {data.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 px-4">
+                        <Users className="w-8 h-8 text-neutral-300 mb-3" />
+                        <p className="text-sm font-medium text-neutral-500">Sin retenciones</p>
+                        <p className="text-xs text-neutral-400 mt-1 text-center">Registra gastos con retención IRPF para ver el desglose</p>
+                    </div>
+                ) : (
+                    <table className="w-full text-xs">
+                        <thead>
+                            <tr className="bg-neutral-50/50 border-b border-neutral-100">
+                                <th className="px-3 py-2 text-left font-medium text-neutral-500">Concepto</th>
+                                <th className="px-3 py-2 text-left font-medium text-neutral-500">Modelo</th>
+                                <th className="px-3 py-2 text-right font-medium text-neutral-500">Base</th>
+                                <th className="px-3 py-2 text-right font-medium text-neutral-500">%</th>
+                                <th className="px-3 py-2 text-right font-medium text-rose-600">Cuota</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-50">
+                            {data.map((row, idx) => (
+                                <tr key={idx} className="hover:bg-neutral-50/50 transition-colors">
+                                    <td className="px-3 py-2 font-medium text-neutral-700">{row.categoria}</td>
+                                    <td className="px-3 py-2">
+                                        <span className="px-1.5 py-0.5 bg-neutral-100 rounded text-[9px] font-medium text-neutral-600 border border-neutral-200">
+                                            {row.modelo}
+                                        </span>
+                                    </td>
+                                    <td className="px-3 py-2 text-right tabular-nums text-neutral-500">
+                                        {formatCurrency(row.baseSujeta)}
+                                    </td>
+                                    <td className="px-3 py-2 text-right tabular-nums text-neutral-700">
+                                        {row.porcentajeRetencion}%
+                                    </td>
+                                    <td className="px-3 py-2 text-right tabular-nums font-bold text-rose-600">
+                                        {formatCurrency(row.cuotaIngresar)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot className="bg-neutral-50 font-bold border-t border-neutral-200">
+                            <tr>
+                                <td className="px-3 py-2 text-neutral-800" colSpan={4}>Total retenciones</td>
+                                <td className="px-3 py-2 text-right tabular-nums text-rose-700">
+                                    {formatCurrency(totalRetenido)}
                                 </td>
                             </tr>
-                        ))}
-                    </tbody>
-                    <tfoot className="bg-neutral-50 font-bold border-t border-neutral-200">
-                        <tr>
-                            <td className="px-3 py-2 text-neutral-800" colSpan={4}>Total retenciones</td>
-                            <td className="px-3 py-2 text-right tabular-nums text-rose-700">
-                                {formatCurrency(totalRetenido)}
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
+                        </tfoot>
+                    </table>
+                )}
             </div>
         </div>
     )
