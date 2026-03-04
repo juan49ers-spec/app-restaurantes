@@ -21,7 +21,7 @@ export default async function DashboardPage(props: PageProps) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase())
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase())
 
   if (isAdmin) {
     redirect('/admin')
