@@ -95,137 +95,129 @@ export function BroadcastCenter({ initialBroadcasts }: Props) {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Create Broadcast Form */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
-                            <Megaphone className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-bold text-white">Nuevo Anuncio Global</h2>
-                            <p className="text-xs text-neutral-400">Se mostrará a todos los usuarios de la red</p>
-                        </div>
+        <div className="flex flex-col h-full">
+            {/* Create Broadcast Form */}
+            <div className="p-5 border-b border-white/5">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-400">
+                        <Megaphone className="w-4 h-4" />
                     </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-neutral-400 uppercase tracking-wider">Título</label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.title}
-                                onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
-                                placeholder="Ej: Mantenimiento programado"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-neutral-400 uppercase tracking-wider">Mensaje</label>
-                            <textarea
-                                required
-                                rows={3}
-                                value={formData.content}
-                                onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all resize-none"
-                                placeholder="Escribe el contenido del anuncio..."
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-medium text-neutral-400 uppercase tracking-wider">Gravedad</label>
-                                <select
-                                    value={formData.severity}
-                                    onChange={e => setFormData(prev => ({ ...prev, severity: e.target.value as any }))}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
-                                >
-                                    <option value="INFO">Informativo (Azul)</option>
-                                    <option value="SUCCESS">Éxito (Verde)</option>
-                                    <option value="WARNING">Advertencia (Naranja)</option>
-                                    <option value="CRITICAL">Crítico (Rojo)</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-medium text-neutral-400 uppercase tracking-wider">Expira el</label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={formData.expires_at}
-                                    onChange={e => setFormData(prev => ({ ...prev, expires_at: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all mt-4"
-                        >
-                            {isSubmitting ? 'Enviando...' : (
-                                <>
-                                    <Send className="w-4 h-4" />
-                                    Publicar Anuncio
-                                </>
-                            )}
-                        </button>
-                    </form>
+                    <div>
+                        <h2 className="text-sm font-bold text-white">Nuevo Anuncio</h2>
+                        <p className="text-[10px] text-neutral-400">Visible para toda la red</p>
+                    </div>
                 </div>
 
-                {/* Active Broadcasts List */}
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                            Anuncios Activos
-                            <span className="text-[10px] px-2 py-0.5 bg-white/10 rounded-full text-neutral-400 font-normal">
-                                {broadcasts.length}
-                            </span>
-                        </h3>
+                <form onSubmit={handleSubmit} className="space-y-3">
+                    <div className="space-y-1.5">
+                        <input
+                            type="text"
+                            required
+                            value={formData.title}
+                            onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
+                            placeholder="Título del anuncio..."
+                        />
                     </div>
 
-                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
-                        {broadcasts.length === 0 ? (
-                            <div className="text-center py-12 bg-white/5 border border-dashed border-white/10 rounded-2xl">
-                                <Megaphone className="w-8 h-8 text-neutral-700 mx-auto mb-3" />
-                                <p className="text-sm text-neutral-500">No hay anuncios activos</p>
-                            </div>
-                        ) : (
-                            broadcasts.map(b => (
-                                <div key={b.id} className="bg-white/5 border border-white/10 rounded-xl p-4 group">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="space-y-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <div className={cn("px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 border", getSeverityStyles(b.severity))}>
-                                                    {getSeverityIcon(b.severity)}
-                                                    {b.severity}
-                                                </div>
-                                                <h4 className="font-bold text-white text-sm truncate">{b.title}</h4>
-                                            </div>
-                                            <p className="text-xs text-neutral-400 line-clamp-2">{b.content}</p>
-                                            <div className="flex items-center gap-3 mt-3 text-[10px] text-neutral-500">
-                                                <div className="flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3" />
-                                                    Expira: {new Date(b.expires_at).toLocaleDateString()}
-                                                </div>
-                                                <div className="w-1 h-1 bg-neutral-700 rounded-full" />
-                                                <div>{new Date(b.created_at).toLocaleDateString()}</div>
-                                            </div>
+                    <div className="space-y-1.5">
+                        <textarea
+                            required
+                            rows={2}
+                            value={formData.content}
+                            onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all resize-none"
+                            placeholder="Contenido..."
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <select
+                            aria-label="Gravedad del anuncio"
+                            value={formData.severity}
+                            onChange={e => setFormData(prev => ({ ...prev, severity: e.target.value as any }))}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
+                        >
+                            <option value="INFO">Info</option>
+                            <option value="SUCCESS">Éxito</option>
+                            <option value="WARNING">Advert.</option>
+                            <option value="CRITICAL">Urgente</option>
+                        </select>
+
+                        <input
+                            type="date"
+                            aria-label="Fecha de expiración"
+                            required
+                            value={formData.expires_at}
+                            onChange={e => setFormData(prev => ({ ...prev, expires_at: e.target.value }))}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all [color-scheme:dark]"
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed font-medium py-2 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all mt-1"
+                    >
+                        {isSubmitting ? 'Enviando...' : (
+                            <>
+                                <Send className="w-3.5 h-3.5" />
+                                Publicar
+                            </>
+                        )}
+                    </button>
+                </form>
+            </div>
+
+            {/* Active Broadcasts List */}
+            <div className="p-5 flex-1 flex flex-col min-h-[200px] max-h-[350px]">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-2">
+                        Activos
+                        <span className="text-[9px] px-1.5 py-0.5 bg-white/10 rounded-full text-neutral-400 font-normal">
+                            {broadcasts.length}
+                        </span>
+                    </h3>
+                </div>
+
+                <div className="space-y-2 overflow-y-auto pr-1 custom-scrollbar flex-1">
+                    {broadcasts.length === 0 ? (
+                        <div className="text-center py-8 bg-white/5 border border-dashed border-white/10 rounded-xl h-full flex flex-col items-center justify-center">
+                            <Megaphone className="w-6 h-6 text-neutral-700 mb-2" />
+                            <p className="text-xs text-neutral-500">Ningún anuncio activo</p>
+                        </div>
+                    ) : (
+                        broadcasts.map(b => (
+                            <div key={b.id} className="bg-white/5 border border-white/10 rounded-xl p-3 group relative overflow-hidden">
+                                <div className="space-y-1.5 min-w-0 pr-6">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold flex items-center gap-1 border", getSeverityStyles(b.severity))}>
+                                            {getSeverityIcon(b.severity)}
+                                            {b.severity}
                                         </div>
-                                        <button
-                                            onClick={() => handleDelete(b.id)}
-                                            className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        <h4 className="font-bold text-white text-xs truncate leading-tight">{b.title}</h4>
+                                    </div>
+                                    <p className="text-[10px] text-neutral-400 line-clamp-2 leading-relaxed">{b.content}</p>
+                                    <div className="flex items-center gap-2 mt-2 text-[9px] text-neutral-500 flex-wrap">
+                                        <div className="flex items-center gap-1 bg-white/5 px-1.5 py-0.5 rounded">
+                                            <Calendar className="w-2.5 h-2.5" />
+                                            Exp: {new Date(b.expires_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })}
+                                        </div>
+                                        <div className="bg-white/5 px-1.5 py-0.5 rounded">
+                                            {new Date(b.created_at).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })}
+                                        </div>
                                     </div>
                                 </div>
-                            ))
-                        )}
-                    </div>
+                                <button
+                                    onClick={() => handleDelete(b.id)}
+                                    className="absolute top-2 right-2 p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all opacity-0 group-hover:opacity-100 bg-black/40 backdrop-blur-sm shadow-sm"
+                                    title="Eliminar anuncio"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>
