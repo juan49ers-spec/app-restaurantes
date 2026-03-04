@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { Restaurant, RestaurantModules } from '@/types/schema'
-import { toggleRestaurantModule } from '@/app/actions/admin'
+import { toggleRestaurantModule, deleteRestaurant } from '@/app/actions/admin'
+import { startImpersonation } from '@/app/actions/impersonate'
 import { toast } from 'sonner'
-import { Loader2, Utensils, Settings } from 'lucide-react'
+import { Loader2, Utensils, Settings, Trash2, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface RestaurantListProps {
@@ -50,6 +51,32 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
         }
     }
 
+    const handleImpersonate = async (restaurantId: string, restaurantName: string) => {
+        setLoadingId(`impersonate-${restaurantId}`)
+        try {
+            await startImpersonation(restaurantId, restaurantName)
+            toast.success(`Iniciando sesión como "${restaurantName}"...`)
+        } catch {
+            toast.error("Error al iniciar modo administrador")
+            setLoadingId(null)
+        }
+    }
+
+    const handleDelete = async (restaurantId: string, restaurantName: string) => {
+        if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente el restaurante "${restaurantName}" y todos sus datos asociados?`)) return;
+
+        setLoadingId(`delete-${restaurantId}`)
+        try {
+            await deleteRestaurant(restaurantId)
+            setRestaurants(prev => prev.filter(r => r.id !== restaurantId))
+            toast.success(`Restaurante "${restaurantName}" eliminado correctamente`)
+        } catch {
+            toast.error("Error al eliminar el restaurante")
+        } finally {
+            setLoadingId(null)
+        }
+    }
+
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'premium': return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
@@ -77,6 +104,7 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
                             <th className="text-center px-5 py-3 font-medium">Control Financiero</th>
                             <th className="text-center px-5 py-3 font-medium">Ingeniería de Menú</th>
                             <th className="text-right px-5 py-3 font-medium">ID</th>
+                            <th className="text-right px-5 py-3 font-medium">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -121,6 +149,34 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
                                 </td>
                                 <td className="px-5 py-3 text-right">
                                     <span className="text-[10px] text-neutral-600 font-mono">{restaurant.id?.slice(0, 8)}...</span>
+                                </td>
+                                <td className="px-5 py-3 text-right">
+                                    <div className="flex items-center justify-end gap-1">
+                                        <button
+                                            title="Ver como este local"
+                                            disabled={!!loadingId}
+                                            onClick={() => handleImpersonate(restaurant.id!, restaurant.name)}
+                                            className="p-1.5 text-neutral-500 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors flex items-center justify-center"
+                                        >
+                                            {loadingId === `impersonate-${restaurant.id}` ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <Eye className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                        <button
+                                            title="Eliminar restaurante"
+                                            disabled={!!loadingId}
+                                            onClick={() => handleDelete(restaurant.id!, restaurant.name)}
+                                            className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors flex items-center justify-center"
+                                        >
+                                            {loadingId === `delete-${restaurant.id}` ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

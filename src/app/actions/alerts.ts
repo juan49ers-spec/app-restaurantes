@@ -15,6 +15,7 @@ export async function createAlert(
 ) {
   const supabase = await createSupabaseClient()
   const restaurantId = await getUserRestaurant()
+  if (!restaurantId) return
 
   const { error } = await supabase
     .from('alerts')
@@ -34,6 +35,7 @@ export async function createAlert(
 export async function getRecentAlerts(limit = 5) {
   const supabase = await createSupabaseClient()
   const restaurantId = await getUserRestaurant()
+  if (!restaurantId) return []
 
   const { data } = await supabase
     .from('alerts')
@@ -50,6 +52,7 @@ export async function getRecentAlerts(limit = 5) {
 export async function getAlertRules(): Promise<AlertRule[]> {
   const supabase = await createClient()
   const restaurantId = await getUserRestaurant()
+  if (!restaurantId) return []
 
   const { data, error } = await supabase
     .from('alert_rules')
@@ -69,6 +72,7 @@ export async function getAlertRules(): Promise<AlertRule[]> {
 export async function initializeDefaultAlertRules(): Promise<void> {
   const supabase = await createClient()
   const restaurantId = await getUserRestaurant()
+  if (!restaurantId) return
 
   // Check if rules already exist
   const { count } = await supabase
@@ -97,6 +101,7 @@ export async function initializeDefaultAlertRules(): Promise<void> {
 export async function saveAlertRule(rule: Partial<AlertRule>): Promise<AlertRule> {
   const supabase = await createClient()
   const restaurantId = await getUserRestaurant()
+  if (!restaurantId) throw new Error('No restaurant assigned')
 
   const ruleData = {
     ...rule,
@@ -141,6 +146,7 @@ export async function getNotifications(
 ): Promise<{ notifications: AlertNotification[]; total: number; unread: number }> {
   const supabase = await createClient()
   const restaurantId = await getUserRestaurant()
+  if (!restaurantId) return { notifications: [], total: 0, unread: 0 }
 
   let query = supabase
     .from('alert_notifications')
@@ -190,6 +196,7 @@ export async function markNotificationAsRead(notificationId: string): Promise<vo
 export async function markAllNotificationsAsRead(): Promise<void> {
   const supabase = await createClient()
   const restaurantId = await getUserRestaurant()
+  if (!restaurantId) return
 
   const { error } = await supabase
     .from('alert_notifications')
@@ -204,6 +211,7 @@ export async function markAllNotificationsAsRead(): Promise<void> {
 export async function cleanupOldNotifications(days: number = 30): Promise<void> {
   const supabase = await createClient()
   const restaurantId = await getUserRestaurant()
+  if (!restaurantId) return
 
   const cutoffDate = new Date()
   cutoffDate.setDate(cutoffDate.getDate() - days)
@@ -265,6 +273,15 @@ export async function getNotificationStats(): Promise<{
 }> {
   const supabase = await createClient()
   const restaurantId = await getUserRestaurant()
+
+  if (!restaurantId) {
+    return {
+      total: 0,
+      unread: 0,
+      bySeverity: { INFO: 0, WARNING: 0, CRITICAL: 0 },
+      byType: { PRICE_CHANGE: 0, MARGIN_DROP: 0, WASTE_HIGH: 0, INGREDIENT_LOW_STOCK: 0, SUPPLIER_PRICE_INCREASE: 0, MENU_ITEM_UNPROFITABLE: 0, INVOICE_ANOMALY: 0, PRICE_DISCREPANCY: 0 },
+    }
+  }
 
   const { data, error } = await supabase
     .from('alert_notifications')

@@ -23,11 +23,13 @@ export async function executeSafeAction<TInput, TOutput>(
     try {
         // 1. Authentication & Context
         const restaurantId = await getUserRestaurant();
+        if (!restaurantId) {
+            return { success: false, error: 'No restaurant assigned to this user' };
+        }
 
         // 2. Validation
         const result = schema.safeParse(rawData);
         if (!result.success) {
-            // Format Zod errors into a single string for simplicity, or return detailed object if needed
             const errorMessage = result.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
             return { success: false, error: `Validation Error: ${errorMessage}` };
         }

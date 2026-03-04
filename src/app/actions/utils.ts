@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabaseServer"
 import { redirect } from "next/navigation"
 
-export async function getUserRestaurant() {
+export async function getUserRestaurant(): Promise<string | null> {
     const supabase = await createClient()
     const { data: { user }, error } = await supabase.auth.getUser()
 
@@ -11,13 +11,19 @@ export async function getUserRestaurant() {
         redirect('/login')
     }
 
-    // 1. Try to get from metadata (Fastest)
-    // CRITICAL: DISABLED to prevent mismatch with Server Components which use DB directly.
-    // If metadata gets stale (e.g. user changes active restaurant), writes go to wrong ID.
-    // const metadataId = user.user_metadata?.restaurant_id
-    // if (metadataId) return metadataId
+    // --- IMPERSONATION LOGIC ---
+    // Only super admins can impersonate a restaurant.
+    const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
+    if (user.email && ADMIN_EMAILS.includes(user.email)) {
+        const { cookies } = await import('next/headers')
+        const cookieStore = await cookies()
+        const impersonatedId = cookieStore.get('impersonated_restaurant_id')?.value
+        if (impersonatedId) {
+            return impersonatedId
+        }
+    }
 
-    // 2. Fallback: Query DB (If trigger failed or old user)
+    // 1. Query DB for restaurant owned by this user
     const { data: restaurant } = await supabase
         .from('restaurants')
         .select('id')
@@ -27,7 +33,10 @@ export async function getUserRestaurant() {
 
     if (restaurant) return restaurant.id
 
-    // 3. Fallback: Create if strictly needed (Safety net)
-    // For now, throw error to enforce cleaner logic
-    throw new Error("No restaurant found for user. Please contact support.")
+    // 2. Check metadata fallback (e.g. user assigned to restaurant by admin)
+    const metadataId = user.user_metadata?.restaurant_id
+    if (metadataId) return metadataId as string
+
+    // 3. No restaurant found — admin users or new users without restaurant
+    return null
 }

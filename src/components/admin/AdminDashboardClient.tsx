@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { AdminDashboardData, AuditLogEntry } from '@/app/actions/admin'
+import { AdminDashboardData, AuditLogEntry } from '@/app/actions/admin-queries'
 import {
     Building2,
     TrendingUp,
@@ -14,9 +14,13 @@ import {
     Clock,
     ChevronRight,
     Receipt,
-    Utensils
+    Utensils,
+    Activity,
+    UserMinus,
+    UserPlus
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BroadcastCenter } from './BroadcastCenter'
 
 const formatCurrency = (val: number) =>
     new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
@@ -106,10 +110,49 @@ export function AdminDashboardClient({ data }: Props) {
                 ))}
             </div>
 
+            {/* System Health Banner */}
+            {data.systemHealth && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-emerald-400 uppercase tracking-wider">Activos (7 días)</p>
+                            <p className="text-2xl font-bold text-emerald-500 mt-1">{data.systemHealth.active_last_7_days}</p>
+                        </div>
+                        <div className="p-3 bg-emerald-500/10 rounded-lg">
+                            <Activity className="w-5 h-5 text-emerald-500" />
+                        </div>
+                    </div>
+
+                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-amber-400 uppercase tracking-wider">Nuevos (Semana)</p>
+                            <p className="text-2xl font-bold text-amber-500 mt-1">{data.systemHealth.new_this_week}</p>
+                        </div>
+                        <div className="p-3 bg-amber-500/10 rounded-lg">
+                            <UserPlus className="w-5 h-5 text-amber-500" />
+                        </div>
+                    </div>
+
+                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs font-medium text-red-400 uppercase tracking-wider">Riesgo Fuga (&gt;15d)</p>
+                            <p className="text-2xl font-bold text-red-500 mt-1">{data.systemHealth.inactive_over_15_days}</p>
+                        </div>
+                        <div className="p-3 bg-red-500/10 rounded-lg">
+                            <UserMinus className="w-5 h-5 text-red-500" />
+                        </div>
+                    </div>
+                </div>
+            )
+            }
+
+            {/* Global Communications */}
+            <BroadcastCenter initialBroadcasts={data.broadcasts} />
+
             {/* Net Result Banner */}
             <div className={cn(
                 "rounded-xl border p-5 flex items-center justify-between",
-                isPositive ? "bg-emerald-500/5 border-emerald-500/20" : "bg-red-500/5 border-red-500/20"
+                isPositive ? "bg-white/5 border-white/10" : "bg-red-500/5 border-red-500/20"
             )}>
                 <div className="flex items-center gap-3">
                     <div className={cn("p-2 rounded-lg", isPositive ? "bg-emerald-500/10" : "bg-red-500/10")}>
@@ -228,6 +271,6 @@ export function AdminDashboardClient({ data }: Props) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }

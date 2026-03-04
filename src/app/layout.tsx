@@ -8,6 +8,10 @@ import "./performance.css";
 import { Toaster } from "@/components/ui/sonner"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MotionProvider } from "@/components/providers/MotionProvider"
+import { cookies } from "next/headers"
+import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner"
+import { BroadcastBanner } from "@/components/common/BroadcastBanner"
+import { getActiveBroadcasts } from "@/app/actions/broadcasts"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,16 +32,24 @@ export default async function RootLayout({
 }>) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const cookieStore = await cookies()
+  const impersonatedRestaurantName = cookieStore.get('impersonated_restaurant_name')?.value
+
+  const broadcasts = await getActiveBroadcasts()
 
   return (
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${inter.variable} antialiased min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950/50 selection:bg-primary/30 selection:text-primary-foreground font-sans`}>
+        <BroadcastBanner broadcasts={broadcasts} />
         <MotionProvider>
           <AppLayout user={user ?? undefined}>
             {children}
           </AppLayout>
         </MotionProvider>
         <Toaster />
+        {impersonatedRestaurantName && (
+          <ImpersonationBanner restaurantName={impersonatedRestaurantName} />
+        )}
       </body>
     </html>
   );

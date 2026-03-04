@@ -1,4 +1,4 @@
-import { getAuditLogs } from "@/app/actions/admin"
+import { getAuditLogs } from "@/app/actions/admin-queries"
 import { AuditLogViewer } from "@/components/admin/AuditLogViewer"
 
 export const dynamic = 'force-dynamic'

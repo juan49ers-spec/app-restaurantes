@@ -13,7 +13,8 @@ import {
     Menu,
     X,
     ChevronRight,
-    Activity
+    Activity,
+    Users
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { toast } from 'sonner'
@@ -21,11 +22,12 @@ import { toast } from 'sonner'
 const NAV_ITEMS = [
     { href: '/admin', label: 'Panel General', icon: BarChart3, exact: true },
     { href: '/admin/restaurants', label: 'Restaurantes', icon: Building2 },
+    { href: '/admin/users', label: 'Usuarios', icon: Users },
     { href: '/admin/audit', label: 'Auditoría', icon: Shield },
     { href: '/admin/invoice-validation', label: 'Validación Facturas', icon: FileText },
 ]
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({ children, userEmail }: { children: ReactNode; userEmail: string }) {
     const pathname = usePathname()
     const router = useRouter()
     const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -40,6 +42,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
         if (item.exact) return pathname === item.href
         return pathname.startsWith(item.href)
     }
+
+    // Derivar nombre e iniciales del email
+    const userName = userEmail.split('@')[0]
+    const initials = userName.slice(0, 2).toUpperCase()
 
     return (
         <div className="min-h-screen bg-neutral-950 text-white flex">
@@ -84,12 +90,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
                 {/* Footer */}
                 <div className="px-3 py-4 border-t border-white/5">
                     <div className="flex items-center gap-3 px-3 py-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neutral-600 to-neutral-700 flex items-center justify-center text-xs font-bold">
-                            SA
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center text-xs font-bold shadow-lg shadow-red-500/20">
+                            {initials}
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-neutral-300 truncate">Super Admin</p>
-                            <p className="text-[10px] text-neutral-500 truncate">juan49ers@gmail.com</p>
+                            <p className="text-[10px] text-neutral-500 truncate">{userEmail}</p>
                         </div>
                     </div>
                     <button

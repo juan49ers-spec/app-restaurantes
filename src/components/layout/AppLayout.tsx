@@ -21,7 +21,7 @@ export function AppLayout({ children, user }: AppLayoutProps) {
     const [scenarioId, setScenarioId] = useState<string | null>(null)
     const [isGuideOpen, setIsGuideOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
-    
+
     useEffect(() => {
         startTransition(() => {
             const savedState = localStorage.getItem("sidebar-collapsed")
@@ -60,9 +60,9 @@ export function AppLayout({ children, user }: AppLayoutProps) {
     }
 
     const pathname = usePathname()
-    const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/auth')
+    const isExemptRoute = pathname?.startsWith('/login') || pathname?.startsWith('/auth') || pathname?.startsWith('/admin')
 
-    if (isAuthPage) {
+    if (isExemptRoute) {
         return <>{children}</>
     }
 

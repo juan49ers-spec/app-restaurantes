@@ -1,4 +1,4 @@
-import { getAllRestaurants } from "@/app/actions/admin"
+import { getAllRestaurants } from "@/app/actions/admin-queries"
 import { RestaurantList } from "@/components/admin/RestaurantList"
 
 export const dynamic = 'force-dynamic'

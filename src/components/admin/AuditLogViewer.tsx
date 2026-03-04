@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AuditLogEntry } from '@/app/actions/admin'
+import { AuditLogEntry } from '@/app/actions/admin-queries'
 import { cn } from '@/lib/utils'
 import {
     Shield,
