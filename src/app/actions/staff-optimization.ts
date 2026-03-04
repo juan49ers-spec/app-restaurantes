@@ -75,6 +75,13 @@ export async function getStaffEfficiency(
     const start = startDate ? new Date(startDate) : subDays(new Date(), 30)
     const end = endDate ? new Date(endDate) : new Date()
 
+    const emptyResult: StaffEfficiencySummary = {
+        shiftCount: 0, totalLaborCost: 0, avgLaborCostPct: 0,
+        overstaffedDays: 0, moneyLostToOverstaffing: 0, dailyData: [],
+        topOverstaffedDays: [], whatIfSimulation: null,
+        trendVsLastMonth: null, smartRecommendation: null
+    }
+
     // 1. Fetch Daily Sales (Revenue)
     const { data: salesData, error: salesError } = await supabase
         .from('daily_sales')
@@ -84,9 +91,13 @@ export async function getStaffEfficiency(
         .lte('date', format(end, 'yyyy-MM-dd'))
         .order('date', { ascending: true })
 
-    if (salesError) throw salesError
+    if (salesError) {
+        console.error('Staff Efficiency - Sales query failed:', salesError.message, salesError.code)
+        return emptyResult
+    }
 
     // 2. Fetch Shifts and calculate labor cost per day
+    // Left join (sin !inner) para no fallar cuando el empleado no existe
     const { data: shiftsData, error: shiftsError } = await supabase
         .from('shifts')
         .select(`
@@ -95,7 +106,7 @@ export async function getStaffEfficiency(
             start_time,
             end_time,
             employee_id,
-            employees!inner (
+            employees (
                 base_salary_monthly,
                 contract_hours_weekly
             )
@@ -104,7 +115,10 @@ export async function getStaffEfficiency(
         .gte('date', format(start, 'yyyy-MM-dd'))
         .lte('date', format(end, 'yyyy-MM-dd'))
 
-    if (shiftsError) throw shiftsError
+    if (shiftsError) {
+        console.error('Staff Efficiency - Shifts query failed:', shiftsError.message, shiftsError.code)
+        return emptyResult
+    }
 
     // 3. Calculate hours and cost per shift, plus count shifts per day-of-week
     const laborByDate = new Map<string, { hours: number; cost: number; shiftCount: number }>()
@@ -112,7 +126,10 @@ export async function getStaffEfficiency(
 
     shiftsData?.forEach(shift => {
         const dateKey = shift.date
-        const employee = shift.employees as unknown as { base_salary_monthly: number; contract_hours_weekly: number }
+        const employee = shift.employees as unknown as { base_salary_monthly: number; contract_hours_weekly: number } | null
+
+        // Skip shifts sin empleado asociado (left join puede devolver null)
+        if (!employee || !employee.base_salary_monthly || !employee.contract_hours_weekly) return
 
         // Calculate hours from start_time and end_time (TIME format)
         const startParts = shift.start_time.split(':').map(Number)
