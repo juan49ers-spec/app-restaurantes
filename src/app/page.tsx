@@ -17,18 +17,21 @@ interface PageProps {
 
 export default async function DashboardPage(props: PageProps) {
   const searchParams = await props.searchParams
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email)
+
+  // Si es un admin, SIEMPRE lo enviamos al panel de control de Admin 
+  if (isAdmin) {
+    redirect("/admin")
+  }
+
   const restaurant = await getCurrentRestaurant()
 
   if (!restaurant) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-
-    if (user?.email && ADMIN_EMAILS.includes(user.email)) {
-      redirect("/admin")
-    } else {
-      redirect("/login")
-    }
+    redirect("/onboarding")
   }
 
   // Date Logic: Default to current month
