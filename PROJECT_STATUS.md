@@ -222,6 +222,12 @@ TEST_PASSWORD=TestPassword123
 - Mejor separación de concerns
 - Código más mantenible
 
+✅ **Seguridad Arquitectónica Core (NUEVO)**
+
+- Transacciones Atómicas (Supabase RPC) para Invoices y Recipes.
+- Claves de Idempotencia (Idempotency Keys) para evitar duplicados en concurrencia.
+- Tipado estricto post-restructuración funcional y verificador superado en CI/CD local.
+
 ---
 
-**Estado**: 🟢 **EN PRODUCCIÓN (Vercel)** - Deploy exitoso y funcional.
+**Estado**: 🟢 **EN PRODUCCIÓN (Vercel)** - Deploy exitoso y Arquitectura Core Resiliente implementada.

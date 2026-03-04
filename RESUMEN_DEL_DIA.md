@@ -295,3 +295,19 @@ Se ha resuelto exitosamente el despliegue a producción en Vercel.
 - **Resolución de Autenticación / Next.js**: Verificada la compatibilidad con el pipeline de build de Vercel y su runtime.
 
 **El proyecto está ahora 100% operativo en producción.** 🚀
+
+---
+
+## 🔒 ACTUALIZACIÓN DE SEGURIDAD Y RESILIENCIA: Transacciones Atómicas e Idempotencia
+
+Se ha completado con éxito la migración de las operaciones críticas del núcleo a Transacciones Atómicas seguras respaldadas por PostgreSQL, protegiendo contra errores de concurrencia e interrupciones de red.
+
+### 🛡️ Módulo de Idempotencia y Atomicidad Completado
+
+- ✅ **Facturas (Invoices)**: Refactorizado `invoices.ts` para usar la RPC `upsert_invoice_with_items`. Inserción atómica de cabecera e ítems.
+- ✅ **Escandallos (Recipes)**: Refactorizado `saveRecipe.ts` para usar la RPC `upsert_recipe_with_ingredients`. Inserción atómica de receta e ingredientes.
+- ✅ **Claves de Idempotencia (UUID)**: Implementado `idempotency_key` en React state (`InvoiceReviewForm`, `RecipeEditorClient`) y forzado en BD mediante constraint `UNIQUE` en tablas `invoices` y `recipes`.
+- ✅ **Histórico de Precios Seguro**: La lógica pre-RPC calcula la variación de costes (`price_history`) antes del upsert sin romper la atomicidad.
+- ✅ **Tipado TypeScript y Build**: La conexión Supabase ↔ NextJS 16.1.6 ↔ Server Actions ha pasado el Typecheck y el Build en verde puro. Despliegue completado hacia Vercel/GitHub exitosamente sin regresiones.
+
+**Estado: 🟢 ARQUITECTURA CORE PROTEGIDA**
