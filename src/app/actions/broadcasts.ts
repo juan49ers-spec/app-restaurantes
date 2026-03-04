@@ -17,7 +17,7 @@ const broadcastSchema = z.object({
     }),
 })
 
-async function requireSuperAdmin() {
+export async function requireSuperAdmin() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

@@ -1,0 +1,38 @@
+ÔÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Usuario\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\package-lock.json
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬À optimizePackageImports
+
+ÔÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./.gemini/antigravity/playground/app finanzas restaurante/src/app/actions/admin-billing.ts:5:1
+Export requireSuperAdmin doesn't exist in target module
+  3 | import { createClient } from "@/lib/supabaseServer"
+  4 | import { revalidatePath } from "next/cache"
+> 5 | import { requireSuperAdmin } from "./broadcasts" // Reusing super admin check
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 | import { PLANS, PlanTier, PlanModuleAccess } from "@/lib/plan-definitions"
+  7 |
+  8 | // Tipos extra├¡dos de la BD (si se vuelven a generar types, esto ayudar├í, pero por ahora los creamos aqu├¡ basados en la migraci├│n)
+
+The export requireSuperAdmin was not found in module [project]/.gemini/antigravity/playground/app finanzas restaurante/src/app/actions/broadcasts.ts [app-rsc] (ecmascript).
+Did you mean to import deleteBroadcast?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import trace:
+  Server Component:
+    ./.gemini/antigravity/playground/app finanzas restaurante/src/app/actions/admin-billing.ts
+    ./.gemini/antigravity/playground/app finanzas restaurante/src/app/admin/billing/page.tsx
+
+
+    at <unknown> (./.gemini/antigravity/playground/app finanzas restaurante/src/app/actions/admin-billing.ts:5:1)
