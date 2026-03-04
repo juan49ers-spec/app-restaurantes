@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Megaphone, X, AlertCircle, CheckCircle2, Info } from 'lucide-react'
+import { X, AlertCircle, CheckCircle2, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Broadcast {

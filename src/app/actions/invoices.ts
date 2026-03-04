@@ -51,18 +51,26 @@ export async function processInvoice(formData: FormData) {
 
     if (!restaurant) throw new Error("No restaurant found")
 
-    const { data: invoice, error: dbError } = await supabase
-        .from('invoices')
-        .insert({
-            restaurant_id: restaurant.id,
-            status: 'processing' as InvoiceStatus,
-            image_url: filePath,
-            created_at: new Date().toISOString()
-        })
-        .select()
-        .single()
+    // PREPARE RPC DATA
+    const newInvoiceId = crypto.randomUUID()
+    const rpcPayload = {
+        p_invoice_id: newInvoiceId,
+        p_restaurant_id: restaurant.id,
+        p_supplier_id: null, // supplier from OCR comes later
+        p_invoice_number: 'PENDING',
+        p_invoice_date: new Date().toISOString().split('T')[0],
+        p_total_amount: 0,
+        p_tax_amount: 0,
+        p_items: []
+    }
 
-    if (dbError) throw new Error(`DB Insert failed: ${dbError.message}`)
+    const { data: invoiceData, error: dbError } = await supabase.rpc('upsert_invoice_with_items', rpcPayload)
+    if (dbError) throw new Error(`DB RPC failed: ${dbError.message}`)
+
+    // Update with file url later
+    await supabase.from('invoices').update({ image_url: filePath, status: 'processing' as InvoiceStatus, created_at: new Date().toISOString() }).eq('id', newInvoiceId)
+
+    const invoice = { id: newInvoiceId }
 
 
 
@@ -135,18 +143,24 @@ export async function createInvoiceRecord(filePath: string) {
     if (!restaurant) throw new Error("No restaurant found")
 
     // Create Invoice Record
-    const { data: invoice, error: dbError } = await supabase
-        .from('invoices')
-        .insert({
-            restaurant_id: restaurant.id,
-            status: 'processing' as InvoiceStatus,
-            image_url: filePath,
-            created_at: new Date().toISOString()
-        })
-        .select()
-        .single()
+    const newInvoiceId = crypto.randomUUID()
+    const rpcPayload = {
+        p_invoice_id: newInvoiceId,
+        p_restaurant_id: restaurant.id,
+        p_supplier_id: null,
+        p_invoice_number: 'PENDING',
+        p_invoice_date: new Date().toISOString().split('T')[0],
+        p_total_amount: 0,
+        p_tax_amount: 0,
+        p_items: []
+    }
 
+    const { data: invoiceData, error: dbError } = await supabase.rpc('upsert_invoice_with_items', rpcPayload)
     if (dbError) throw new Error(`DB Insert failed: ${dbError.message}`)
+
+    await supabase.from('invoices').update({ image_url: filePath, status: 'processing' as InvoiceStatus, created_at: new Date().toISOString() }).eq('id', newInvoiceId)
+
+    const invoice = { id: newInvoiceId }
 
     // Trigger OCR (Background)
     try {

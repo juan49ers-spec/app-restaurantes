@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { m } from "framer-motion"
-import { Loader2, Users, Clock, AlertTriangle, Save, CheckCircle2, Lock, Unlock, TrendingUp, Receipt, Percent, Banknote } from "lucide-react"
+import { Loader2, Users, Clock, AlertTriangle, Save, CheckCircle2, Lock, Unlock, Receipt, Percent, Banknote } from "lucide-react"
 import { toast } from "sonner"
 
 import { DailySales } from "@/types/schema"

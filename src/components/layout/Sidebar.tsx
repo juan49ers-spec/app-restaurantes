@@ -31,9 +31,11 @@ interface SidebarProps {
     setCollapsed: () => void
     isMobile: boolean
     activeAddons?: string[]
+    restaurantId?: string
+    restaurantName?: string
 }
 
-export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile, activeAddons = [] }: SidebarProps) {
+export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile, activeAddons = [], restaurantId, restaurantName }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
 
@@ -66,6 +68,8 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                         user={user}
                         onLogout={handleLogout}
                         activeAddons={activeAddons}
+                        restaurantId={restaurantId}
+                        restaurantName={restaurantName}
                     />
                 </SheetContent>
             </Sheet>
@@ -92,6 +96,8 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                 user={user}
                 onLogout={handleLogout}
                 activeAddons={activeAddons}
+                restaurantId={restaurantId}
+                restaurantName={restaurantName}
             />
         </aside>
     )
@@ -106,9 +112,11 @@ interface SidebarContentProps {
     user?: User
     onLogout: () => void
     activeAddons: string[]
+    restaurantId?: string
+    restaurantName?: string
 }
 
-function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout, activeAddons }: SidebarContentProps) {
+function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout, activeAddons, restaurantId, restaurantName }: SidebarContentProps) {
     const router = useRouter()
 
     const getInitials = () => {
@@ -229,8 +237,13 @@ function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGro
                                 {userName}
                             </p>
                             <p className="text-[9px] text-indigo-500 dark:text-indigo-300 truncate uppercase tracking-widest font-black opacity-80 mt-0.5">
-                                {userRole}
+                                {restaurantName || userRole}
                             </p>
+                            {restaurantId && (
+                                <p className="text-[8px] text-slate-400 dark:text-slate-500 truncate font-mono mt-0.5" title={restaurantId}>
+                                    ID: {restaurantId.slice(0, 8)}…
+                                </p>
+                            )}
                         </div>
                     )}
 

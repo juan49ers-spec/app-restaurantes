@@ -6,7 +6,7 @@ import { requireAdmin } from "./admin-queries"
 
 export async function toggleRestaurantModule(
     restaurantId: string,
-    module: 'financial_control' | 'menu_engineering',
+    module: 'financial_control' | 'operativa' | 'proveedores' | 'personal',
     level: 'none' | 'basic' | 'premium'
 ) {
     await requireAdmin()
@@ -14,7 +14,7 @@ export async function toggleRestaurantModule(
 
     const { data: current, error: fetchError } = await supabase
         .from('restaurants')
-        .select('modules')
+        .select('modules, active_addons')
         .eq('id', restaurantId)
         .single()
 
@@ -25,9 +25,23 @@ export async function toggleRestaurantModule(
         [module]: level
     }
 
+    // Sincronizar active_addons basado en los módulos activos
+    // Cada addon corresponde a módulos específicos del sidebar
+    const activeAddons: string[] = []
+    const isActive = (mod: string) => {
+        const val = updatedModules[mod]
+        return val === 'basic' || val === 'premium'
+    }
+    if (isActive('operativa')) activeAddons.push('operativa')
+    if (isActive('proveedores')) activeAddons.push('proveedores')
+    if (isActive('personal')) activeAddons.push('personal')
+
     const { error } = await supabase
         .from('restaurants')
-        .update({ modules: updatedModules })
+        .update({
+            modules: updatedModules,
+            active_addons: activeAddons
+        })
         .eq('id', restaurantId)
 
     if (error) {
@@ -36,6 +50,7 @@ export async function toggleRestaurantModule(
     }
 
     revalidatePath('/admin')
+    revalidatePath('/', 'layout')
     return { success: true }
 }
 
@@ -64,14 +79,21 @@ export async function deleteRestaurant(restaurantId: string) {
     await requireAdmin()
     const supabase = await createClient()
 
-    // Call the secure RPC function to delete the restaurant
-    const { error } = await supabase.rpc('admin_delete_restaurant', {
+    // Call the cascading RPC function to safely delete the restaurant and all its related records
+    console.log(`[Admin Delete] Intentando eliminar restaurante: ${restaurantId}`)
+    const { error } = await supabase.rpc('admin_delete_restaurant_cascade', {
         target_restaurant_id: restaurantId
     })
 
     if (error) {
-        console.error("Error deleting restaurant:", error)
-        throw new Error("Failed to delete restaurant")
+        console.error("=== ERROR COMPLETO DELETE RESTAURANT ===")
+        console.error("Code:", error.code)
+        console.error("Message:", error.message)
+        console.error("Details:", error.details)
+        console.error("Hint:", error.hint)
+        console.error("Full error object:", JSON.stringify(error, null, 2))
+        console.error("========================================")
+        throw new Error(`No se pudo eliminar: [${error.code}] ${error.message}`)
     }
 
     revalidatePath('/admin')

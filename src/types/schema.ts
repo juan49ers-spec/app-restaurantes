@@ -68,13 +68,15 @@ export const RestaurantSchema = z.object({
     created_at: z.date().optional(),
     modules: z.object({
         financial_control: z.enum(['none', 'basic', 'premium']).default('basic'),
-        menu_engineering: z.enum(['none', 'basic', 'premium']).default('basic')
+        operativa: z.enum(['none', 'basic', 'premium']).default('basic')
     }).optional()
 });
 
 export const RestaurantModulesSchema = z.object({
-    financial_control: z.enum(['none', 'basic', 'premium']).default('basic'),
-    menu_engineering: z.enum(['none', 'basic', 'premium']).default('basic')
+    financial_control: z.enum(['none', 'basic', 'premium']).default('premium'),
+    operativa: z.enum(['none', 'basic', 'premium']).default('none'),
+    proveedores: z.enum(['none', 'basic', 'premium']).default('none'),
+    personal: z.enum(['none', 'basic', 'premium']).default('none')
 });
 
 export type RestaurantModules = z.infer<typeof RestaurantModulesSchema>;

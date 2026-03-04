@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { BillingOverview, RestaurantBillingInfo, changeRestaurantPlan, adjustCredits, registerPayment, getBillingHistory, BillingEvent } from '@/app/actions/admin-billing'
 import { AddonId, PlanModuleAccess } from '@/lib/plan-definitions'
 import { BillingModule } from '@/types/billing'
-import { CreditCard, History, MoreVertical, Package, Plus, Receipt, Settings, TrendingUp, CheckCircle2 } from 'lucide-react'
+import { CreditCard, History, Package, Receipt, Settings, TrendingUp, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -149,7 +149,7 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
                                         <span className="text-xs text-neutral-500">{count} ({pct}%)</span>
                                     </div>
                                     <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                                        <div className={cn("h-full", distributionColors[addon]?.split(' ')[0] || "bg-white/50")} style={{ width: `${pct}%` }} />
+                                        <div className={cn("h-full transition-all duration-500", distributionColors[addon]?.split(' ')[0] || "bg-white/50")} style={{ width: `${pct}%` } as React.CSSProperties} />
                                     </div>
                                 </div>
                             ) : null

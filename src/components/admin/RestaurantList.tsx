@@ -1,19 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { Restaurant, RestaurantModules } from '@/types/schema'
+import { RestaurantModules } from '@/types/schema'
 import { toggleRestaurantModule, deleteRestaurant } from '@/app/actions/admin'
 import { startImpersonation } from '@/app/actions/impersonate'
+import { AdminRestaurantRow } from '@/app/actions/admin-queries'
 import { toast } from 'sonner'
 import { Loader2, Utensils, Settings, Trash2, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface RestaurantListProps {
-    initialRestaurants: Restaurant[]
+    initialRestaurants: AdminRestaurantRow[]
 }
 
 export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
-    const [restaurants, setRestaurants] = useState<Restaurant[]>(initialRestaurants)
+    const [restaurants, setRestaurants] = useState<AdminRestaurantRow[]>(initialRestaurants)
     const [loadingId, setLoadingId] = useState<string | null>(null)
 
     const handleToggle = async (
@@ -38,12 +39,18 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
                             ...r.modules,
                             [module]: nextLevel
                         }
-                    } as Restaurant
+                    } as AdminRestaurantRow
                 }
                 return r
             }))
 
-            toast.success(`Módulo ${module === 'financial_control' ? 'Control Financiero' : 'Ingeniería de Menú'} → ${nextLevel.toUpperCase()}`)
+            const moduleNames = {
+                financial_control: 'Control Financiero',
+                operativa: 'Operativa (Menú e Inventario)',
+                proveedores: 'Proveedores',
+                personal: 'Personal'
+            }
+            toast.success(`Módulo ${moduleNames[module]} → ${nextLevel.toUpperCase()}`)
         } catch {
             toast.error("Error al actualizar el módulo")
         } finally {
@@ -102,7 +109,9 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
                             <th className="text-left px-5 py-3 font-medium">Restaurante</th>
                             <th className="text-left px-5 py-3 font-medium">Alta</th>
                             <th className="text-center px-5 py-3 font-medium">Control Financiero</th>
-                            <th className="text-center px-5 py-3 font-medium">Ingeniería de Menú</th>
+                            <th className="text-center px-5 py-3 font-medium">Operativa (Menú e Inst.)</th>
+                            <th className="text-center px-5 py-3 font-medium">Proveedores</th>
+                            <th className="text-center px-5 py-3 font-medium">Personal</th>
                             <th className="text-right px-5 py-3 font-medium">ID</th>
                             <th className="text-right px-5 py-3 font-medium">Acciones</th>
                         </tr>
@@ -119,12 +128,12 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
                                     </div>
                                 </td>
                                 <td className="px-5 py-3 text-neutral-500">
-                                    {new Date(restaurant.created_at || '').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    {restaurant.created_at ? new Date(restaurant.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                                 </td>
                                 <td className="px-5 py-3 text-center">
                                     <button
                                         disabled={!!loadingId}
-                                        onClick={() => handleToggle(restaurant.id!, 'financial_control', restaurant.modules?.financial_control || 'none')}
+                                        onClick={() => handleToggle(restaurant.id!, 'financial_control', (restaurant.modules?.financial_control as 'none' | 'basic' | 'premium') || 'none')}
                                         className={cn(
                                             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all hover:scale-105 active:scale-95",
                                             getStatusStyle(restaurant.modules?.financial_control || 'none')
@@ -137,14 +146,40 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
                                 <td className="px-5 py-3 text-center">
                                     <button
                                         disabled={!!loadingId}
-                                        onClick={() => handleToggle(restaurant.id!, 'menu_engineering', restaurant.modules?.menu_engineering || 'none')}
+                                        onClick={() => handleToggle(restaurant.id!, 'operativa', (restaurant.modules?.operativa as 'none' | 'basic' | 'premium') || 'none')}
                                         className={cn(
                                             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all hover:scale-105 active:scale-95",
-                                            getStatusStyle(restaurant.modules?.menu_engineering || 'none')
+                                            getStatusStyle(restaurant.modules?.operativa || 'none')
                                         )}
                                     >
-                                        {loadingId === `${restaurant.id}-menu_engineering` && <Loader2 className="w-3 h-3 animate-spin" />}
-                                        {restaurant.modules?.menu_engineering?.toUpperCase() || 'NONE'}
+                                        {loadingId === `${restaurant.id}-operativa` && <Loader2 className="w-3 h-3 animate-spin" />}
+                                        {restaurant.modules?.operativa?.toUpperCase() || 'NONE'}
+                                    </button>
+                                </td>
+                                <td className="px-5 py-3 text-center">
+                                    <button
+                                        disabled={!!loadingId}
+                                        onClick={() => handleToggle(restaurant.id!, 'proveedores', (restaurant.modules?.proveedores as 'none' | 'basic' | 'premium') || 'none')}
+                                        className={cn(
+                                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all hover:scale-105 active:scale-95",
+                                            getStatusStyle(restaurant.modules?.proveedores || 'none')
+                                        )}
+                                    >
+                                        {loadingId === `${restaurant.id}-proveedores` && <Loader2 className="w-3 h-3 animate-spin" />}
+                                        {restaurant.modules?.proveedores?.toUpperCase() || 'NONE'}
+                                    </button>
+                                </td>
+                                <td className="px-5 py-3 text-center">
+                                    <button
+                                        disabled={!!loadingId}
+                                        onClick={() => handleToggle(restaurant.id!, 'personal', (restaurant.modules?.personal as 'none' | 'basic' | 'premium') || 'none')}
+                                        className={cn(
+                                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-all hover:scale-105 active:scale-95",
+                                            getStatusStyle(restaurant.modules?.personal || 'none')
+                                        )}
+                                    >
+                                        {loadingId === `${restaurant.id}-personal` && <Loader2 className="w-3 h-3 animate-spin" />}
+                                        {restaurant.modules?.personal?.toUpperCase() || 'NONE'}
                                     </button>
                                 </td>
                                 <td className="px-5 py-3 text-right">
@@ -155,7 +190,7 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
                                         <button
                                             title="Ver como este local"
                                             disabled={!!loadingId}
-                                            onClick={() => handleImpersonate(restaurant.id!, restaurant.name)}
+                                            onClick={() => handleImpersonate(restaurant.id!, restaurant.name || 'Desconocido')}
                                             className="p-1.5 text-neutral-500 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors flex items-center justify-center"
                                         >
                                             {loadingId === `impersonate-${restaurant.id}` ? (
@@ -167,7 +202,7 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
                                         <button
                                             title="Eliminar restaurante"
                                             disabled={!!loadingId}
-                                            onClick={() => handleDelete(restaurant.id!, restaurant.name)}
+                                            onClick={() => handleDelete(restaurant.id!, restaurant.name || 'Desconocido')}
                                             className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors flex items-center justify-center"
                                         >
                                             {loadingId === `delete-${restaurant.id}` ? (
@@ -182,7 +217,7 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
                         ))}
                         {restaurants.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-5 py-12 text-center text-neutral-500">
+                                <td colSpan={7} className="px-5 py-12 text-center text-neutral-500">
                                     No hay restaurantes registrados.
                                 </td>
                             </tr>

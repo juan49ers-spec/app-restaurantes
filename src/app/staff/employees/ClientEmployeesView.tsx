@@ -3,7 +3,6 @@
 import { useState, useMemo, useCallback } from "react"
 import { m, AnimatePresence } from "framer-motion"
 import {
-    Plus,
     Search,
     Users,
     UserPlus,

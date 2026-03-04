@@ -13,7 +13,6 @@ import {
     Shield,
     Clock,
     ChevronRight,
-    Receipt,
     Utensils,
     Activity,
     UserMinus,

@@ -1,11 +1,10 @@
 export type AddonId = 'operativa' | 'personal' | 'proveedores'
 
 export interface PlanModuleAccess {
-    menu_engineering: 'none' | 'basic' | 'premium'
+    operativa: 'none' | 'basic' | 'premium'
     financial_control: 'none' | 'basic' | 'premium'
-    inventory: 'none' | 'basic' | 'premium'
-    staff_optimization: 'none' | 'basic' | 'premium'
-    ai_insights: boolean
+    proveedores: 'none' | 'basic' | 'premium'
+    personal: 'none' | 'basic' | 'premium'
 }
 
 export interface BasePlanDefinition {
@@ -41,11 +40,10 @@ export const BASE_PLAN: BasePlanDefinition = {
     maxEmpleados: 10,
     maxRecipes: 50,
     modules: {
-        menu_engineering: 'none',
+        operativa: 'none',
         financial_control: 'premium',
-        inventory: 'none',
-        staff_optimization: 'none',
-        ai_insights: false
+        proveedores: 'none',
+        personal: 'none'
     }
 }
 
@@ -56,8 +54,7 @@ export const ADDON_MODULES: Record<AddonId, AddonDefinition> = {
         monthlyPrice: 20, // Fallback value
         description: 'Escandallos avanzados, control de mermas e IA de recetas.',
         modulesGranted: {
-            menu_engineering: 'premium',
-            ai_insights: true
+            operativa: 'premium'
         }
     },
     personal: {
@@ -66,7 +63,7 @@ export const ADDON_MODULES: Record<AddonId, AddonDefinition> = {
         monthlyPrice: 25, // Fallback value
         description: 'Gestión de turnos, convenios y rentabilidad por empleado.',
         modulesGranted: {
-            staff_optimization: 'premium'
+            personal: 'premium'
         }
     },
     proveedores: {
@@ -75,7 +72,7 @@ export const ADDON_MODULES: Record<AddonId, AddonDefinition> = {
         monthlyPrice: 30, // Fallback value
         description: 'Control de stock, órdenes automáticas e integración con OCR avanzado.',
         modulesGranted: {
-            inventory: 'premium'
+            proveedores: 'premium'
         }
     }
 }

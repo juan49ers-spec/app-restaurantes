@@ -74,6 +74,7 @@ export default function LoginPage() {
                         src="/login-bg.png"
                         alt="Restaurant Manager checking financials"
                         fill
+                        sizes="50vw"
                         className="object-cover opacity-60 mix-blend-luminosity hover:scale-105 transition-transform duration-10000"
                         priority
                     />

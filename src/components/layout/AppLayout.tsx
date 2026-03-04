@@ -14,9 +14,11 @@ interface AppLayoutProps {
     children: React.ReactNode
     user?: User
     activeAddons?: string[]
+    restaurantId?: string
+    restaurantName?: string
 }
 
-export function AppLayout({ children, user, activeAddons = [] }: AppLayoutProps) {
+export function AppLayout({ children, user, activeAddons = [], restaurantId, restaurantName }: AppLayoutProps) {
     const [collapsed, setCollapsed] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [scenarioId, setScenarioId] = useState<string | null>(null)
@@ -75,6 +77,8 @@ export function AppLayout({ children, user, activeAddons = [] }: AppLayoutProps)
                 setCollapsed={toggleCollapse}
                 isMobile={isMobile}
                 activeAddons={activeAddons}
+                restaurantId={restaurantId}
+                restaurantName={restaurantName}
             />
             <main
                 className={cn(

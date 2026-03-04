@@ -37,7 +37,8 @@ export function InvoiceReviewForm({ invoice, ingredients, suppliers }: InvoiceRe
         date: invoice.date || invoice.scanned_data?.date || '',
         supplier_id: invoice.supplier_id || '',
         total_amount: invoice.total_amount || invoice.scanned_data?.total_amount || 0,
-        items: (invoice.scanned_data?.items || []) as ScannedItem[]
+        items: (invoice.scanned_data?.items || []) as ScannedItem[],
+        idempotency_key: crypto.randomUUID()
     })
 
     const [mappings, setMappings] = useState<{ [key: number]: string }>(() => {

@@ -14,6 +14,7 @@ type UpdateInvoiceParams = {
     items: ScannedItem[]
     mappings: { [key: number]: string } // Index -> Master Ingredient ID or 'new'
     conversions: { [key: number]: number } // Index -> Quantity per Unit (e.g. 12)
+    idempotency_key?: string
 }
 
 export async function updateInvoice(invoiceId: string, data: UpdateInvoiceParams) {
@@ -185,6 +186,7 @@ export async function updateInvoice(invoiceId: string, data: UpdateInvoiceParams
                 date: data.date,
                 total_amount: data.total_amount,
                 scanned_data: { ...data, processed: true }, // Save final state
+                idempotency_key: data.idempotency_key || null, // Asignamos la llave recibida
                 status: 'completed'
             })
             .eq('id', invoiceId)

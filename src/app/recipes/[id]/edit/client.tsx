@@ -84,6 +84,7 @@ export function RecipeEditorClient({ initialIngredients, initialRecipes, recipeI
     const [name, setName] = useState(initialData?.name || "Nueva Receta")
     const [isSaving, setIsSaving] = useState(false)
     const [showPrint, setShowPrint] = useState(false)
+    const [idempotencyKey] = useState(() => crypto.randomUUID())
 
     const {
         ingredients,
@@ -121,7 +122,8 @@ export function RecipeEditorClient({ initialIngredients, initialRecipes, recipeI
                 hourly_rate: hourlyRate,
                 prep_time_minutes: prepTime,
                 yields,
-                ingredients
+                ingredients,
+                idempotency_key: idempotencyKey
             })
 
             if (result.success) {

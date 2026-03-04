@@ -83,10 +83,34 @@ export async function getAllRestaurants() {
 
     if (error) {
         console.error("Error fetching restaurants:", error)
-        throw new Error("Failed to fetch restaurants")
+        return []
     }
 
-    return data
+    // Normalizar datos para evitar errores de renderizado aislando fallos por restaurante
+    const result: AdminRestaurantRow[] = []
+
+    for (const r of data || []) {
+        try {
+            let safeDate = new Date().toISOString()
+            if (r.created_at) {
+                const parsed = new Date(r.created_at)
+                if (!isNaN(parsed.getTime())) {
+                    safeDate = parsed.toISOString()
+                }
+            }
+
+            result.push({
+                ...r,
+                modules: r.modules || { financial_control: 'basic', operativa: 'none', proveedores: 'none', personal: 'none' },
+                created_at: safeDate
+            } as AdminRestaurantRow)
+        } catch (e) {
+            console.error(`[Admin - Restaurants] Fallo al parsear restaurante ID: ${r.id}`, e)
+            // Se omite el restaurante corrupto en vez de tirar toda la página con un 500
+        }
+    }
+
+    return result
 }
 
 export async function getAdminDashboardData(): Promise<AdminDashboardData> {

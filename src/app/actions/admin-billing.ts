@@ -167,6 +167,9 @@ export async function changeRestaurantPlan(restaurantId: string, newAddons: Addo
     if (eventErr) console.error("Could not log billing event:", eventErr)
 
     revalidatePath('/admin/billing')
+    // Revalidar el layout raíz para que el sidebar del restaurante
+    // re-lea active_addons y muestre/oculte las secciones correctas
+    revalidatePath('/', 'layout')
     return true
 }
 

@@ -1,8 +1,25 @@
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
-import * as XLSX from 'xlsx'
-import { saveAs } from 'file-saver'
+// Heavy libraries (jsPDF ~500KB, xlsx ~1.2MB, file-saver) se cargan
+// dinámicamente solo cuando el usuario exporta, no al abrir la página.
+// Esto reduce el bundle inicial y la compilación en dev drásticamente.
 import { EXPENSE_CATEGORIES } from './financial-constants'
+
+async function loadJsPDF() {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable')
+    ])
+    return { jsPDF, autoTable }
+}
+
+async function loadXLSX() {
+    const XLSX = await import('xlsx')
+    return XLSX
+}
+
+async function loadFileSaver() {
+    const { saveAs } = await import('file-saver')
+    return saveAs
+}
 
 // Export utilities for expenses
 export interface ExpenseExportData {
@@ -118,7 +135,8 @@ const formatPct = (value: number) => `${value.toFixed(1)}% `
 /**
  * Generates a high-end professional PDF P&L Report
  */
-export const exportPnLToPDF = (data: PnLData, period: string, restaurantName: string = 'Mi Restaurante') => {
+export const exportPnLToPDF = async (data: PnLData, period: string, restaurantName: string = 'Mi Restaurante') => {
+    const { jsPDF, autoTable } = await loadJsPDF()
     const doc = new jsPDF()
     const brandColor = [63, 81, 181] // Indigo
 
@@ -212,7 +230,8 @@ export const exportPnLToPDF = (data: PnLData, period: string, restaurantName: st
 /**
  * Generates a detailed Excel Export
  */
-export const exportPnLToExcel = (data: PnLData, period: string) => {
+export const exportPnLToExcel = async (data: PnLData, period: string) => {
+    const [XLSX, saveAs] = await Promise.all([loadXLSX(), loadFileSaver()])
     const cogs = data.chartData ? data.chartData.reduce((sum, day) => sum + (day.cogs || 0), 0) : 0
     const grossMargin = data.revenue.total - cogs
 
@@ -249,13 +268,14 @@ export const exportPnLToExcel = (data: PnLData, period: string) => {
 /**
  * Generates an aesthetic, premium PDF for a single metric
  */
-export const exportMetricToPDF = (
+export const exportMetricToPDF = async (
     title: string,
     value: string,
     trend: number,
     data: number[],
     restaurantName: string = 'Mi Restaurante'
 ) => {
+    const { jsPDF, autoTable } = await loadJsPDF()
     const doc = new jsPDF()
     const brandColor = [79, 70, 229] // Indigo primary
 
