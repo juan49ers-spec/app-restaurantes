@@ -1,4 +1,4 @@
-export type PlanTier = 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE'
+export type AddonId = 'operativa' | 'personal' | 'proveedores'
 
 export interface PlanModuleAccess {
     menu_engineering: 'none' | 'basic' | 'premium'
@@ -8,80 +8,104 @@ export interface PlanModuleAccess {
     ai_insights: boolean
 }
 
-export interface PlanDefinition {
-    id: PlanTier
+export interface BasePlanDefinition {
+    id: 'CORE'
     name: string
     monthlyPrice: number
     description: string
     includedOcrCredits: number // Credits given per month
     maxEmpleados: number | 'unlimited'
     maxRecipes: number | 'unlimited'
-    modules: PlanModuleAccess
+    modules: PlanModuleAccess // Base modules enabled by default
 }
 
-export const PLANS: Record<PlanTier, PlanDefinition> = {
-    FREE: {
-        id: 'FREE',
-        name: 'Gratuito',
-        monthlyPrice: 0,
-        description: 'Ideal para probar el sistema. Acceso básico a módulos.',
-        includedOcrCredits: 10,
-        maxEmpleados: 5,
-        maxRecipes: 20,
-        modules: {
-            menu_engineering: 'basic',
-            financial_control: 'basic',
-            inventory: 'none',
-            staff_optimization: 'none',
-            ai_insights: false
-        }
-    },
-    STARTER: {
-        id: 'STARTER',
-        name: 'Starter',
-        monthlyPrice: 39,
-        description: 'Para pequeños restaurantes que quieren control financiero.',
-        includedOcrCredits: 50,
-        maxEmpleados: 15,
-        maxRecipes: 100,
-        modules: {
-            menu_engineering: 'basic',
-            financial_control: 'premium',
-            inventory: 'basic',
-            staff_optimization: 'none',
-            ai_insights: false
-        }
-    },
-    PRO: {
-        id: 'PRO',
-        name: 'Pro',
-        monthlyPrice: 89,
-        description: 'La solución completa para optimizar operaciones.',
-        includedOcrCredits: 150,
-        maxEmpleados: 50,
-        maxRecipes: 'unlimited',
-        modules: {
+export interface AddonDefinition {
+    id: AddonId
+    name: string
+    monthlyPrice: number
+    description: string
+    modulesGranted: Partial<PlanModuleAccess> // Modifica el acceso base al activarse
+}
+
+// --- FALLBACKS & TYPES ---
+// Note: These constants are now FALLBACKS. 
+// The real source of truth is the 'billing_modules' table in the database.
+// Use 'getBillingModulesConfig' and 'getBillingOverview' actions to get live data.
+
+export const BASE_PLAN: BasePlanDefinition = {
+    id: 'CORE',
+    name: 'Gestión Financiera Base',
+    monthlyPrice: 29, // Fallback value
+    description: 'Control financiero básico, análisis de rentabilidad y OCR.',
+    includedOcrCredits: 50,
+    maxEmpleados: 10,
+    maxRecipes: 50,
+    modules: {
+        menu_engineering: 'none',
+        financial_control: 'premium',
+        inventory: 'none',
+        staff_optimization: 'none',
+        ai_insights: false
+    }
+}
+
+export const ADDON_MODULES: Record<AddonId, AddonDefinition> = {
+    operativa: {
+        id: 'operativa',
+        name: 'Ingeniería de Menú',
+        monthlyPrice: 20, // Fallback value
+        description: 'Escandallos avanzados, control de mermas e IA de recetas.',
+        modulesGranted: {
             menu_engineering: 'premium',
-            financial_control: 'premium',
-            inventory: 'premium',
-            staff_optimization: 'premium',
             ai_insights: true
         }
     },
-    ENTERPRISE: {
-        id: 'ENTERPRISE',
-        name: 'Enterprise',
-        monthlyPrice: 199,
-        description: 'Para grupos y franquicias. Todo ilimitado.',
-        includedOcrCredits: 500,
-        maxEmpleados: 'unlimited',
-        maxRecipes: 'unlimited',
-        modules: {
-            menu_engineering: 'premium',
-            financial_control: 'premium',
-            inventory: 'premium',
-            staff_optimization: 'premium',
-            ai_insights: true
+    personal: {
+        id: 'personal',
+        name: 'Optimización de Personal',
+        monthlyPrice: 25, // Fallback value
+        description: 'Gestión de turnos, convenios y rentabilidad por empleado.',
+        modulesGranted: {
+            staff_optimization: 'premium'
+        }
+    },
+    proveedores: {
+        id: 'proveedores',
+        name: 'Gestión de Inventario',
+        monthlyPrice: 30, // Fallback value
+        description: 'Control de stock, órdenes automáticas e integración con OCR avanzado.',
+        modulesGranted: {
+            inventory: 'premium'
         }
     }
+}
+
+/**
+ * Technical permissions mapping logic
+ */
+export function calculateEffectiveAccess(activeAddons: AddonId[]): PlanModuleAccess {
+    const access = { ...BASE_PLAN.modules }
+
+    activeAddons.forEach(addonId => {
+        const addon = ADDON_MODULES[addonId]
+        if (addon) {
+            Object.assign(access, addon.modulesGranted)
+        }
+    })
+
+    return access
+}
+
+/**
+ * @deprecated Use dynamic prices from the database for sensitive calculations
+ */
+export function calculateMonthlyPrice(activeAddons: AddonId[]): number {
+    let total = BASE_PLAN.monthlyPrice
+    activeAddons.forEach(addonId => {
+        const addon = ADDON_MODULES[addonId]
+        if (addon) {
+            total += addon.monthlyPrice
+        }
+    })
+    return total
 }

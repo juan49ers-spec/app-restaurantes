@@ -13,9 +13,10 @@ import { GuideSelector } from "@/components/ui/guide-selector"
 interface AppLayoutProps {
     children: React.ReactNode
     user?: User
+    activeAddons?: string[]
 }
 
-export function AppLayout({ children, user }: AppLayoutProps) {
+export function AppLayout({ children, user, activeAddons = [] }: AppLayoutProps) {
     const [collapsed, setCollapsed] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [scenarioId, setScenarioId] = useState<string | null>(null)
@@ -73,6 +74,7 @@ export function AppLayout({ children, user }: AppLayoutProps) {
                 collapsed={collapsed}
                 setCollapsed={toggleCollapse}
                 isMobile={isMobile}
+                activeAddons={activeAddons}
             />
             <main
                 className={cn(

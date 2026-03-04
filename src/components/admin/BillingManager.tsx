@@ -2,14 +2,16 @@
 
 import { useState } from 'react'
 import { BillingOverview, RestaurantBillingInfo, changeRestaurantPlan, adjustCredits, registerPayment, getBillingHistory, BillingEvent } from '@/app/actions/admin-billing'
-import { PlanTier, PLANS } from '@/lib/plan-definitions'
-import { CreditCard, History, MoreVertical, Package, Plus, Receipt, Settings, TrendingUp } from 'lucide-react'
+import { AddonId, PlanModuleAccess } from '@/lib/plan-definitions'
+import { BillingModule } from '@/types/billing'
+import { CreditCard, History, MoreVertical, Package, Plus, Receipt, Settings, TrendingUp, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 interface BillingManagerProps {
     overview: BillingOverview
     restaurants: RestaurantBillingInfo[]
+    billingConfigs: BillingModule[]
 }
 
 const formatCurrency = (val: number) =>
@@ -19,14 +21,26 @@ const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-export function BillingManager({ overview, restaurants }: BillingManagerProps) {
+export function BillingManager({ overview, restaurants, billingConfigs }: BillingManagerProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantBillingInfo | null>(null)
     const [actionModals, setActionModals] = useState<'NONE' | 'CHANGE_PLAN' | 'ADJUST_CREDITS' | 'REGISTER_PAYMENT' | 'HISTORY'>('NONE')
     const [history, setHistory] = useState<BillingEvent[]>([])
 
+    // Lookup table for modules
+    const moduleMap = new Map(billingConfigs.map(m => [m.id, m]));
+    const baseModule = billingConfigs.find(m => m.is_base);
+
+    const calculateDynamicMonthlyPrice = (activeAddons: AddonId[]) => {
+        let total = baseModule?.price_monthly || 0;
+        activeAddons.forEach(id => {
+            total += moduleMap.get(id)?.price_monthly || 0;
+        });
+        return total;
+    }
+
     // Modal States
-    const [newPlan, setNewPlan] = useState<PlanTier>('FREE')
+    const [selectedAddons, setSelectedAddons] = useState<AddonId[]>([])
     const [creditAmount, setCreditAmount] = useState<number>(0)
     const [paymentAmount, setPaymentAmount] = useState<number>(0)
     const [reasonConcept, setReasonConcept] = useState('')
@@ -34,7 +48,7 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
     const openModal = async (action: typeof actionModals, restaurant: RestaurantBillingInfo) => {
         setSelectedRestaurant(restaurant)
         setActionModals(action)
-        setNewPlan(restaurant.current_plan)
+        setSelectedAddons(restaurant.active_addons || [])
         setCreditAmount(0)
         setPaymentAmount(0)
         setReasonConcept('')
@@ -53,11 +67,11 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
         if (!selectedRestaurant) return
         setIsSubmitting(true)
         try {
-            await changeRestaurantPlan(selectedRestaurant.id, newPlan, reasonConcept)
-            toast.success(`Plan actualizado a ${newPlan}`)
+            await changeRestaurantPlan(selectedRestaurant.id, selectedAddons, reasonConcept)
+            toast.success(`Suscripción actualizada correctamente`)
             setActionModals('NONE')
         } catch (err: any) {
-            toast.error(err.message || "Error al actualizar plan")
+            toast.error(err.message || "Error al actualizar la suscripción")
         } finally {
             setIsSubmitting(false)
         }
@@ -94,12 +108,12 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
         }
     }
 
-    // Colors mapping for tiers
-    const planColors: Record<PlanTier, string> = {
-        FREE: "bg-neutral-500/10 text-neutral-400 border-neutral-500/20",
-        STARTER: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-        PRO: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-        ENTERPRISE: "bg-purple-500/10 text-purple-400 border-purple-500/20"
+    // Colors for distribution chart
+    const distributionColors: Record<string, string> = {
+        'CORE': "bg-neutral-500/10 text-neutral-400 border-neutral-500/20",
+        'operativa': "bg-blue-500/10 text-blue-400 border-blue-500/20",
+        'personal': "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        'proveedores': "bg-purple-500/10 text-purple-400 border-purple-500/20"
     }
 
     return (
@@ -123,19 +137,19 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
                     <p className="text-xs text-neutral-500 mt-1">Suscritos a algún plan</p>
                 </div>
                 <div className="bg-white/5 border border-white/5 rounded-xl p-5 md:col-span-2">
-                    <h3 className="text-sm font-medium text-neutral-400 mb-3">Distribución de Planes</h3>
+                    <h3 className="text-sm font-medium text-neutral-400 mb-3">Distribución de Módulos</h3>
                     <div className="flex items-center gap-4">
-                        {(Object.keys(overview.planDistribution) as PlanTier[]).map(plan => {
-                            const count = overview.planDistribution[plan]
+                        {(Object.keys(overview.addonDistribution) as (AddonId | 'CORE')[]).map(addon => {
+                            const count = overview.addonDistribution[addon] || 0
                             const pct = Math.round((count / (overview.totalRestaurants || 1)) * 100)
                             return count > 0 ? (
-                                <div key={plan} className="flex-1">
+                                <div key={addon} className="flex-1">
                                     <div className="flex justify-between items-end mb-1">
-                                        <span className="text-xs font-semibold text-white uppercase">{plan}</span>
+                                        <span className="text-xs font-semibold text-white uppercase">{addon}</span>
                                         <span className="text-xs text-neutral-500">{count} ({pct}%)</span>
                                     </div>
                                     <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                                        <div className={cn("h-full", planColors[plan].split(' ')[0])} style={{ width: `${pct}%` }} />
+                                        <div className={cn("h-full", distributionColors[addon]?.split(' ')[0] || "bg-white/50")} style={{ width: `${pct}%` }} />
                                     </div>
                                 </div>
                             ) : null
@@ -157,8 +171,8 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
                         <thead>
                             <tr className="border-b border-white/5 text-neutral-500 text-left bg-black/20">
                                 <th className="px-5 py-3 font-medium">Restaurante</th>
-                                <th className="px-5 py-3 font-medium text-center">Plan Actual</th>
-                                <th className="px-5 py-3 font-medium text-right">Módulos</th>
+                                <th className="px-5 py-3 font-medium text-center">Plan Base</th>
+                                <th className="px-5 py-3 font-medium text-center">Complementos</th>
                                 <th className="px-5 py-3 font-medium text-right">Créditos OCR</th>
                                 <th className="px-5 py-3 font-medium text-right">Actualizado</th>
                                 <th className="px-5 py-3 font-medium text-center">Acciones</th>
@@ -166,7 +180,8 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {restaurants.map(rest => {
-                                const bPlan = PLANS[rest.current_plan] || PLANS['FREE']
+                                const activeAddons = rest.active_addons || []
+                                const currentPrice = calculateDynamicMonthlyPrice(activeAddons)
                                 return (
                                     <tr key={rest.id} className="hover:bg-white/[0.02] transition-colors">
                                         <td className="px-5 py-4">
@@ -174,22 +189,30 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
                                             <div className="text-xs text-neutral-500 mt-0.5">ID: {rest.id.split('-')[0]}...</div>
                                         </td>
                                         <td className="px-5 py-4 text-center">
-                                            <span className={cn(
-                                                "px-2.5 py-1 text-xs font-bold rounded-full border uppercase tracking-wider",
-                                                planColors[rest.current_plan]
-                                            )}>
-                                                {bPlan.name}
+                                            <span className="px-2.5 py-1 text-xs font-bold rounded-full border uppercase tracking-wider bg-neutral-500/10 text-neutral-400 border-neutral-500/20">
+                                                {baseModule?.name || 'Base'}
                                             </span>
-                                            <div className="text-[10px] text-neutral-500 mt-1">{formatCurrency(bPlan.monthlyPrice)}/mes</div>
+                                            <div className="text-[10px] text-neutral-500 mt-1">{formatCurrency(baseModule?.price_monthly || 0)}/mes</div>
                                         </td>
-                                        <td className="px-5 py-4 text-right">
-                                            <div className="flex justify-end gap-1">
-                                                {Object.entries(rest.modules).map(([mod, state]) =>
-                                                    state !== 'none' && state !== false && (
-                                                        <div key={mod} className="w-2 h-2 rounded-full bg-emerald-500" title={`${mod}: ${state}`} />
-                                                    )
+                                        <td className="px-5 py-4">
+                                            <div className="flex flex-wrap items-center justify-center gap-1.5">
+                                                {activeAddons.length === 0 ? (
+                                                    <span className="text-xs text-neutral-600 italic">Ninguno</span>
+                                                ) : (
+                                                    activeAddons.map(addonId => {
+                                                        const m = moduleMap.get(addonId);
+                                                        return (
+                                                            <span key={addonId} className={cn(
+                                                                "px-2 py-0.5 text-[10px] font-medium rounded-full border tracking-wide uppercase",
+                                                                distributionColors[addonId] || "bg-white/10 text-white border-white/20"
+                                                            )}>
+                                                                {m?.name || addonId}
+                                                            </span>
+                                                        )
+                                                    })
                                                 )}
                                             </div>
+                                            <div className="text-[10px] text-center text-emerald-400 font-medium mt-1">Total: {formatCurrency(currentPrice)}/mes</div>
                                         </td>
                                         <td className="px-5 py-4 text-right tabular-nums">
                                             <span className={cn("font-medium", rest.ocr_credits < 10 ? "text-red-400" : "text-neutral-300")}>
@@ -255,32 +278,48 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
                         {actionModals === 'CHANGE_PLAN' && (
                             <>
                                 <div className="p-5 border-b border-white/5 flex items-center justify-between">
-                                    <h3 className="font-bold text-white text-lg">Cambiar Plan de Suscripción</h3>
+                                    <h3 className="font-bold text-white text-lg">Gestionar Complementos</h3>
                                 </div>
                                 <div className="p-5 overflow-y-auto hidden-scrollbar">
                                     <p className="text-sm text-neutral-400 mb-4">
-                                        Selecciona el nuevo plan para <span className="font-bold text-white">{selectedRestaurant.name}</span>.
-                                        Los módulos permitidos se actualizarán automáticamente.
+                                        Gestiona los complementos activos para <span className="font-bold text-white">{selectedRestaurant.name}</span>.<br />
+                                        El plan base (<span className="text-white font-medium">{baseModule?.name || 'Base'}</span>) siempre está incluido por {formatCurrency(baseModule?.price_monthly || 0)}/mes.
                                     </p>
 
                                     <div className="space-y-3 mb-6">
-                                        {(Object.keys(PLANS) as PlanTier[]).map(tier => {
-                                            const p = PLANS[tier]
+                                        {billingConfigs.filter(m => !m.is_base && m.is_active).map(addon => {
+                                            const addonId = addon.id as AddonId
+                                            const isActive = selectedAddons.includes(addonId)
+
                                             return (
                                                 <button
-                                                    key={tier}
-                                                    onClick={() => setNewPlan(tier)}
+                                                    key={addon.id}
+                                                    onClick={() => {
+                                                        if (isActive) {
+                                                            setSelectedAddons(prev => prev.filter(id => id !== addonId))
+                                                        } else {
+                                                            setSelectedAddons(prev => [...prev, addonId])
+                                                        }
+                                                    }}
                                                     className={cn(
                                                         "w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all",
-                                                        newPlan === tier ? "bg-white/10 border-white/30" : "bg-black/20 border-white/5 hover:border-white/15"
+                                                        isActive ? "bg-white/10 border-white/30" : "bg-black/20 border-white/5 hover:border-white/15"
                                                     )}
                                                 >
-                                                    <div>
-                                                        <div className="font-bold text-white">{p.name}</div>
-                                                        <div className="text-xs text-neutral-500 mt-1">{p.description}</div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={cn(
+                                                            "w-5 h-5 rounded-full border flex items-center justify-center transition-colors shrink-0",
+                                                            isActive ? "bg-emerald-500 border-emerald-500" : "border-neutral-500"
+                                                        )}>
+                                                            {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-black" />}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-white">{addon.name}</div>
+                                                            <div className="text-xs text-neutral-500 mt-1">{addon.description}</div>
+                                                        </div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <div className="font-bold text-emerald-400">{formatCurrency(p.monthlyPrice)}</div>
+                                                        <div className="font-bold text-emerald-400">+{formatCurrency(addon.price_monthly)}</div>
                                                         <div className="text-[10px] text-neutral-500">/mes</div>
                                                     </div>
                                                 </button>
@@ -288,12 +327,19 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
                                         })}
                                     </div>
 
+                                    <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between">
+                                        <div className="text-sm text-emerald-400 font-medium">Nuevo Total Mensual</div>
+                                        <div className="text-xl font-bold text-emerald-400 tabular-nums">
+                                            {formatCurrency(calculateDynamicMonthlyPrice(selectedAddons))}
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <label className="block text-xs font-medium text-neutral-400 mb-1">Motivo / Observaciones (Opcional)</label>
                                         <input
                                             type="text"
                                             className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30"
-                                            placeholder="Ej: Cambio a petición del cliente"
+                                            placeholder="Ej: Activación de módulo de personal a petición"
                                             value={reasonConcept}
                                             onChange={e => setReasonConcept(e.target.value)}
                                         />
@@ -301,8 +347,12 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
                                 </div>
                                 <div className="p-5 border-t border-white/5 flex items-center justify-end gap-3 bg-neutral-900/50">
                                     <button onClick={() => setActionModals('NONE')} className="px-4 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors">Cancelar</button>
-                                    <button disabled={isSubmitting || newPlan === selectedRestaurant.current_plan} onClick={handlePlanChange} className="px-4 py-2 text-sm font-medium bg-white text-black rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50">
-                                        {isSubmitting ? 'Guardando...' : 'Actualizar Plan'}
+                                    <button
+                                        disabled={isSubmitting || (selectedRestaurant && JSON.stringify([...selectedAddons].sort()) === JSON.stringify([...(selectedRestaurant.active_addons || [])].sort()))}
+                                        onClick={handlePlanChange}
+                                        className="px-4 py-2 text-sm font-medium bg-white text-black rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                                    >
+                                        {isSubmitting ? 'Guardando...' : 'Actualizar Suscripción'}
                                     </button>
                                 </div>
                             </>
@@ -446,7 +496,7 @@ export function BillingManager({ overview, restaurants }: BillingManagerProps) {
                                                             )}>{evt.event_type}</span>
                                                         </td>
                                                         <td className="px-4 py-3 text-xs text-neutral-300">
-                                                            {evt.event_type === 'PLAN_CHANGE' && `${evt.details.previousPlan || 'FREE'} → ${evt.details.newPlan || 'UNKNOWN'}`}
+                                                            {evt.event_type === 'PLAN_CHANGE' && `Módulos: ${(evt.details.newAddons || []).join(', ') || 'Ninguno'}`}
                                                             {evt.event_type === 'CREDIT_ADJUSTMENT' && `${(evt.details.creditChange || 0) > 0 ? '+' : ''}${evt.details.creditChange || 0}cr: ${evt.details.reason || ''}`}
                                                             {evt.event_type === 'PAYMENT' && evt.details.concept}
                                                         </td>

@@ -35,6 +35,14 @@ export default async function RootLayout({
   const cookieStore = await cookies()
   const impersonatedRestaurantName = cookieStore.get('impersonated_restaurant_name')?.value
 
+  // Get active addons for navigation filtering
+  let activeAddons: string[] = []
+  if (user) {
+    const { getCurrentRestaurant } = await import('@/app/actions/user')
+    const restaurant = await getCurrentRestaurant()
+    activeAddons = restaurant?.active_addons || []
+  }
+
   const broadcasts = await getActiveBroadcasts()
 
   return (
@@ -42,7 +50,7 @@ export default async function RootLayout({
       <body className={`${inter.variable} antialiased min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950/50 selection:bg-primary/30 selection:text-primary-foreground font-sans`}>
         <BroadcastBanner broadcasts={broadcasts} />
         <MotionProvider>
-          <AppLayout user={user ?? undefined}>
+          <AppLayout user={user ?? undefined} activeAddons={activeAddons}>
             {children}
           </AppLayout>
         </MotionProvider>

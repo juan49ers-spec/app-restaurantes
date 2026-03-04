@@ -111,7 +111,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         supabase.from('daily_sales').select('restaurant_id, revenue_total').gte('date', monthStart).lt('date', monthEnd),
         supabase.from('operating_expenses').select('restaurant_id, amount').gte('expense_date', monthStart).lt('expense_date', monthEnd),
         supabase.from('employees').select('restaurant_id, id'),
-        supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('audit_logs').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(50),
         supabase.rpc('admin_get_system_health'),
         supabase.from('global_broadcasts').select('*').eq('is_active', true).order('created_at', { ascending: false })
     ])
@@ -120,6 +120,10 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     const sales = salesRes.data || []
     const expenses = expensesRes.data || []
     const employees = employeesRes.data || []
+
+    if (auditRes.error) {
+        console.error("Error fetching recent audit logs:", JSON.stringify(auditRes.error, null, 2))
+    }
     const auditLogs = (auditRes.data || []) as AuditLogEntry[]
 
     const totalSalesThisMonth = sales.reduce((sum, s) => sum + (s.revenue_total || 0), 0)
@@ -180,7 +184,7 @@ export async function getAuditLogs(page = 1, pageSize = 50): Promise<{ logs: Aud
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
-    const [{ data, error }, { count }] = await Promise.all([
+    const [dataRes, countRes] = await Promise.all([
         supabase
             .from('audit_logs')
             .select('*')
@@ -191,14 +195,14 @@ export async function getAuditLogs(page = 1, pageSize = 50): Promise<{ logs: Aud
             .select('*', { count: 'exact', head: true })
     ])
 
-    if (error) {
-        console.error("Error fetching audit logs:", error)
+    if (dataRes.error || countRes.error) {
+        console.error("Error fetching audit logs:", JSON.stringify(dataRes.error || countRes.error, null, 2))
         return { logs: [], total: 0 }
     }
 
     return {
-        logs: (data || []) as AuditLogEntry[],
-        total: count || 0
+        logs: (dataRes.data || []) as AuditLogEntry[],
+        total: countRes.count || 0
     }
 }
 

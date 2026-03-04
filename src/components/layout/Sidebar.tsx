@@ -30,9 +30,10 @@ interface SidebarProps {
     collapsed: boolean
     setCollapsed: () => void
     isMobile: boolean
+    activeAddons?: string[]
 }
 
-export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile }: SidebarProps) {
+export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile, activeAddons = [] }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
 
@@ -64,6 +65,7 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                         menuGroups={navigationConfig}
                         user={user}
                         onLogout={handleLogout}
+                        activeAddons={activeAddons}
                     />
                 </SheetContent>
             </Sheet>
@@ -89,6 +91,7 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                 menuGroups={navigationConfig}
                 user={user}
                 onLogout={handleLogout}
+                activeAddons={activeAddons}
             />
         </aside>
     )
@@ -102,9 +105,10 @@ interface SidebarContentProps {
     menuGroups: MenuGroup[]
     user?: User
     onLogout: () => void
+    activeAddons: string[]
 }
 
-function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout }: SidebarContentProps) {
+function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout, activeAddons }: SidebarContentProps) {
     const router = useRouter()
 
     const getInitials = () => {
@@ -122,6 +126,16 @@ function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGro
 
     const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Invitado"
     const userRole = user?.user_metadata?.role || "Usuario"
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin'
+
+    const filteredMenuGroups = menuGroups.map(group => {
+        if (isAdmin) return group // Admins see everything
+        if (group.title === "CORE") return group
+        if (group.title === "OPERATIVA" && activeAddons.includes('operativa')) return group
+        if (group.title === "ESTRUCTURA" && activeAddons.includes('personal')) return group
+        if (group.title === "PROVEEDORES" && activeAddons.includes('proveedores')) return group
+        return null
+    }).filter(Boolean) as MenuGroup[]
 
     return (
         <div className="flex flex-col h-full bg-transparent overflow-hidden">
@@ -143,7 +157,7 @@ function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGro
 
             <ScrollArea className="flex-1 -mx-2 px-2">
                 <div className="space-y-4 pt-2">
-                    {menuGroups.map((group, idx) => (
+                    {filteredMenuGroups.map((group, idx) => (
                         <div key={idx} className={cn(
                             "transition-all duration-500 mx-2 p-1.5 rounded-[1.5rem] bg-white/40 dark:bg-white/[0.03] border border-white/60 dark:border-white/5 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.05)] space-y-1.5",
                             collapsed ? "p-1" : "p-2"
