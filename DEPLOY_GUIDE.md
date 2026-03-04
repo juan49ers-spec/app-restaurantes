@@ -86,13 +86,13 @@ npm run build            # Build
 
 ### Corto Plazo
 
-4. Configurar entorno de testing para E2E
+1. Configurar entorno de testing para E2E
 2. Crear README principal del proyecto
 3. Documentar API y componentes
 
 ### Mediano Plazo
 
-7. Optimizar bundle size
+1. Optimizar bundle size
 2. Mejorar Core Web Vitals
 3. Implementar monitoreo (Sentry)
 
@@ -105,6 +105,20 @@ npm run build            # Build
 - `e2e/README.md` - Guía de tests E2E
 
 ## 🆘 Troubleshooting
+
+### Server Actions: Error `Failed to fetch` (Entorno Local)
+
+Si ocurre un error `Failed to fetch` al ejecutar una acción del servidor (Server Action) en local:
+
+1. **Causa principal**: El servidor de desarrollo de Next.js (`npm run dev`) se ha detenido o ha crasheado (comúnmente porque lanzar `npm run build` en paralelo consume mucha memoria o corta el proceso dev).
+2. **Solución**: Abre una nueva terminal, detén cualquier proceso huérfano y **reinicia el servidor de desarrollo** ejecutando `npm run dev`. Luego recarga la página en `http://localhost:3000`.
+
+### Vercel: Error `404: NOT_FOUND (DEPLOYMENT_NOT_FOUND)`
+
+Si Vercel muestra una pantalla blanca con el código `404: NOT_FOUND` y no carga la app:
+
+1. **Causa principal**: Estás intentando acceder usando un dominio base incorrecto o antiguo (ej. `app-finanzas-restaurante.vercel.app`) que no está asociado a la cuenta/proyecto activo.
+2. **Solución**: El proyecto actual en Vercel se llama **`controlhub-pro`**. Asegúrate de navegar a **`https://controlhub-pro.vercel.app`**. Puedes verificar las URLs maestras configuradas ejecutando `npx vercel ls` en consola.
 
 ### Vercel: `net::ERR_NAME_NOT_RESOLVED` o Errores de Conexión a Supabase
 
