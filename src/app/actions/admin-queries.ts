@@ -11,7 +11,7 @@ export async function requireAdmin() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
         throw new Error("Unauthorized: Super Admin access required")
     }
     return user
@@ -271,6 +271,6 @@ export async function getAdminUsers(): Promise<AdminUserRow[]> {
         last_sign_in_at: u.last_sign_in_at || null,
         restaurant_id: u.restaurant_id || null,
         restaurant_name: u.restaurant_id ? (restaurantMap.get(u.restaurant_id) || 'Desconocido') : null,
-        is_admin: ADMIN_EMAILS.includes(u.email || ''),
+        is_admin: ADMIN_EMAILS.includes((u.email || '').trim().toLowerCase()),
     }))
 }

@@ -135,7 +135,7 @@ function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGro
     const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Invitado"
     const userRole = user?.user_metadata?.role || "Usuario"
     const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-    const isAdmin = userRole === 'admin' || userRole === 'superadmin' || (user?.email && ADMIN_EMAILS.includes(user.email))
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin' || (user?.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase()))
 
     const filteredMenuGroups = menuGroups.map(group => {
         if (isAdmin) return group // Admins see everything

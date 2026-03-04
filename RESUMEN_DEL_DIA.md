@@ -311,3 +311,6 @@ Se ha completado con éxito la migración de las operaciones críticas del núcl
 - ✅ **Tipado TypeScript y Build**: La conexión Supabase ↔ NextJS 16.1.6 ↔ Server Actions ha pasado el Typecheck y el Build en verde puro. Despliegue completado hacia Vercel/GitHub exitosamente sin regresiones.
 
 **Estado: 🟢 ARQUITECTURA CORE PROTEGIDA**
+### Corrección de Acceso a SuperAdmin
+- **Problema:** El usuario 'juan49ers@gmail.com' estaba siendo redirigido al dashboard de cliente incluso teniendo credenciales de admin debido a que el sistema priorizaba la existencia de un restaurante asociado al usuario.
+- **Solución:** Se editó \src/app/page.tsx\ para añadir una condición temprana (\isAdmin\) que redirige incondicionalmente a \/admin\ a los usuarios autorizados (juan49ers y administrador de ControlHub).

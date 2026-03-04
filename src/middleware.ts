@@ -60,7 +60,7 @@ export async function middleware(request: NextRequest) {
 
         // Redirección centralizada para base de roles
         const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-        const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email)
+        const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase())
 
         // Si intenta ir a /login ya estando logueado
         if (user && request.nextUrl.pathname.startsWith('/login')) {

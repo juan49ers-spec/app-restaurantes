@@ -14,7 +14,7 @@ export async function getUserRestaurant(): Promise<string | null> {
     // --- IMPERSONATION LOGIC ---
     // Only super admins can impersonate a restaurant.
     const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-    if (user.email && ADMIN_EMAILS.includes(user.email)) {
+    if (user.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
         const { cookies } = await import('next/headers')
         const cookieStore = await cookies()
         const impersonatedId = cookieStore.get('impersonated_restaurant_id')?.value

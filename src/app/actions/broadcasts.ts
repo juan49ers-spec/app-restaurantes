@@ -21,7 +21,7 @@ export async function requireSuperAdmin() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
         throw new Error('No tienes permisos de super_admin')
     }
 
