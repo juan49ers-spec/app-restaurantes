@@ -58,11 +58,24 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(url)
         }
 
-        // Redirect logged-in users away from /login
+        // Redirección centralizada para base de roles
+        const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
+        const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email)
+
+        // Si intenta ir a /login ya estando logueado
         if (user && request.nextUrl.pathname.startsWith('/login')) {
             const url = request.nextUrl.clone()
-            url.pathname = '/'
+            url.pathname = isAdmin ? '/admin' : '/'
             return NextResponse.redirect(url)
+        }
+
+        // Si intenta ir a la home (/) siendo admin, redirigir a /admin
+        if (user && request.nextUrl.pathname === '/') {
+            if (isAdmin) {
+                const url = request.nextUrl.clone()
+                url.pathname = '/admin'
+                return NextResponse.redirect(url)
+            }
         }
 
         return response
