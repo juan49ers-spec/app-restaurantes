@@ -131,7 +131,7 @@ export function BroadcastCenter({ initialBroadcasts }: Props) {
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <select
                             aria-label="Gravedad del anuncio"
                             value={formData.severity}

@@ -98,7 +98,7 @@ export function AdminDashboardClient({ data }: Props) {
                 {/* --- LEFT COLUMN: Core Metrics & Tables --- */}
                 <div className="xl:col-span-8 flex flex-col gap-6">
                     {/* KPI Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {kpis.map(kpi => (
                             <div key={kpi.label} className="bg-white/5 border border-white/5 rounded-xl p-4 hover:bg-white/[0.07] transition-colors">
                                 <div className="flex items-center justify-between mb-3">
