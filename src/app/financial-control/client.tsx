@@ -169,7 +169,7 @@ export function FinancialControlClient({
                                     onClick={() => setIsDrillDownOpen(true)}
                                 />
 
-                                <div className="bg-neutral-800 rounded-xl p-4 text-white">
+                                <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 rounded-2xl p-4 text-white ring-1 ring-white/5 shadow-lg">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
                                             <div className="p-1.5 bg-white/10 rounded-lg">
@@ -197,7 +197,7 @@ export function FinancialControlClient({
                                                 <>
                                                     <div className="flex justify-between items-baseline">
                                                         <span className="text-xl font-semibold">{progress}%</span>
-                                                        <span className="text-[10px] text-neutral-400">Meta: {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(target)}</span>
+                                                        <span className="text-[10px] text-neutral-400">Meta: {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(target)}</span>
                                                     </div>
                                                     <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                                                         <m.div
@@ -208,7 +208,7 @@ export function FinancialControlClient({
                                                     </div>
                                                     <p className="text-[10px] text-neutral-400 leading-snug font-medium">
                                                         {remaining > 0 ? (
-                                                            <>Faltan <span className="text-white font-semibold">{new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(remaining)}</span></>
+                                                            <>Faltan <span className="text-white font-semibold">{new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(remaining)}</span></>
                                                         ) : (
                                                             <span className="text-emerald-400 font-semibold">¡Objetivo superado!</span>
                                                         )}

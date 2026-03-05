@@ -114,8 +114,13 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
     }, [sales, expenses, currentDate])
 
     // --- Helper Formatters ---
-    const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(value)
-    const formatPct = (value: number) => `${value.toFixed(1)}%`
+    const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(value)
+    const formatPct = (value: number) => `${value.toFixed(2)}%`
 
     // --- Export Function ---
     const handleExport = (type: 'pdf' | 'excel') => {
@@ -145,7 +150,12 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                                 <div className="w-2 h-2 rounded-full shadow-sm" style={{ backgroundColor: color }} />
                                 <span className="text-neutral-600 dark:text-neutral-400 capitalize">{entry.name}:</span>
                                 <span className="font-bold font-mono text-neutral-900 dark:text-neutral-100">
-                                    {(Number(entry.value) || 0).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                                    {(Number(entry.value) || 0).toLocaleString('es-ES', {
+                                        style: 'currency',
+                                        currency: 'EUR',
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    })}
                                 </span>
                             </div>
                         )
@@ -191,7 +201,7 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                     <YAxis fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                        formatter={(value: number | undefined, name: string | undefined) => [`${(value || 0).toFixed(2)}€`, name === 'labor' ? 'Personal' : name === 'cogs' ? 'Materia Prima' : 'Objetivo 60%']}
+                        formatter={(value: number | undefined, name: string | undefined) => [formatCurrency(value || 0), name === 'labor' ? 'Personal' : name === 'cogs' ? 'Materia Prima' : 'Objetivo 60%']}
                     />
                     <Bar dataKey="cogs" stackId="bs" fill="#f59e0b" radius={[0, 0, 4, 4]} barSize={32} />
                     <Bar dataKey="labor" stackId="bs" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={32} />
@@ -322,7 +332,7 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                                                 </ResponsiveContainer>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-right tabular-nums text-neutral-900 dark:text-white font-medium">{formatCurrency(financialData.revenue.dineIn).replace('€', '')} €</TableCell>
+                                        <TableCell className="text-right tabular-nums text-neutral-900 dark:text-white font-medium">{formatCurrency(financialData.revenue.dineIn)}</TableCell>
                                         <TableCell className="text-right pr-4 tabular-nums text-emerald-600 font-medium">{formatPct(100 * financialData.revenue.dineIn / (financialData.revenue.total || 1))}</TableCell>
                                     </TableRow>
 
@@ -337,7 +347,7 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                                                 </ResponsiveContainer>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-right tabular-nums text-neutral-900 dark:text-white font-medium">{formatCurrency(financialData.revenue.takeout + financialData.revenue.delivery).replace('€', '')} €</TableCell>
+                                        <TableCell className="text-right tabular-nums text-neutral-900 dark:text-white font-medium">{formatCurrency(financialData.revenue.takeout + financialData.revenue.delivery)}</TableCell>
                                         <TableCell className="text-right pr-4 tabular-nums text-blue-600 font-medium">{formatPct(100 * (financialData.revenue.takeout + financialData.revenue.delivery) / (financialData.revenue.total || 1))}</TableCell>
                                     </TableRow>
 
@@ -345,7 +355,7 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                                         <TableCell className="pl-8 py-3 font-bold text-neutral-900 dark:text-white text-sm">TOTAL VENTAS</TableCell>
                                         <TableCell />
                                         <TableCell className="text-right tabular-nums font-bold text-neutral-900 dark:text-white text-sm">{formatCurrency(financialData.revenue.total)}</TableCell>
-                                        <TableCell className="text-right pr-8 tabular-nums font-bold text-emerald-600 dark:text-emerald-400 text-sm">100.0%</TableCell>
+                                        <TableCell className="text-right pr-8 tabular-nums font-bold text-emerald-600 dark:text-emerald-400 text-sm">100.00%</TableCell>
                                     </TableRow>
 
                                     <TableRow className="h-4 border-none hover:bg-transparent"><TableCell colSpan={4} /></TableRow>
@@ -382,12 +392,12 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                                                         </ResponsiveContainer>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-right tabular-nums text-neutral-900 dark:text-white font-medium">{formatCurrency(item.amount).replace('€', '')} €</TableCell>
+                                                <TableCell className="text-right tabular-nums text-neutral-900 dark:text-white font-medium">{formatCurrency(item.amount)}</TableCell>
                                                 <TableCell className="relative h-full p-0 pr-8 align-middle">
                                                     <div className="flex items-center justify-end h-full w-full relative">
                                                         {/* DATA BAR BACKGROUND */}
                                                         <div className={`absolute right-4 top-1/2 -translate-y-1/2 h-6 rounded-sm opacity-20 ${isHigh ? 'bg-red-500' : 'bg-neutral-400'}`}
-                                                            style={{ width: `${Math.min(pct, 100)}%`, maxWidth: '80%' }} />
+                                                            style={{ width: `${Math.min(pct, 100)}%` } as any} />
                                                         <span className={`tabular-nums z-10 font-bold ${isHigh ? 'text-red-600' : 'text-neutral-600'}`}>{formatPct(pct)}</span>
                                                     </div>
                                                 </TableCell>
@@ -403,7 +413,7 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                                         return (
                                             <TableRow className={`border-y border-blue-100 dark:border-blue-900 bg-blue-50/30 dark:bg-blue-900/10 font-bold ${isPrimeDanger ? 'text-red-700' : 'text-blue-800'}`}>
                                                 <TableCell className="pl-12 py-2 text-xs uppercase tracking-wider">Total Gastos Principales</TableCell>
-                                                <TableCell className="text-center text-[10px] opacity-70 font-normal">Objetivo: &lt;60%</TableCell>
+                                                <TableCell className="text-center text-[10px] opacity-70 font-normal">Objetivo: &lt;60.00%</TableCell>
                                                 <TableCell className="text-right tabular-nums">{formatCurrency(primeTotal)}</TableCell>
                                                 <TableCell className="text-right pr-8 tabular-nums">{formatPct(primePct)}</TableCell>
                                             </TableRow>
@@ -426,11 +436,11 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                                                 {/* No daily sparkline for fixed costs usually available/relevant per category yet */}
                                                 <div className="w-full text-center opacity-20">-</div>
                                             </TableCell>
-                                            <TableCell className="text-right tabular-nums text-neutral-900 dark:text-white font-medium">{formatCurrency(exp.amount).replace('€', '')} €</TableCell>
+                                            <TableCell className="text-right tabular-nums text-neutral-900 dark:text-white font-medium">{formatCurrency(exp.amount)}</TableCell>
                                             <TableCell className="relative h-full p-0 pr-8 align-middle">
                                                 <div className="flex items-center justify-end h-full w-full relative">
                                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 h-6 rounded-sm opacity-20 bg-neutral-400"
-                                                        style={{ width: `${Math.min(exp.pct, 100)}%`, maxWidth: '80%' }} />
+                                                        style={{ width: `${Math.min(exp.pct, 100)}%` } as any} />
                                                     <span className="tabular-nums z-10 font-bold text-neutral-600">{formatPct(exp.pct)}</span>
                                                 </div>
                                             </TableCell>

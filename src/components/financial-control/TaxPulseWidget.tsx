@@ -15,7 +15,7 @@ interface TaxPulseWidgetProps {
 export function TaxPulseWidget({ ivaBalance, irpfTotal, daysRemaining, quarter, year }: TaxPulseWidgetProps) {
     const isPayable = ivaBalance > 0
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Math.abs(val))
+        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val))
 
     // Urgency Logic
     const getUrgency = () => {

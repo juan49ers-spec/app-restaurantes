@@ -19,7 +19,7 @@ interface BreakEvenWidgetProps {
 
 export function BreakEvenWidget({ data, daysInMonth = 30, currentDay = 15 }: BreakEvenWidgetProps) {
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
 
     // Calculate progress towards break-even
     const progress = useMemo(() => {

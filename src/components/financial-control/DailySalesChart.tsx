@@ -62,13 +62,18 @@ export function DailySalesChart({ currentSales, previousSales }: DailySalesChart
     }, [currentSales, previousSales])
 
     const formatCurrency = (val: number) =>
-        val.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + '€'
+        new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(val)
 
     const DeltaIcon = deltaPercent > 1 ? TrendingUp : deltaPercent < -1 ? TrendingDown : Minus
     const deltaColor = deltaPercent > 1 ? 'text-emerald-500' : deltaPercent < -1 ? 'text-rose-500' : 'text-muted-foreground'
 
     return (
-        <div className="bg-card border rounded-2xl p-6 space-y-4">
+        <div className="bg-card border rounded-2xl p-6 space-y-4 ring-1 ring-black/[0.03] dark:ring-white/[0.03] shadow-sm">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">
@@ -80,7 +85,7 @@ export function DailySalesChart({ currentSales, previousSales }: DailySalesChart
                         </span>
                         <div className={`flex items-center gap-1 text-sm font-bold ${deltaColor}`}>
                             <DeltaIcon className="w-4 h-4" />
-                            <span>{deltaPercent >= 0 ? '+' : ''}{deltaPercent.toFixed(1)}%</span>
+                            <span>{deltaPercent >= 0 ? '+' : ''}{deltaPercent.toFixed(2)}%</span>
                         </div>
                     </div>
                 </div>
@@ -102,11 +107,11 @@ export function DailySalesChart({ currentSales, previousSales }: DailySalesChart
                     <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                         <defs>
                             <linearGradient id="gradCurrent" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                                <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
+                                <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
                             </linearGradient>
                             <linearGradient id="gradPrevious" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0.1} />
+                                <stop offset="5%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0.08} />
                                 <stop offset="95%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0} />
                             </linearGradient>
                         </defs>
@@ -127,12 +132,15 @@ export function DailySalesChart({ currentSales, previousSales }: DailySalesChart
                         />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '12px',
+                                backgroundColor: 'rgba(255,255,255,0.85)',
+                                backdropFilter: 'blur(16px)',
+                                WebkitBackdropFilter: 'blur(16px)',
+                                border: '1px solid rgba(0,0,0,0.06)',
+                                borderRadius: '14px',
                                 fontSize: '12px',
                                 fontWeight: 700,
-                                padding: '12px'
+                                padding: '14px',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
                             }}
                             formatter={(value, name) => [
                                 formatCurrency(Number(value ?? 0)),

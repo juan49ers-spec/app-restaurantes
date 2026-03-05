@@ -574,28 +574,31 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                             className="absolute bottom-6 left-6 right-6 z-20"
                         >
                             <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl shadow-2xl shadow-amber-500/30 overflow-hidden">
-                                <div className="px-5 py-4 flex items-center justify-between">
+                                <div className="px-4 lg:px-5 py-3 lg:py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-0">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
-                                            <Wand2 className="w-5 h-5" />
+                                        <div className="p-2 lg:p-2.5 bg-white/20 rounded-xl backdrop-blur-sm flex-shrink-0">
+                                            <Wand2 className="w-4 h-4 lg:w-5 lg:h-5" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold">Modo Simulación</p>
-                                            <p className="text-[11px] opacity-90">Haz click en un punto del gráfico para editar, o auto-optimiza todo</p>
+                                            <p className="text-xs lg:text-sm font-bold">Modo Simulación</p>
+                                            <p className="text-[10px] lg:text-[11px] opacity-90">Haz click en un gráfico para editar, o auto-optimiza</p>
                                         </div>
+                                        <Button size="icon" variant="ghost" className="h-6 w-6 text-white/60 hover:bg-white/20 hover:text-white lg:hidden ml-auto flex-shrink-0" onClick={() => setIsSimulationMode(false)}>
+                                            <X className="w-3.5 h-3.5" />
+                                        </Button>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 lg:gap-2 overflow-x-auto scrollbar-none pb-1 lg:pb-0">
                                         <Button
                                             size="sm"
-                                            className="h-8 bg-white/20 hover:bg-white/30 text-white border-white/20 text-[11px] font-bold backdrop-blur-sm"
+                                            className="h-8 bg-white/20 hover:bg-white/30 text-white border-white/20 text-[10px] lg:text-[11px] font-bold backdrop-blur-sm whitespace-nowrap flex-shrink-0"
                                             onClick={autoOptimize}
                                         >
-                                            <Zap className="w-3.5 h-3.5 mr-1.5" /> Auto-Optimizar
+                                            <Zap className="w-3 h-3 lg:w-3.5 lg:h-3.5 mr-1 lg:mr-1.5" /> Auto-Optimizar
                                         </Button>
-                                        <Button size="sm" variant="ghost" className="h-8 text-[10px] text-white/80 hover:bg-white/20 hover:text-white" onClick={resetSimulation}>
+                                        <Button size="sm" variant="ghost" className="h-8 text-[10px] text-white/80 hover:bg-white/20 hover:text-white flex-shrink-0" onClick={resetSimulation}>
                                             <RotateCcw className="w-3 h-3 mr-1" /> Reset
                                         </Button>
-                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-white/60 hover:bg-white/20 hover:text-white" onClick={() => setIsSimulationMode(false)}>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-white/60 hover:bg-white/20 hover:text-white hidden lg:flex flex-shrink-0" onClick={() => setIsSimulationMode(false)}>
                                             <X className="w-4 h-4" />
                                         </Button>
                                     </div>
@@ -640,33 +643,33 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                         >
                             <div className="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden">
                                 {/* KPI Row */}
-                                <div className="grid grid-cols-5 divide-x divide-black/5 dark:divide-white/5">
-                                    <div className="p-3 text-center">
+                                <div className="flex overflow-x-auto lg:grid lg:grid-cols-5 divide-x divide-black/5 dark:divide-white/5 scrollbar-thin scrollbar-thumb-amber-500/20 scrollbar-track-transparent pb-1 lg:pb-0">
+                                    <div className="p-3 text-center min-w-[110px] flex-shrink-0">
                                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Platos Tocados</p>
                                         <p className="text-lg font-black text-amber-600 font-mono">{simStats.itemsChanged}</p>
                                     </div>
-                                    <div className="p-3 text-center">
+                                    <div className="p-3 text-center min-w-[110px] flex-shrink-0">
                                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Δ Ingresos</p>
                                         <p className={cn("text-lg font-black font-mono flex items-center justify-center gap-1", revenueDelta >= 0 ? "text-emerald-600" : "text-rose-600")}>
                                             {revenueDelta >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                                             {revenueDelta >= 0 ? "+" : ""}€{Math.abs(revenueDelta).toFixed(0)}
                                         </p>
                                     </div>
-                                    <div className="p-3 text-center">
+                                    <div className="p-3 text-center min-w-[110px] flex-shrink-0">
                                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Δ Beneficio</p>
                                         <p className={cn("text-lg font-black font-mono flex items-center justify-center gap-1", simStats.profitDelta >= 0 ? "text-emerald-600" : "text-rose-600")}>
                                             {simStats.profitDelta >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                                             {simStats.profitDelta >= 0 ? "+" : ""}€{Math.abs(simStats.profitDelta).toFixed(0)}
                                         </p>
                                     </div>
-                                    <div className="p-3 text-center">
+                                    <div className="p-3 text-center min-w-[110px] flex-shrink-0">
                                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Δ Costes</p>
                                         <p className={cn("text-lg font-black font-mono flex items-center justify-center gap-1", cogsDelta <= 0 ? "text-emerald-600" : "text-rose-600")}>
                                             {cogsDelta <= 0 ? <TrendingDown className="w-3.5 h-3.5" /> : <TrendingUp className="w-3.5 h-3.5" />}
                                             {cogsDelta > 0 ? "+" : ""}€{Math.abs(cogsDelta).toFixed(0)}
                                         </p>
                                     </div>
-                                    <div className="p-3 text-center bg-emerald-50/50 dark:bg-emerald-500/5">
+                                    <div className="p-3 text-center bg-emerald-50/50 dark:bg-emerald-500/5 min-w-[110px] flex-shrink-0">
                                         <p className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Impacto Mensual</p>
                                         <p className={cn("text-lg font-black font-mono flex items-center justify-center gap-1", simStats.profitDelta >= 0 ? "text-emerald-600" : "text-rose-600")}>
                                             {simStats.profitDelta >= 0 ? "+" : ""}€{Math.abs(simStats.profitDelta * 30).toFixed(0)}
@@ -675,16 +678,16 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                                 </div>
 
                                 {/* Action Bar */}
-                                <div className="px-4 py-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between bg-black/[0.02] dark:bg-white/[0.02]">
-                                    <div className="flex items-center gap-2">
-                                        <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => setEditingItemId(simulatedItems[0]?.id || null)}>
+                                <div className="px-4 py-2 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-y-2 bg-black/[0.02] dark:bg-white/[0.02]">
+                                    <div className="flex items-center gap-1 lg:gap-2 w-full lg:w-auto overflow-x-auto scrollbar-none">
+                                        <Button size="sm" variant="ghost" className="h-7 text-[10px] flex-shrink-0" onClick={() => setEditingItemId(simulatedItems[0]?.id || null)}>
                                             <Calculator className="w-3 h-3 mr-1" /> Editar Platos
                                         </Button>
-                                        <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={autoOptimize}>
+                                        <Button size="sm" variant="ghost" className="h-7 text-[10px] flex-shrink-0" onClick={autoOptimize}>
                                             <Zap className="w-3 h-3 mr-1" /> Re-Optimizar
                                         </Button>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 lg:gap-2 justify-end w-full lg:w-auto">
                                         <Button size="sm" variant="ghost" className="h-7 text-[10px] text-muted-foreground" onClick={resetSimulation}>
                                             <RotateCcw className="w-3 h-3 mr-1" /> Reset
                                         </Button>
@@ -760,7 +763,7 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
                                 </div>
 
                                 {/* Editor Body */}
-                                <div className="px-4 py-3 grid grid-cols-2 gap-5">
+                                <div className="px-4 py-3 grid grid-cols-1 lg:grid-cols-2 gap-5">
                                     {/* Price Column */}
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">

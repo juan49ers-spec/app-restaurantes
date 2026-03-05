@@ -260,7 +260,7 @@ export default function FinancialSimulator({ restaurantId: propRestaurantId, fin
 
     // 5. RENDER HELPERS
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
 
     const profitDelta = projection.projectedProfit - (currentMetrics.revenue - currentMetrics.cogs - currentMetrics.labor - currentMetrics.fixedCosts)
 
@@ -483,7 +483,7 @@ export default function FinancialSimulator({ restaurantId: propRestaurantId, fin
                             />
                             <SmallMetric
                                 label="Margen Bruto"
-                                value={`${(projection.projectedMargin).toFixed(1)}%`}
+                                value={`${(projection.projectedMargin).toFixed(2)}%`}
                                 trend={projection.projectedMargin - ((currentMetrics.revenue - currentMetrics.cogs - currentMetrics.labor - currentMetrics.fixedCosts) / currentMetrics.revenue * 100)}
                             />
                             <SmallMetric
@@ -627,7 +627,7 @@ function SmallMetric({ label, value, trend, invertTrend, color }: SmallMetricPro
             </div>
             {trend !== undefined && (
                 <div className={cn("text-[10px] font-black flex items-center gap-0.5 mt-1", isGood ? "text-emerald-500" : "text-rose-500")}>
-                    {trend > 0 ? "+" : ""}{trend.toFixed(1)}%
+                    {trend > 0 ? "+" : ""}{trend.toFixed(2)}%
                 </div>
             )}
         </div>

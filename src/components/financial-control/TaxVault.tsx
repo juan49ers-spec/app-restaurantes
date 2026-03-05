@@ -24,7 +24,7 @@ export function TaxVault({
     const isPositivo = totalAPagar > 0
 
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
 
     return (
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">

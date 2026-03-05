@@ -15,20 +15,25 @@ export function FinancialHubLayout({ children }: FinancialHubLayoutProps) {
 
     return (
         <div className="space-y-6">
-            <header className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-black/5 dark:border-white/5 pb-8">
-                <div className="space-y-1">
+            <header className="relative flex flex-col md:flex-row justify-between items-end gap-6 pb-8 overflow-hidden">
+                {/* Gradient mesh */}
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/40 via-transparent to-sky-50/30 dark:from-emerald-950/10 dark:via-transparent dark:to-sky-950/10 rounded-2xl -mx-2 -mt-2" />
+                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+
+                <div className="relative space-y-1.5">
                     <div className="flex items-center gap-3">
-                        <div className="h-8 w-1 bg-emerald-500 rounded-full" />
-                        <h1 className="text-4xl font-serif font-black tracking-tighter text-foreground">
+                        <div className="relative">
+                            <div className="h-2 w-2 bg-emerald-500 rounded-full" />
+                            <div className="absolute inset-0 h-2 w-2 bg-emerald-500 rounded-full animate-ping opacity-30" />
+                        </div>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">
                             Control Financiero
                         </h1>
                     </div>
-                    <p className="text-sm font-medium text-muted-foreground/60 pl-4">
+                    <p className="text-xs font-medium text-muted-foreground/60 pl-5">
                         Gestión Operativa · <span className="text-emerald-600/80 font-bold">Libros y Flujo de Caja</span>
                     </p>
                 </div>
-
-                {/* Navigation / Tabs will be injected by the page or handled here if we split into subroutes later */}
             </header>
 
             <main className="min-h-[600px]">

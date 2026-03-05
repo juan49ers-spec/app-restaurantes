@@ -21,11 +21,12 @@ export function OperationalStats({ kpis, activeMetric, onMetricSelect }: Operati
         return new Intl.NumberFormat('es-ES', {
             style: 'currency',
             currency: 'EUR',
-            maximumFractionDigits: 0
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         }).format(value)
     }
 
-    const formatPct = (value: number) => `${value.toFixed(1)}%`
+    const formatPct = (value: number) => `${value.toFixed(2)}%`
 
     // Prime Cost Health
     const primeCostPct = kpis.totalRevenue > 0 ? (kpis.primeCost / kpis.totalRevenue) * 100 : 0
@@ -117,7 +118,7 @@ export function OperationalStats({ kpis, activeMetric, onMetricSelect }: Operati
                         <div className="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden mt-1">
                             <div
                                 className={`h-full rounded-full ${primeHealth === 'healthy' ? 'bg-emerald-500' : primeHealth === 'warning' ? 'bg-amber-500' : 'bg-red-500'}`}
-                                style={{ width: `${Math.min(primeCostPct, 100)}%` }}
+                                style={{ width: `${Math.min(primeCostPct, 100)}%` } as any}
                             />
                         </div>
                         <p className="text-xs font-medium text-neutral-500 mt-1">Coste Primo (Personal + MP)</p>

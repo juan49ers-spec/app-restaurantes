@@ -77,7 +77,12 @@ export function StrategicProfitSimulator({ currentMetrics }: StrategicProfitSimu
 
     // Formatting helper
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+        new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(val)
 
     // AI Suggestions
     const suggestions = useMemo(() => {

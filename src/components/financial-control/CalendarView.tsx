@@ -45,10 +45,11 @@ export function CalendarView({ sales = [], currentDate }: CalendarViewProps) {
 
     const formatCurrencyShort = (value: number) => {
         return new Intl.NumberFormat('es-ES', {
-            style: 'decimal',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(value) + '€'
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(value)
     }
 
     const monthlyMaxRevenue = useMemo(() => {
@@ -192,7 +193,7 @@ export function CalendarView({ sales = [], currentDate }: CalendarViewProps) {
                                                         <span className="text-[10px] uppercase font-bold text-neutral-500">Ticket</span>
                                                     </div>
                                                     <span className="text-lg font-bold text-neutral-800 dark:text-neutral-200">
-                                                        {daySales.total_covers ? (revenue / daySales.total_covers).toFixed(1) + '€' : '-'}
+                                                        {daySales.total_covers ? (revenue / daySales.total_covers).toLocaleString('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 }) : '-'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -312,7 +313,7 @@ export function CalendarView({ sales = [], currentDate }: CalendarViewProps) {
                                             <div className="flex flex-col">
                                                 <span className="text-[9px] text-neutral-500 uppercase font-bold tracking-wider">Ticket Medio</span>
                                                 <span className="text-lg font-bold text-emerald-400 tracking-tight drop-shadow-sm">
-                                                    {Math.round(total / (safeCovers || 1))}€
+                                                    {(total / (safeCovers || 1)).toLocaleString('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 })}
                                                 </span>
                                             </div>
                                         </div>
@@ -322,11 +323,11 @@ export function CalendarView({ sales = [], currentDate }: CalendarViewProps) {
                                     <div className="flex items-center gap-2 mt-1">
                                         <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-medium text-emerald-400 flex items-center gap-1.5">
                                             <div className="w-1 h-1 rounded-full bg-emerald-400" />
-                                            Labor: {Math.round((selectedDaySales.labor_cost / (total || 1)) * 100)}%
+                                            Labor: {((selectedDaySales.labor_cost / (total || 1)) * 100).toFixed(2)}%
                                         </div>
                                         <div className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[9px] font-medium text-blue-400 flex items-center gap-1.5">
                                             <div className="w-1 h-1 rounded-full bg-blue-400" />
-                                            Margen: {Math.round(((total - selectedDaySales.cost_of_goods) / (total || 1)) * 100)}%
+                                            Margen: {(((total - selectedDaySales.cost_of_goods) / (total || 1)) * 100).toFixed(2)}%
                                         </div>
                                     </div>
                                 </div>

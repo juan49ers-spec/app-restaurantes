@@ -72,7 +72,8 @@ const formatCurrency = (val: number): string =>
     new Intl.NumberFormat('es-ES', {
         style: 'currency',
         currency: 'EUR',
-        maximumFractionDigits: 0
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     }).format(val)
 
 // ==========================================
@@ -208,7 +209,7 @@ const ResultRow = memo(function ResultRow({
 
                     {item.type !== 'total' && (
                         <span className="text-xs text-neutral-400 w-12 text-right">
-                            {percentage.toFixed(1)}%
+                            {percentage.toFixed(2)}%
                         </span>
                     )}
 
@@ -477,7 +478,7 @@ export function CuentaResultados({ data, totalIngresos: totalIngresosProp, bench
                             "text-xl font-bold",
                             analysis.personalPct > 38 ? "text-rose-600" : "text-blue-700"
                         )}>
-                            {analysis.personalPct.toFixed(1)}%
+                            {analysis.personalPct.toFixed(2)}%
                         </p>
                         <p className="text-xs text-blue-500">Meta: &lt;38%</p>
                     </div>
@@ -487,7 +488,7 @@ export function CuentaResultados({ data, totalIngresos: totalIngresosProp, bench
                             "text-xl font-bold",
                             analysis.materiaPct > 32 ? "text-rose-600" : "text-emerald-700"
                         )}>
-                            {analysis.materiaPct.toFixed(1)}%
+                            {analysis.materiaPct.toFixed(2)}%
                         </p>
                         <p className="text-xs text-emerald-500">Meta: &lt;32%</p>
                     </div>
@@ -497,7 +498,7 @@ export function CuentaResultados({ data, totalIngresos: totalIngresosProp, bench
                             "text-xl font-bold",
                             analysis.margenPct < 10 ? "text-rose-600" : "text-violet-700"
                         )}>
-                            {analysis.margenPct.toFixed(1)}%
+                            {analysis.margenPct.toFixed(2)}%
                         </p>
                         <p className="text-xs text-violet-500">Meta: &gt;10%</p>
                     </div>

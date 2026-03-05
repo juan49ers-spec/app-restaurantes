@@ -39,7 +39,12 @@ export function ExecutiveDashboardClient({
     }
 
     const formatCurrency = (value: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value)
+        new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(value)
 
     const metrics = {
         totalRevenue: financialData?.metrics?.totalRevenue || 0,

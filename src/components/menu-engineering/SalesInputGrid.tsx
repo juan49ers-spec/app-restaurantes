@@ -106,22 +106,22 @@ export function SalesInputGrid({ items, isAnalyzed = false }: Props) {
         <div className="rounded-3xl glass-card overflow-hidden transition-all duration-700 hover:shadow-2xl">
             {/* Header */}
             <div className="p-6 border-b border-black/5 bg-white/30 dark:bg-white/5 backdrop-blur-md">
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
                     <div>
                         <h3 className="font-serif text-2xl font-black text-foreground flex items-center gap-3 tracking-tight">
-                            <TrendingUp className="w-6 h-6 text-primary" />
+                            <TrendingUp className="w-6 h-6 text-primary flex-shrink-0" />
                             Registro de Rendimiento
                         </h3>
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1 opacity-60">Datos de Operación</p>
                     </div>
-                    <Badge variant="outline" className="font-mono text-[10px] tracking-[0.2em] font-black bg-white/50 dark:bg-white/10 border-none px-4 py-1.5 shadow-sm">
+                    <Badge variant="outline" className="font-mono text-[10px] tracking-[0.2em] font-black bg-white/50 dark:bg-white/10 border-none px-4 py-1.5 shadow-sm whitespace-nowrap">
                         {items.length} RECETAS ACTIVAS
                     </Badge>
                 </div>
 
                 {/* Aggregate KPI Strip */}
                 {isAnalyzed && (
-                    <div className="grid grid-cols-4 gap-3 mt-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
                         <div className="bg-white/60 dark:bg-white/5 rounded-xl px-3 py-2 border border-black/5 dark:border-white/5">
                             <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Ingresos</p>
                             <p className="text-sm font-black font-mono text-foreground">€{totalRevenue.toFixed(0)}</p>

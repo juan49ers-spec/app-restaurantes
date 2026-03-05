@@ -9,15 +9,20 @@ export const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value)
 }
 
 export const formatPct = (value: number) => {
   return new Intl.NumberFormat('es-ES', {
     style: 'percent',
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value / 100)
+}
+
+export const round = (value: number, decimals: number = 2) => {
+  const multiplier = Math.pow(10, decimals)
+  return Math.round(value * multiplier) / multiplier
 }

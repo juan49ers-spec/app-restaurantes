@@ -22,7 +22,12 @@ import { cn } from '@/lib/utils'
 import { BroadcastCenter } from './BroadcastCenter'
 
 const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+    new Intl.NumberFormat('es-ES', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(val)
 
 const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)

@@ -11,15 +11,15 @@ interface YearOverYearComparisonProps {
 
 export function YearOverYearComparison({ currentQuarter, currentYear }: YearOverYearComparisonProps) {
     const [isExpanded, setIsExpanded] = useState(false)
-    
+
     // Mock data
     const currentTotal = 14700
     const previousTotal = 13200
     const variation = ((currentTotal - previousTotal) / previousTotal) * 100
-    
+
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
-    
+        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
+
     return (
         <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
             <button
@@ -51,7 +51,7 @@ export function YearOverYearComparison({ currentQuarter, currentYear }: YearOver
                     )}
                 </div>
             </button>
-            
+
             {isExpanded && (
                 <div className="px-3 pb-3 border-t border-neutral-100">
                     <div className="pt-3 space-y-2">

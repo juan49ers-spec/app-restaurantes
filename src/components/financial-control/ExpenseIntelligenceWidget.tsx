@@ -53,7 +53,12 @@ export function ExpenseIntelligenceWidget({ kpis, insight, onInsightEdit }: Expe
     }
 
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+        new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(val)
 
     // Thresholds from constants
     const PERSONAL_TARGET = TARGET_RATIOS.PERSONAL_TARGET_PCT
@@ -81,7 +86,7 @@ export function ExpenseIntelligenceWidget({ kpis, insight, onInsightEdit }: Expe
                                 kpis.momVariation > 0 ? "text-rose-600 bg-rose-50" : "text-emerald-600 bg-emerald-50"
                             )}>
                                 {kpis.momVariation > 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                                {Math.abs(kpis.momVariation).toFixed(1)}%
+                                {Math.abs(kpis.momVariation).toFixed(2)}%
                             </div>
                         </div>
                         <p className="text-[10px] text-neutral-400 font-medium uppercase mt-1">Vs. Mes Anterior</p>
@@ -91,7 +96,7 @@ export function ExpenseIntelligenceWidget({ kpis, insight, onInsightEdit }: Expe
                         <div className="space-y-1">
                             <div className="flex justify-between text-[11px] font-bold text-neutral-700">
                                 <span>Eficiencia Operativa</span>
-                                <span>{kpis.expenseToSalesRatio.toFixed(1)}%</span>
+                                <span>{kpis.expenseToSalesRatio.toFixed(2)}%</span>
                             </div>
                             <Progress value={Math.min(kpis.expenseToSalesRatio, 100)} className="h-1.5 bg-neutral-100" indicatorClassName={
                                 kpis.expenseToSalesRatio > 85 ? "bg-rose-500" : "bg-neutral-900"
@@ -132,7 +137,7 @@ export function ExpenseIntelligenceWidget({ kpis, insight, onInsightEdit }: Expe
                                     "text-xl font-bold tabular-nums",
                                     kpis.personalRatio > PERSONAL_TARGET ? "text-rose-600" : "text-emerald-600"
                                 )}>
-                                    {kpis.personalRatio.toFixed(0)}%
+                                    {kpis.personalRatio.toFixed(2)}%
                                 </span>
                                 <span className="text-[10px] text-neutral-400 font-medium tracking-tighter">
                                     /{PERSONAL_TARGET}%
@@ -160,7 +165,7 @@ export function ExpenseIntelligenceWidget({ kpis, insight, onInsightEdit }: Expe
                                     "text-xl font-bold tabular-nums",
                                     kpis.cogsRatio > COGS_TARGET ? "text-rose-600" : "text-emerald-600"
                                 )}>
-                                    {kpis.cogsRatio.toFixed(0)}%
+                                    {kpis.cogsRatio.toFixed(2)}%
                                 </span>
                                 <span className="text-[10px] text-neutral-400 font-medium tracking-tighter">
                                     /{COGS_TARGET}%
@@ -176,7 +181,7 @@ export function ExpenseIntelligenceWidget({ kpis, insight, onInsightEdit }: Expe
                                 "text-xs font-bold",
                                 (kpis.personalRatio + kpis.cogsRatio) > PRIME_COST_MAX ? "text-rose-600" : "text-emerald-600"
                             )}>
-                                {(kpis.personalRatio + kpis.cogsRatio).toFixed(1)}%
+                                {(kpis.personalRatio + kpis.cogsRatio).toFixed(2)}%
                             </span>
                         </div>
                         <Progress

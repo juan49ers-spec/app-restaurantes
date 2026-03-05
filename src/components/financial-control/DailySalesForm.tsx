@@ -12,6 +12,7 @@ import { DailySales } from "@/types/schema"
 import { upsertDailySales } from "@/app/actions/financial-control"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { round } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -54,15 +55,15 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
         defaultValues: {
             restaurant_id: restaurantId,
             date: date,
-            base_10: initialData?.base_10 || 0,
-            tax_10: initialData?.tax_10 || 0,
-            base_21: initialData?.base_21 || 0,
-            tax_21: initialData?.tax_21 || 0,
-            revenue_dine_in: initialData?.revenue_dine_in || 0,
-            revenue_takeout: initialData?.revenue_takeout || 0,
-            revenue_delivery: initialData?.revenue_delivery || 0,
+            base_10: round(initialData?.base_10 || 0),
+            tax_10: round(initialData?.tax_10 || 0),
+            base_21: round(initialData?.base_21 || 0),
+            tax_21: round(initialData?.tax_21 || 0),
+            revenue_dine_in: round(initialData?.revenue_dine_in || 0),
+            revenue_takeout: round(initialData?.revenue_takeout || 0),
+            revenue_delivery: round(initialData?.revenue_delivery || 0),
             total_covers: initialData?.total_covers || 0,
-            labor_hours: initialData?.labor_hours || 0,
+            labor_hours: round(initialData?.labor_hours || 0),
             day_status: (initialData?.day_status as "OPEN" | "CLOSED" | "LOCKED") || 'OPEN'
         }
     })
@@ -72,15 +73,15 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
         form.reset({
             restaurant_id: restaurantId,
             date: date,
-            base_10: initialData?.base_10 || 0,
-            tax_10: initialData?.tax_10 || 0,
-            base_21: initialData?.base_21 || 0,
-            tax_21: initialData?.tax_21 || 0,
-            revenue_dine_in: initialData?.revenue_dine_in || 0,
-            revenue_takeout: initialData?.revenue_takeout || 0,
-            revenue_delivery: initialData?.revenue_delivery || 0,
+            base_10: round(initialData?.base_10 || 0),
+            tax_10: round(initialData?.tax_10 || 0),
+            base_21: round(initialData?.base_21 || 0),
+            tax_21: round(initialData?.tax_21 || 0),
+            revenue_dine_in: round(initialData?.revenue_dine_in || 0),
+            revenue_takeout: round(initialData?.revenue_takeout || 0),
+            revenue_delivery: round(initialData?.revenue_delivery || 0),
             total_covers: initialData?.total_covers || 0,
-            labor_hours: initialData?.labor_hours || 0,
+            labor_hours: round(initialData?.labor_hours || 0),
             day_status: initialData?.day_status || 'OPEN'
         })
     }, [date, initialData, restaurantId, form])
@@ -98,13 +99,13 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
     const laborHours = form.watch('labor_hours')
 
     // Safety ensuring they are numbers
-    const totalTaxed = (Number(base10) || 0) + (Number(tax10) || 0) + (Number(base21) || 0) + (Number(tax21) || 0)
-    const totalRevenue = (Number(dineIn) || 0) + (Number(takeout) || 0) + (Number(delivery) || 0)
+    const totalTaxed = round((Number(base10) || 0) + (Number(tax10) || 0) + (Number(base21) || 0) + (Number(tax21) || 0))
+    const totalRevenue = round((Number(dineIn) || 0) + (Number(takeout) || 0) + (Number(delivery) || 0))
 
     // Integrity check: Total from payments should match total from IVA breakdown
     const isImbalanced = Math.abs(totalTaxed - totalRevenue) > 0.05 // allowance for small rounding
 
-    const avgTicket = covers > 0 ? totalRevenue / covers : 0
+    const avgTicket = covers > 0 ? round(totalRevenue / covers) : 0
 
     // Logic Validation Checks
     const isTicketLow = avgTicket < 10 && covers > 0
@@ -118,12 +119,20 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
         try {
             const submitData = {
                 ...values,
-                revenue_total: totalRevenue,
+                base_10: round(values.base_10),
+                tax_10: round(values.tax_10),
+                base_21: round(values.base_21),
+                tax_21: round(values.tax_21),
+                revenue_dine_in: round(values.revenue_dine_in),
+                revenue_takeout: round(values.revenue_takeout),
+                revenue_delivery: round(values.revenue_delivery),
+                labor_hours: round(values.labor_hours),
+                revenue_total: round(totalRevenue),
                 source: 'manual_entry',
                 // Keep iva_collected for backward compatibility
-                iva_collected: (Number(values.tax_10) || 0) + (Number(values.tax_21) || 0),
-                cost_of_goods: initialData?.cost_of_goods || 0,
-                labor_cost: initialData?.labor_cost || 0
+                iva_collected: round((Number(values.tax_10) || 0) + (Number(values.tax_21) || 0)),
+                cost_of_goods: round(initialData?.cost_of_goods || 0),
+                labor_cost: round(initialData?.labor_cost || 0)
             }
 
             const result = await upsertDailySales(submitData)
@@ -169,7 +178,7 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-neutral-900 tabular-nums tracking-tight">
-                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(totalRevenue)}
+                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalRevenue)}
                         </div>
                     </CardContent>
                 </Card>
@@ -185,7 +194,7 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-neutral-900 tabular-nums tracking-tight">
-                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(avgTicket)}
+                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(avgTicket)}
                         </div>
                     </CardContent>
                 </Card>
@@ -218,6 +227,63 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
                         </div>
                     )}
 
+                    <fieldset disabled={shouldDisable} className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="space-y-2 group">
+                            <Label htmlFor="base_10" className="text-xs font-semibold uppercase tracking-wider text-neutral-500 group-focus-within:text-emerald-600 transition-colors">Base 10%</Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">€</span>
+                                <Input
+                                    id="base_10"
+                                    type="number"
+                                    step="0.01"
+                                    {...form.register('base_10', { valueAsNumber: true })}
+                                    className="pl-7 h-10 bg-white/40 border-neutral-200/60 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all rounded-xl font-mono text-sm"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2 group">
+                            <Label htmlFor="tax_10" className="text-xs font-semibold uppercase tracking-wider text-neutral-500 group-focus-within:text-emerald-600 transition-colors">IVA 10%</Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">€</span>
+                                <Input
+                                    id="tax_10"
+                                    type="number"
+                                    step="0.01"
+                                    {...form.register('tax_10', { valueAsNumber: true })}
+                                    className="pl-7 h-10 bg-white/40 border-neutral-200/60 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all rounded-xl font-mono text-sm"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2 group">
+                            <Label htmlFor="base_21" className="text-xs font-semibold uppercase tracking-wider text-neutral-500 group-focus-within:text-emerald-600 transition-colors">Base 21%</Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">€</span>
+                                <Input
+                                    id="base_21"
+                                    type="number"
+                                    step="0.01"
+                                    {...form.register('base_21', { valueAsNumber: true })}
+                                    className="pl-7 h-10 bg-white/40 border-neutral-200/60 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all rounded-xl font-mono text-sm"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2 group">
+                            <Label htmlFor="tax_21" className="text-xs font-semibold uppercase tracking-wider text-neutral-500 group-focus-within:text-emerald-600 transition-colors">IVA 21%</Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">€</span>
+                                <Input
+                                    id="tax_21"
+                                    type="number"
+                                    step="0.01"
+                                    {...form.register('tax_21', { valueAsNumber: true })}
+                                    className="pl-7 h-10 bg-white/40 border-neutral-200/60 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all rounded-xl font-mono text-sm"
+                                />
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <Separator className="bg-neutral-100" />
+
                     <fieldset disabled={shouldDisable} className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-2 group">
                             <Label htmlFor="dine_in" className="text-sm font-medium text-neutral-600 group-focus-within:text-neutral-900 transition-colors">Sala / Barra</Label>
@@ -228,7 +294,7 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
                                     type="number"
                                     step="0.01"
                                     {...form.register('revenue_dine_in', { valueAsNumber: true })}
-                                    className="pl-8 text-base font-mono h-11 bg-white/50 border-neutral-200 focus:bg-white transition-all shadow-sm"
+                                    className="pl-8 text-base font-mono h-11 bg-white/40 border-neutral-200/50 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all shadow-sm rounded-xl"
                                 />
                             </div>
                         </div>
@@ -241,7 +307,7 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
                                     type="number"
                                     step="0.01"
                                     {...form.register('revenue_takeout', { valueAsNumber: true })}
-                                    className="pl-8 text-base font-mono h-11 bg-white/50 border-neutral-200 focus:bg-white transition-all shadow-sm"
+                                    className="pl-8 text-base font-mono h-11 bg-white/40 border-neutral-200/50 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all shadow-sm rounded-xl"
                                 />
                             </div>
                         </div>
@@ -254,7 +320,7 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
                                     type="number"
                                     step="0.01"
                                     {...form.register('revenue_delivery', { valueAsNumber: true })}
-                                    className="pl-8 text-base font-mono h-11 bg-white/50 border-neutral-200 focus:bg-white transition-all shadow-sm"
+                                    className="pl-8 text-base font-mono h-11 bg-white/40 border-neutral-200/50 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all shadow-sm rounded-xl"
                                 />
                             </div>
                         </div>
@@ -294,7 +360,7 @@ export function DailySalesForm({ restaurantId, date, initialData }: DailySalesFo
                             <AlertTriangle className="h-4 w-4" />
                             <AlertTitle className="text-sm font-semibold">Alerta de Integridad</AlertTitle>
                             <AlertDescription className="text-xs mt-1 text-rose-700/80">
-                                Ticket medio excepcionalmente bajo ({new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(avgTicket)}).
+                                Ticket medio excepcionalmente bajo ({new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(avgTicket)}).
                                 Por favor, verifica el número de comensales o la recaudación.
                             </AlertDescription>
                         </Alert>
@@ -391,7 +457,7 @@ function LiveMarginCard({ totalRevenue, laborHours }: { totalRevenue: number, la
                 <div className="space-y-3">
                     <div className="flex justify-between items-baseline">
                         <span className={`text-2xl font-bold tabular-nums tracking-tight ${textColor}`}>
-                            {totalRevenue > 0 ? `${marginPct.toFixed(0)}%` : "--"}
+                            {totalRevenue > 0 ? `${marginPct.toFixed(2)}%` : "--"}
                         </span>
                         <span className="text-xs font-medium text-muted-foreground bg-white/50 px-2 py-0.5 rounded-full border border-neutral-100">
                             {statusText}

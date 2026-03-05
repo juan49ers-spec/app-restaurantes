@@ -174,140 +174,142 @@ export function StockDashboard() {
             {/* Inventory Table */}
             <Card>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Ingrediente</TableHead>
-                                <TableHead>Categoría</TableHead>
-                                <TableHead className="text-right">Stock Actual</TableHead>
-                                <TableHead className="text-right">Mínimo</TableHead>
-                                <TableHead className="text-right">Valor</TableHead>
-                                <TableHead className="text-center">Estado</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-12 text-neutral-400">
-                                        <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
-                                        Cargando inventario...
-                                    </TableCell>
+                                    <TableHead>Ingrediente</TableHead>
+                                    <TableHead>Categoría</TableHead>
+                                    <TableHead className="text-right">Stock Actual</TableHead>
+                                    <TableHead className="text-right">Mínimo</TableHead>
+                                    <TableHead className="text-right">Valor</TableHead>
+                                    <TableHead className="text-center">Estado</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
-                            ) : filtered.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-12 text-neutral-400">
-                                        <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                        {inventory.length === 0
-                                            ? 'No hay stock registrado. Pulsa "Inicializar Stock" para comenzar.'
-                                            : 'No se encontraron ingredientes con ese nombre.'
-                                        }
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filtered.map((item) => {
-                                    const isEditing = editingId === item.ingredient.id
-                                    const isBelowMin = item.min_qty > 0 && item.current_qty < item.min_qty
-                                    const isZero = item.current_qty === 0
-                                    const value = item.current_qty * (item.ingredient.current_avg_price || 0)
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-12 text-neutral-400">
+                                            <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
+                                            Cargando inventario...
+                                        </TableCell>
+                                    </TableRow>
+                                ) : filtered.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-12 text-neutral-400">
+                                            <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                            {inventory.length === 0
+                                                ? 'No hay stock registrado. Pulsa "Inicializar Stock" para comenzar.'
+                                                : 'No se encontraron ingredientes con ese nombre.'
+                                            }
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filtered.map((item) => {
+                                        const isEditing = editingId === item.ingredient.id
+                                        const isBelowMin = item.min_qty > 0 && item.current_qty < item.min_qty
+                                        const isZero = item.current_qty === 0
+                                        const value = item.current_qty * (item.ingredient.current_avg_price || 0)
 
-                                    return (
-                                        <TableRow key={item.id} className={isZero ? 'bg-rose-50/30' : isBelowMin ? 'bg-amber-50/30' : ''}>
-                                            <TableCell className="font-medium">{item.ingredient.name}</TableCell>
-                                            <TableCell>
-                                                {item.ingredient.category ? (
-                                                    <Badge variant="outline" className="text-xs">{item.ingredient.category}</Badge>
-                                                ) : (
-                                                    <span className="text-neutral-300 text-xs">—</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {isEditing ? (
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={editQty}
-                                                        onChange={(e) => setEditQty(e.target.value)}
-                                                        className="w-24 text-right ml-auto h-8"
-                                                        autoFocus
-                                                    />
-                                                ) : (
-                                                    <span className="font-mono tabular-nums">
-                                                        {item.current_qty.toFixed(2)} {item.ingredient.base_unit}
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {isEditing ? (
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={editMin}
-                                                        onChange={(e) => setEditMin(e.target.value)}
-                                                        className="w-24 text-right ml-auto h-8"
-                                                    />
-                                                ) : (
-                                                    <span className="font-mono tabular-nums text-neutral-400">
-                                                        {item.min_qty > 0 ? `${item.min_qty.toFixed(2)} ${item.ingredient.base_unit}` : '—'}
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right font-mono tabular-nums text-sm">
-                                                {fmt(value)}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                {isZero ? (
-                                                    <Badge variant="destructive" className="text-[10px]">
-                                                        <AlertTriangle className="w-3 h-3 mr-1" /> Agotado
-                                                    </Badge>
-                                                ) : isBelowMin ? (
-                                                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[10px]">
-                                                        <TrendingDown className="w-3 h-3 mr-1" /> Bajo
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[10px]">
-                                                        OK
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {isEditing ? (
-                                                    <div className="flex gap-1 justify-end">
+                                        return (
+                                            <TableRow key={item.id} className={isZero ? 'bg-rose-50/30' : isBelowMin ? 'bg-amber-50/30' : ''}>
+                                                <TableCell className="font-medium">{item.ingredient.name}</TableCell>
+                                                <TableCell>
+                                                    {item.ingredient.category ? (
+                                                        <Badge variant="outline" className="text-xs">{item.ingredient.category}</Badge>
+                                                    ) : (
+                                                        <span className="text-neutral-300 text-xs">—</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {isEditing ? (
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={editQty}
+                                                            onChange={(e) => setEditQty(e.target.value)}
+                                                            className="w-24 text-right ml-auto h-8"
+                                                            autoFocus
+                                                        />
+                                                    ) : (
+                                                        <span className="font-mono tabular-nums">
+                                                            {item.current_qty.toFixed(2)} {item.ingredient.base_unit}
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {isEditing ? (
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={editMin}
+                                                            onChange={(e) => setEditMin(e.target.value)}
+                                                            className="w-24 text-right ml-auto h-8"
+                                                        />
+                                                    ) : (
+                                                        <span className="font-mono tabular-nums text-neutral-400">
+                                                            {item.min_qty > 0 ? `${item.min_qty.toFixed(2)} ${item.ingredient.base_unit}` : '—'}
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right font-mono tabular-nums text-sm">
+                                                    {fmt(value)}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {isZero ? (
+                                                        <Badge variant="destructive" className="text-[10px]">
+                                                            <AlertTriangle className="w-3 h-3 mr-1" /> Agotado
+                                                        </Badge>
+                                                    ) : isBelowMin ? (
+                                                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[10px]">
+                                                            <TrendingDown className="w-3 h-3 mr-1" /> Bajo
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-[10px]">
+                                                            OK
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {isEditing ? (
+                                                        <div className="flex gap-1 justify-end">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="h-7 w-7 p-0 text-emerald-600"
+                                                                onClick={() => handleSaveEdit(item.ingredient.id)}
+                                                                disabled={isPending}
+                                                            >
+                                                                <Check className="w-4 h-4" />
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="h-7 w-7 p-0 text-neutral-400"
+                                                                onClick={() => setEditingId(null)}
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"
-                                                            className="h-7 w-7 p-0 text-emerald-600"
-                                                            onClick={() => handleSaveEdit(item.ingredient.id)}
-                                                            disabled={isPending}
+                                                            className="h-7 w-7 p-0"
+                                                            onClick={() => startEdit(item)}
                                                         >
-                                                            <Check className="w-4 h-4" />
+                                                            <Edit2 className="w-3.5 h-3.5" />
                                                         </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="h-7 w-7 p-0 text-neutral-400"
-                                                            onClick={() => setEditingId(null)}
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
-                                                ) : (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="h-7 w-7 p-0"
-                                                        onClick={() => startEdit(item)}
-                                                    >
-                                                        <Edit2 className="w-3.5 h-3.5" />
-                                                    </Button>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         </div>

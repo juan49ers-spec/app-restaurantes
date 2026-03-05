@@ -36,12 +36,12 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload, totalValue }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload
-        const percent = totalValue > 0 ? ((data.value / totalValue) * 100).toFixed(1) : "0.0"
+        const percent = totalValue > 0 ? ((data.value / totalValue) * 100).toFixed(2) : "0.00"
         return (
             <div className="bg-white p-2 border border-neutral-200 shadow-lg rounded-lg text-xs z-50">
                 <p className="font-bold text-neutral-900">{data.name}</p>
                 <p className="text-neutral-500">
-                    {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(data.value)} ({percent}%)
+                    {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(data.value)} ({percent}%)
                 </p>
             </div>
         )
@@ -90,7 +90,7 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
     const totalValue = activeData.reduce((acc, item) => acc + item.value, 0)
 
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
 
     // Custom Tooltip
 

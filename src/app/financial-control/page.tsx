@@ -6,6 +6,7 @@ import { getResultsDashboardData } from "@/app/actions/resultados"
 import { getCurrentRestaurant } from "@/app/actions/user"
 import { format, startOfMonth, endOfMonth } from "date-fns"
 import { redirect } from "next/navigation"
+import { FinancialHubLayout } from "@/components/financial-control/FinancialHubLayout"
 
 interface PageProps {
     searchParams: Promise<{
@@ -40,16 +41,18 @@ export default async function FinancialControlPage({ searchParams }: PageProps) 
     ])
 
     return (
-        <Suspense fallback={<div className="p-8 text-center text-neutral-500">Cargando datos financieros del mes...</div>}>
-            <FinancialControlClient
-                restaurantId={restaurant.id}
-                initialDate={dateStr}
-                initialDailySales={dailySales}
-                initialExpenses={expenses}
-                billingData={billingData}
-                expenseDashboardData={expenseDashboardData}
-                resultsData={resultsData}
-            />
-        </Suspense>
+        <FinancialHubLayout>
+            <Suspense fallback={<div className="p-8 text-center text-neutral-500">Cargando datos financieros del mes...</div>}>
+                <FinancialControlClient
+                    restaurantId={restaurant.id}
+                    initialDate={dateStr}
+                    initialDailySales={dailySales}
+                    initialExpenses={expenses}
+                    billingData={billingData}
+                    expenseDashboardData={expenseDashboardData}
+                    resultsData={resultsData}
+                />
+            </Suspense>
+        </FinancialHubLayout>
     )
 }

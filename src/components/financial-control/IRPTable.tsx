@@ -19,7 +19,7 @@ interface IRPTableProps {
 export function IRPTable({ year, quarter, data }: IRPTableProps) {
     const totalRetenido = data.reduce((sum, item) => sum + item.cuotaIngresar, 0)
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
 
     return (
         <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden flex flex-col h-full shadow-sm">

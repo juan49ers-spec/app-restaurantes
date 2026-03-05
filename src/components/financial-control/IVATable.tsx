@@ -30,7 +30,7 @@ export function IVATable({ year, quarter, data }: IVATableProps) {
     const hasData = dataWithResults.some(row => row.baseImponible > 0 || row.ivaDevengado > 0 || row.ivaDeducible > 0)
 
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
 
     return (
         <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden flex flex-col h-full shadow-sm">

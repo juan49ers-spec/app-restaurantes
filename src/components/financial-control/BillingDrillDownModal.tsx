@@ -75,7 +75,12 @@ export function BillingDrillDownModal({ data, isOpen, onClose }: BillingDrillDow
     if (!isOpen) return null
 
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val)
+        new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(val)
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -99,11 +104,11 @@ export function BillingDrillDownModal({ data, isOpen, onClose }: BillingDrillDow
                 <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
                     {/* Chart Section */}
                     <section className="space-y-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
                             <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 flex items-center gap-2">
                                 <Calendar className="w-4 h-4" /> Evolución del Mes
                             </h3>
-                            <div className="flex gap-4">
+                            <div className="flex flex-wrap gap-3 sm:gap-4">
                                 <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
                                     <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Máximo
                                 </span>
@@ -172,21 +177,21 @@ export function BillingDrillDownModal({ data, isOpen, onClose }: BillingDrillDow
 
                     {/* Table Section */}
                     <section className="space-y-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
                             <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400">Tabla de Operativa Diaria</h3>
-                            <div className="relative">
+                            <div className="relative w-full sm:w-auto">
                                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                                 <input
                                     type="text"
                                     placeholder="Buscar fecha..."
-                                    className="pl-9 pr-4 py-2 bg-neutral-100 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-neutral-900/5 transition-all w-48"
+                                    className="pl-9 pr-4 py-2 bg-neutral-100 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-neutral-900/5 transition-all w-full sm:w-48"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
                         </div>
 
-                        <div className="border border-neutral-100 rounded-2xl overflow-hidden shadow-sm">
+                        <div className="border border-neutral-100 rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
                             <table className="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr className="bg-neutral-50/80 border-b border-neutral-100">
@@ -229,7 +234,7 @@ export function BillingDrillDownModal({ data, isOpen, onClose }: BillingDrillDow
                                                                 "font-bold",
                                                                 row.variation > 0 ? "text-emerald-500" : "text-rose-500"
                                                             )}>
-                                                                {Math.abs(row.variation).toFixed(1)}%
+                                                                {Math.abs(row.variation).toFixed(2)}%
                                                             </span>
                                                         </>
                                                     ) : (

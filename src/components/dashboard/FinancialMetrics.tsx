@@ -21,7 +21,7 @@ export function FinancialMetrics({ data, ghostRisk = 0 }: FinancialMetricsProps)
         return (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="glass-premium rounded-3xl p-6 animate-pulse border-none">
+                    <div key={i} className="glass-premium rounded-3xl p-4 sm:p-6 animate-pulse border-none">
                         <div className="h-2 bg-black/5 rounded w-1/2 mb-3" />
                         <div className="h-8 bg-black/5 rounded w-3/4" />
                     </div>
@@ -31,7 +31,12 @@ export function FinancialMetrics({ data, ghostRisk = 0 }: FinancialMetricsProps)
     }
 
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+        new Intl.NumberFormat('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(val)
 
     const isProfitable = data.netProfit > 0
     const marginOk = data.grossMarginPct > 65
@@ -81,7 +86,7 @@ export function FinancialMetrics({ data, ghostRisk = 0 }: FinancialMetricsProps)
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                        className="glass-card rounded-3xl p-6 group cursor-default border-none relative overflow-hidden"
+                        className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 group cursor-default border-none relative overflow-hidden"
                     >
                         {/* Subtle Background Glow */}
                         <div className={cn(

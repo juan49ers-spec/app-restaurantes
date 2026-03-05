@@ -15,7 +15,12 @@ interface BillingManagerProps {
 }
 
 const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
+    new Intl.NumberFormat('es-ES', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(val)
 
 const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -138,7 +143,7 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
                 </div>
                 <div className="bg-white/5 border border-white/5 rounded-xl p-5 md:col-span-2">
                     <h3 className="text-sm font-medium text-neutral-400 mb-3">Distribución de Módulos</h3>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
                         {(Object.keys(overview.addonDistribution) as (AddonId | 'CORE')[]).map(addon => {
                             const count = overview.addonDistribution[addon] || 0
                             const pct = Math.round((count / (overview.totalRestaurants || 1)) * 100)

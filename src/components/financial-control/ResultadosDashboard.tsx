@@ -107,11 +107,12 @@ const formatCurrency = (val: number): string =>
   new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: 'EUR',
-    maximumFractionDigits: 0
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(val)
 
 const formatPercent = (val: number): string =>
-  `${val >= 0 ? '+' : ''}${val.toFixed(1)}%`
+  `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`
 
 // ==========================================
 // SUB-COMPONENTS
@@ -270,21 +271,22 @@ const CollapsibleSection = memo(({
           <ChevronDown className="w-4 h-4 text-neutral-400" aria-hidden="true" />
         )}
       </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <m.div
-            id={sectionId}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="border-t border-neutral-100">
-              {children}
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+      <div id={sectionId}>
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <m.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="border-t border-neutral-100">
+                {children}
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 })
@@ -365,7 +367,7 @@ function useDiagnoses(data: DashboardUiData): DiagnosisCard[] {
           icon: Package,
           title: 'Anomalía de Stock',
           description: 'Las ventas han caído, pero el gasto en materia prima se mantiene. Posible acumulación de stock no registrada o exceso de compras.',
-          metric: `Materia prima: ${((current.materiaPrima.total / current.totalIngresos) * 100).toFixed(1)}% de ventas`
+          metric: `Materia prima: ${((current.materiaPrima.total / current.totalIngresos) * 100).toFixed(2)}% de ventas`
         })
       }
     }
@@ -383,7 +385,7 @@ function useDiagnoses(data: DashboardUiData): DiagnosisCard[] {
           icon: Users,
           title: 'Rigidez Laboral',
           description: 'La caída de ventas no se ha compensado con ajustes en los turnos de personal, lo que está penalizando el margen este mes.',
-          metric: `Personal: ${((current.personal.total / current.totalIngresos) * 100).toFixed(1)}% de ventas`
+          metric: `Personal: ${((current.personal.total / current.totalIngresos) * 100).toFixed(2)}% de ventas`
         })
       }
     }
@@ -400,7 +402,7 @@ function useDiagnoses(data: DashboardUiData): DiagnosisCard[] {
           icon: TrendingUp,
           title: 'Consolidación Estructural',
           description: `${current.month} ${current.year} supera ampliamente a ${current.month} del año anterior, confirmando que el negocio ha elevado su suelo de facturación.`,
-          metric: `+${(crecimientoYoY * 100).toFixed(1)}% vs año anterior`
+          metric: `+${(crecimientoYoY * 100).toFixed(2)}% vs año anterior`
         })
       }
     }
@@ -416,7 +418,7 @@ function useDiagnoses(data: DashboardUiData): DiagnosisCard[] {
         icon: Calendar,
         title: 'Viabilidad Post-Temporada',
         description: 'A pesar del fin de la temporada alta, el negocio mantiene rentabilidad demostrando viabilidad estructural fuera del verano.',
-        metric: `Margen: ${current.margenNeto}% en ${current.month}`
+        metric: `Margen: ${current.margenNeto.toFixed(2)}% en ${current.month}`
       })
     }
 
@@ -433,7 +435,7 @@ function useDiagnoses(data: DashboardUiData): DiagnosisCard[] {
         icon: Target,
         title: 'Break-Even Temprano',
         description: `El punto de equilibrio se alcanzó el día ${data.breakEvenData.diaBreakEven}, dejando margen para acumular beneficios durante el resto del mes.`,
-        metric: `Ventas: ${((data.breakEvenData.ventasActuales / data.breakEvenData.puntoEquilibrio - 1) * 100).toFixed(0)}% sobre el mínimo`
+        metric: `Ventas: ${((data.breakEvenData.ventasActuales / data.breakEvenData.puntoEquilibrio - 1) * 100).toFixed(2)}% sobre el mínimo`
       })
     }
 
@@ -760,7 +762,7 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
         </div>
         <div className="text-right">
           <p className="text-xs text-neutral-500">Margen</p>
-          <p className="text-xl font-bold text-neutral-900">{data.currentMonth.margenNeto}%</p>
+          <p className="text-xl font-bold text-neutral-900">{data.currentMonth.margenNeto.toFixed(2)}%</p>
           <p
             className={cn(
               "text-xs font-bold",
@@ -831,11 +833,11 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
               const materia = intelligenceKPIs.cogsRatio
               if (ratio === 0) return 'Sin datos suficientes para generar análisis.'
               const parts: string[] = []
-              if (ratio > 85) parts.push(`Gastos al ${ratio.toFixed(0)}% de ventas — margen muy ajustado.`)
-              else if (ratio > 70) parts.push(`Gastos operativos contenidos al ${ratio.toFixed(0)}% de ventas.`)
-              else parts.push(`Estructura de gastos eficiente al ${ratio.toFixed(0)}% de ventas.`)
-              if (personal > 35) parts.push(`Personal (${personal.toFixed(0)}%) por encima del benchmark del 33%.`)
-              if (materia > 35) parts.push(`Materia prima (${materia.toFixed(0)}%) por encima del benchmark del 33%.`)
+              if (ratio > 85) parts.push(`Gastos al ${ratio.toFixed(2)}% de ventas — margen muy ajustado.`)
+              else if (ratio > 70) parts.push(`Gastos operativos contenidos al ${ratio.toFixed(2)}% de ventas.`)
+              else parts.push(`Estructura de gastos eficiente al ${ratio.toFixed(2)}% de ventas.`)
+              if (personal > 35) parts.push(`Personal (${personal.toFixed(2)}%) por encima del benchmark del 33%.`)
+              if (materia > 35) parts.push(`Materia prima (${materia.toFixed(2)}%) por encima del benchmark del 33%.`)
               if (personal <= 33 && materia <= 33) parts.push('Ambos ratios principales dentro de objetivo.')
               return parts.join(' ')
             })(),

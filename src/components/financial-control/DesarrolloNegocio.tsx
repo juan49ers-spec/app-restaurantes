@@ -66,11 +66,12 @@ const formatCurrency = (val: number): string =>
     new Intl.NumberFormat('es-ES', {
         style: 'currency',
         currency: 'EUR',
-        maximumFractionDigits: 0
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     }).format(val)
 
 const formatPercent = (val: number): string =>
-    `${val >= 0 ? '+' : ''}${val.toFixed(1)}%`
+    `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`
 
 // Calcular tendencia (media móvil de 3 meses)
 const calculateTrend = (data: number[], index: number): number => {
@@ -526,7 +527,7 @@ export function DesarrolloNegocio({
                                 "text-lg font-bold",
                                 metrics.totalAnnual >= targets.annual ? "text-emerald-600" : "text-amber-600"
                             )}>
-                                {((metrics.totalAnnual / targets.annual) * 100).toFixed(0)}%
+                                {((metrics.totalAnnual / targets.annual) * 100).toFixed(2)}%
                             </p>
                             <p className="text-xs text-slate-500">
                                 Meta: {formatCurrency(targets.annual)}

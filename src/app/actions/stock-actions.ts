@@ -281,7 +281,7 @@ export async function previewStockImpact(sales: { recipeId: string; qty: number 
         const stockEntry = stocks?.find(s => s.ingredient_id === id)
         const ingredientArray = stockEntry?.ingredient as IngredientData[] | null
         const ingredientData = ingredientArray?.[0]
-        
+
         if (!isIngredientData(ingredientData)) {
             return {
                 ingredientId: id,
@@ -399,41 +399,53 @@ export async function addManualStockMovement(data: {
     const restaurantId = await getUserRestaurant()
 
     // 1. Create Stock Movement
+    // Map MANUAL_ADD to PURCHASE to satisfy DB constraint
+    const movementType = data.type === 'MANUAL_ADD' ? 'PURCHASE' : 'ADJUSTMENT'
+
     const { error: moveError } = await supabase.from('stock_movements').insert({
         restaurant_id: restaurantId,
         ingredient_id: data.ingredientId,
-        type: data.type,
+        type: movementType,
         quantity: data.quantity,
-        notes: data.notes,
-        date: data.date || new Date().toISOString()
+        notes: data.notes || (data.type === 'MANUAL_ADD' ? 'Entrada manual' : 'Corrección manual'),
+        date: data.date || new Date().toISOString().split('T')[0]
     })
 
     if (moveError) throw new Error(`Error creating movement: ${moveError.message}`)
 
-    // 2. Update Inventory Stock
-    // Fetch current to increment
-    const { data: currentStock } = await supabase
-        .from('inventory_stock')
-        .select('current_qty')
-        .eq('restaurant_id', restaurantId)
-        .eq('ingredient_id', data.ingredientId)
-        .single()
+    // 2. Update Inventory Stock using RPC for atomicity and to avoid .single() crash
+    const { error: updateError } = await supabase.rpc('increment_inventory_stock', {
+        p_restaurant_id: restaurantId,
+        p_ingredient_id: data.ingredientId,
+        p_quantity: data.quantity
+    })
 
-    if (currentStock) {
-        await supabase.from('inventory_stock')
-            .update({
-                current_qty: currentStock.current_qty + data.quantity,
-                last_updated: new Date().toISOString()
-            })
+    if (updateError) {
+        // Fallback to manual if RPC doesn't exist yet (though it should be created in migrations)
+        const { data: currentStock } = await supabase
+            .from('inventory_stock')
+            .select('current_qty')
             .eq('restaurant_id', restaurantId)
             .eq('ingredient_id', data.ingredientId)
-    } else {
-        await supabase.from('inventory_stock').insert({
-            restaurant_id: restaurantId,
-            ingredient_id: data.ingredientId,
-            current_qty: data.quantity,
-            min_qty: 0
-        })
+            .maybeSingle()
+
+        if (currentStock) {
+            await supabase.from('inventory_stock')
+                .update({
+                    current_qty: currentStock.current_qty + data.quantity,
+                    last_updated: new Date().toISOString()
+                })
+                .eq('restaurant_id', restaurantId)
+                .eq('ingredient_id', data.ingredientId)
+        } else {
+            await supabase.from('inventory_stock').insert({
+                restaurant_id: restaurantId,
+                ingredient_id: data.ingredientId,
+                current_qty: data.quantity,
+                min_qty: 0,
+                last_updated: new Date().toISOString()
+            })
+        }
     }
 
     // 3. Update Price if provided (Last Purchase Price)
