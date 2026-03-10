@@ -71,15 +71,7 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
 
     return (
         <div className="flex min-h-screen bg-gastronomic-gradient">
-            <Sidebar
-                user={user}
-                collapsed={collapsed}
-                setCollapsed={toggleCollapse}
-                isMobile={isMobile}
-                activeAddons={activeAddons}
-                restaurantId={restaurantId}
-                restaurantName={restaurantName}
-            />
+            <Sidebar />
             <main
                 className={cn(
                     "flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:pl-8 lg:pl-10 transition-[margin] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
