@@ -101,7 +101,6 @@ export function ExpensesFormModal({ isOpen, onClose, restaurantId, expenseToEdit
                 reset(defaultValues)
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, expenseToEdit, reset])
 
     const onSubmit: SubmitHandler<ExpenseFormValues> = async (values) => {

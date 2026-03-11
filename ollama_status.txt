@@ -1,0 +1,6 @@
+NAME                  ID              SIZE      MODIFIED     
+qwen2.5:latest        845dbda0ea48    4.7 GB    19 hours ago    
+minimax-m2.5:cloud    c0d5751c800f    -         26 hours ago    
+qwen3:latest          500a1f067a9f    5.2 GB    27 hours ago    
+===RUNNING===
+NAME    ID    SIZE    PROCESSOR    CONTEXT    UNTIL 

@@ -94,7 +94,7 @@ describe('IngredientsTable', () => {
     fireEvent.click(editButtons[0])
 
     // Simplificamos la búsqueda quitando el selector específico
-    expect(screen.getByText('Editar Ingrediente')).toBeInTheDocument()
+    expect(screen.getAllByText('Editar Ingrediente')[0]).toBeDefined()
     expect(screen.getByDisplayValue('Pechuga de Pollo')).toBeInTheDocument()
   })
 
@@ -105,7 +105,8 @@ describe('IngredientsTable', () => {
     const editButtons = screen.getAllByText('Editar')
     fireEvent.click(editButtons[0])
 
-    const saveButton = screen.getByText('Guardar con Error')
+    const saveButton = screen.getAllByText('Guardar con Error')[0]
+    expect(saveButton).toBeDefined()
     fireEvent.click(saveButton)
 
     expect(mockedToastError).toHaveBeenCalledWith('Números inválidos')

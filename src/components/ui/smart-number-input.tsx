@@ -38,7 +38,6 @@ export function SmartNumberInput({
 
         // Otherwise, parent changed significantly, sync up
         setLocalValue(value === 0 ? '' : value.toString())
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

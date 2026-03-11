@@ -11,7 +11,7 @@ export async function getSuppliers() {
 
     const { data, error } = await supabase
         .from('suppliers')
-        .select('*')
+        .select('id, restaurant_id, name, tax_id, contact_email, contact_phone, payment_terms, created_at, reliability_score, trend_direction, total_orders, avg_price_variance, contract_renewal_date, last_price_audit')
         .eq('restaurant_id', restaurantId)
         .order('name')
 
@@ -25,7 +25,7 @@ export async function getSupplier(id: string) {
 
     const { data, error } = await supabase
         .from('suppliers')
-        .select('*')
+        .select('id, restaurant_id, name, tax_id, contact_email, contact_phone, payment_terms, created_at, reliability_score, trend_direction, total_orders, avg_price_variance, contract_renewal_date, last_price_audit')
         .eq('id', id)
         .eq('restaurant_id', restaurantId)
         .single()

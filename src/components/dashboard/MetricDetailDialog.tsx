@@ -43,7 +43,7 @@ export function MetricDetailDialog({ title, value, subValue, trend, data, color,
     }[color]
 
     const handleViewFullBreakdown = () => {
-        window.location.href = '/financial-control'
+        window.location.href = '/finance'
     }
 
     const handleDownloadReport = () => {

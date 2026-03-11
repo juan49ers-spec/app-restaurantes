@@ -45,16 +45,30 @@ export default async function RootLayout({
     activeAddons = restaurant?.active_addons || []
     restaurantId = restaurant?.id || ''
     restaurantName = restaurant?.name || ''
+
+    // DEBUG: Server-side logs
+    console.log('--- MODULE SYNC DEBUG ---')
+    console.log(`Restaurant: ${restaurantName} (${restaurantId})`)
+    console.log(`Impersonating: ${!!impersonatedRestaurantName}`)
+    console.log(`Active Addons:`, activeAddons)
+    console.log('-------------------------')
   }
 
   const broadcasts = await getActiveBroadcasts()
+  const isImpersonating = !!impersonatedRestaurantName
 
   return (
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${inter.variable} antialiased min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950/50 selection:bg-primary/30 selection:text-primary-foreground font-sans`}>
         <BroadcastBanner broadcasts={broadcasts} />
         <MotionProvider>
-          <AppLayout user={user ?? undefined} activeAddons={activeAddons} restaurantId={restaurantId} restaurantName={restaurantName}>
+          <AppLayout
+            user={user ?? undefined}
+            activeAddons={activeAddons}
+            restaurantId={restaurantId}
+            restaurantName={restaurantName}
+            isImpersonating={isImpersonating}
+          >
             {children}
           </AppLayout>
         </MotionProvider>

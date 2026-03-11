@@ -20,7 +20,7 @@ export async function getPolicies(restaurantId: string): Promise<Policy[]> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('policies')
-        .select('*')
+        .select('id, restaurant_id, title, description, category, is_required, created_at')
         .eq('restaurant_id', restaurantId)
         .order('category')
         .order('title')

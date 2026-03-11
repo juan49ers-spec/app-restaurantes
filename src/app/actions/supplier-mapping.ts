@@ -339,7 +339,7 @@ export async function getIngredientPriceTrend(ingredientId: string) {
   // Get price history
   const { data: history } = await supabase
     .from('price_history')
-    .select('*')
+    .select('id, restaurant_id, entity_id, entity_type, price, previous_price, change_pct, created_at')
     .eq('restaurant_id', restaurantId)
     .eq('entity_id', ingredientId)
     .eq('entity_type', 'INGREDIENT')

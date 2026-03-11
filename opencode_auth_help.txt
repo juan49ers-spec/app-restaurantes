@@ -1,0 +1,14 @@
+opencode auth
+
+manage credentials
+
+Commands:
+  opencode auth login [url]  log in to a provider
+  opencode auth logout       log out from a configured provider
+  opencode auth list         list providers                                            [aliases: ls]
+
+Options:
+  -h, --help        show help                                                              [boolean]
+  -v, --version     show version number                                                    [boolean]
+      --print-logs  print logs to stderr                                                   [boolean]
+      --log-level   log level                   [string] [choices: "DEBUG", "INFO", "WARN", "ERROR"]

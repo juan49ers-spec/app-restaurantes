@@ -16,7 +16,7 @@ export async function confirmValidation(
     // 1. Get the buffer item details
     const { data: bufferItem, error: fetchError } = await supabase
         .from('ingestion_buffer')
-        .select('*')
+        .select('supplier_id, raw_name, raw_price, raw_quantity')
         .eq('id', bufferId)
         .single()
 

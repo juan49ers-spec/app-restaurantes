@@ -63,18 +63,18 @@ export async function deleteEmployee(id: string) {
  * SHIFTS
  */
 
-export async function getShifts(restaurantId: string, startDate: string, endDate: string): Promise<Shift[]> {
+export async function getShifts(restaurantId: string, startDate: string, endDate: string): Promise<Pick<Shift, 'id' | 'employee_id' | 'date' | 'start_time' | 'end_time' | 'estimated_cost' | 'actual_cost'>[]> {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('shifts')
-        .select('*')
+        .select('id, employee_id, date, start_time, end_time, estimated_cost, actual_cost')
         .eq('restaurant_id', restaurantId)
         .gte('date', startDate)
         .lte('date', endDate)
         .order('date', { ascending: true })
 
     if (error) throw error
-    return data as Shift[]
+    return data as Pick<Shift, 'id' | 'employee_id' | 'date' | 'start_time' | 'end_time' | 'estimated_cost' | 'actual_cost'>[]
 }
 
 export async function upsertShift(shift: Shift) {
@@ -127,7 +127,7 @@ export async function getStaffingForecast(restaurantId: string, startDate: strin
     // 1. Fetch Scheduled Shifts for the period
     const { data: shifts } = await supabase
         .from('shifts')
-        .select('*')
+        .select('id, date, start_time, end_time, estimated_cost')
         .eq('restaurant_id', restaurantId)
         .gte('date', startDate)
         .lte('date', endDate)

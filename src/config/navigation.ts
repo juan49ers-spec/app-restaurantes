@@ -28,7 +28,7 @@ export const navigationConfig: MenuGroup[] = [
     {
         title: "CORE",
         items: [
-            { title: "Control Financiero", href: "/financial-control", icon: Wallet, description: "Gestión y KPIs" },
+            { title: "Control Financiero", href: "/finance", icon: Wallet, description: "Gestión y KPIs" },
             { title: "Facturas", href: "/invoices", icon: FileText, description: "Input de Datos" }
         ]
     },

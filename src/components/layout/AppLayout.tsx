@@ -16,14 +16,15 @@ interface AppLayoutProps {
     activeAddons?: string[]
     restaurantId?: string
     restaurantName?: string
+    isImpersonating?: boolean
 }
 
-export function AppLayout({ children, user, activeAddons = [], restaurantId, restaurantName }: AppLayoutProps) {
+export function AppLayout({ children, user, activeAddons = [], restaurantId, restaurantName, isImpersonating = false }: AppLayoutProps) {
     const [collapsed, setCollapsed] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [scenarioId, setScenarioId] = useState<string | null>(null)
     const [isGuideOpen, setIsGuideOpen] = useState(false)
-    const [isPending, startTransition] = useTransition()
+    const [, startTransition] = useTransition()
 
     useEffect(() => {
         startTransition(() => {
@@ -71,7 +72,16 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
 
     return (
         <div className="flex min-h-screen bg-gastronomic-gradient">
-            <Sidebar />
+            <Sidebar
+                user={user}
+                collapsed={collapsed}
+                setCollapsed={toggleCollapse}
+                isMobile={isMobile}
+                activeAddons={activeAddons}
+                restaurantId={restaurantId}
+                restaurantName={restaurantName}
+                isImpersonating={isImpersonating}
+            />
             <main
                 className={cn(
                     "flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:pl-8 lg:pl-10 transition-[margin] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",

@@ -14,7 +14,7 @@ export async function getBillingModulesConfig(): Promise<BillingModule[]> {
 
     const { data, error } = await supabase
         .from('billing_modules')
-        .select('*')
+        .select('id, name, description, price_monthly, price_yearly, is_base, features, is_active, created_at, updated_at')
         .order('is_base', { ascending: false })
         .order('price_monthly', { ascending: true });
 

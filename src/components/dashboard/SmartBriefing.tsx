@@ -36,7 +36,7 @@ export function SmartBriefing({ metrics, userName = "Chef" }: SmartBriefingProps
         status = "good"
         Icon = TrendingUp
         actionLabel = "Ver Proyecciones"
-        actionRoute = "/financial-control" // Could go to specific projection view if it existed
+        actionRoute = "/finance" // Could go to specific projection view if it existed
     } else if (netProfitPct > 10) {
         if (laborCostPct > 35) {
             message = "Buen beneficio, pero vigila el personal."
@@ -51,7 +51,7 @@ export function SmartBriefing({ metrics, userName = "Chef" }: SmartBriefingProps
             status = "good"
             Icon = CheckCircle2
             actionLabel = "Ver Informe Completo"
-            actionRoute = "/financial-control"
+            actionRoute = "/finance"
         }
     } else if (netProfitPct > 0) {
         message = "Margen positivo, pero ajustado."
@@ -59,14 +59,14 @@ export function SmartBriefing({ metrics, userName = "Chef" }: SmartBriefingProps
         status = "neutral"
         Icon = AlertTriangle
         actionLabel = "Revisar Gastos"
-        actionRoute = "/financial-control?view=cfo"
+        actionRoute = "/finance?view=cfo"
     } else {
         message = "Acción Requerida: Negocio en Pérdidas."
         subMessage = "Es urgente revisar la ingeniería de menú y costes fijos para recuperar la rentabilidad."
         status = "bad"
         Icon = AlertTriangle
         actionLabel = "Auditoría de Costes"
-        actionRoute = "/financial-control?view=cfo"
+        actionRoute = "/finance?view=cfo"
     }
 
     const colors = {

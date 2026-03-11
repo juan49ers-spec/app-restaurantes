@@ -477,7 +477,7 @@ describe('Financial Control Actions', () => {
 
       mockSupabase.lte.mockResolvedValueOnce({
         data: [
-          { base_10: -100, base_21: -200, iva_collected: -30, tax_10: -10, tax_21: -42 }
+          { base_10: -100, base_21: -200, iva_collected: -30, tax_10: -10, tax_21: -42, revenue_total: -330 }
         ],
         error: null
       })

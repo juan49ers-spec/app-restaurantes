@@ -1,8 +1,33 @@
-export default function OperationsDashboard() {
+import { requireRestaurant } from "@/lib/auth-helpers"
+import { OperationalDashboardClient } from "@/components/operational/OperationalDashboardClient"
+import { getOperationalAlerts, getOperationalKPIs, getPendingTasks } from "@/app/actions/operational"
+
+export const dynamic = 'force-dynamic'
+
+export default async function OperationalDashboardPage() {
+    await requireRestaurant()
+
+    // Fetch all operational data
+    const [alerts, kpis, tasks] = await Promise.all([
+        getOperationalAlerts(),
+        getOperationalKPIs(),
+        getPendingTasks()
+    ])
+
     return (
-        <div className="flex flex-col gap-y-4">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Operativa</h1>
-            <p className="text-gray-500">Control de sala, cocina, turnos y tiempos de servicio.</p>
+        <div className="container mx-auto py-8 space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Dashboard Operativo</h1>
+                <p className="text-muted-foreground mt-1">
+                    Control y gestión de operaciones del restaurante
+                </p>
+            </div>
+
+            <OperationalDashboardClient
+                alerts={alerts}
+                kpis={kpis}
+                tasks={tasks}
+            />
         </div>
     )
 }

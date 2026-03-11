@@ -57,7 +57,7 @@ export async function getActiveBroadcasts() {
 
     const { data, error } = await supabase
         .from('global_broadcasts')
-        .select('*')
+        .select('id, title, content, severity, target_type, target_restaurant_ids, expires_at, created_at, created_by, is_active')
         .eq('is_active', true)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })

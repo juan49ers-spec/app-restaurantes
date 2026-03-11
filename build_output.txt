@@ -2,37 +2,69 @@
 > temp_app@0.1.0 build
 > next build
 
-   Ôû▓ Next.js 15.1.6
-   - Environments: .env.local
+ÔÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Usuario\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\package-lock.json
 
-   Creating an optimized production build ...
- ÔÜá Compiled with warnings
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.production.local, .env.local
+- Experiments (use with caution):
+  ┬À optimizePackageImports
 
-./src/components/financial-control/ImpuestosDashboard.tsx
-Attempted import error: 'IRPTable' is not exported from './IRPTable' (imported as 'IRPTable').
+ÔÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 20.1s
+  Running TypeScript ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/16) ...
+  Generating static pages using 11 workers (4/16) 
+  Generating static pages using 11 workers (8/16) 
+  Generating static pages using 11 workers (12/16) 
+Ô£ô Generating static pages using 11 workers (16/16) in 344.1ms
+  Finalizing page optimization ...
 
-Import trace for requested module:
-./src/components/financial-control/ImpuestosDashboard.tsx
-./src/app/financial-control/client.tsx
+Route (app)
+Ôöî ãÆ /
+Ôö£ ãÆ /_not-found
+Ôö£ ãÆ /admin
+Ôö£ ãÆ /admin/audit
+Ôö£ ãÆ /admin/billing
+Ôö£ ãÆ /admin/invoice-validation
+Ôö£ ãÆ /admin/restaurants
+Ôö£ ãÆ /admin/users
+Ôö£ ãÆ /api/debug/ping
+Ôö£ ãÆ /api/debug/seed-invoice
+Ôö£ ãÆ /api/debug/test-ingestion
+Ôö£ ãÆ /api/invoices/process
+Ôö£ ãÆ /api/seed-ops
+Ôö£ ãÆ /desperdicios
+Ôö£ ãÆ /escandallos
+Ôö£ ãÆ /finance
+Ôö£ ãÆ /hr/employees
+Ôö£ ãÆ /hr/policies
+Ôö£ ãÆ /hr/schedule
+Ôö£ ãÆ /ingredients
+Ôö£ ãÆ /invoices
+Ôö£ ãÆ /invoices/[id]/review
+Ôö£ ãÆ /login
+Ôö£ ãÆ /menu-engineering
+Ôö£ ãÆ /menu-engineering/[id]
+Ôö£ ãÆ /menu-engineering/new
+Ôö£ ãÆ /notifications
+Ôö£ ãÆ /onboarding
+Ôö£ ãÆ /operations
+Ôö£ ãÆ /purchasing/analytics
+Ôö£ ãÆ /recipes
+Ôö£ ãÆ /recipes/[id]/edit
+Ôö£ ãÆ /stock
+Ôö£ ãÆ /suppliers
+Ôöö ãÆ /suppliers/[id]
 
- ÔÜá Compiled with warnings
 
-./src/components/financial-control/ImpuestosDashboard.tsx
-Attempted import error: 'IRPTable' is not exported from './IRPTable' (imported as 'IRPTable').
+ãÆ Proxy (Middleware)
 
-Import trace for requested module:
-./src/components/financial-control/ImpuestosDashboard.tsx
-./src/app/financial-control/client.tsx
+ãÆ  (Dynamic)  server-rendered on demand
 
- Ô£ô Compiled successfully
-   Linting and checking validity of types ...
-
-Failed to compile.
-
-./src/components/purchasing/SupplierItemMapper.tsx
-39:52  Error: '_ingredientId' is defined but never used.  @typescript-eslint/no-unused-vars
-
-./src/lib/scripts/maintenance.ts
-279:14  Error: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
-
-info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

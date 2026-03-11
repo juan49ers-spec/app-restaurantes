@@ -99,7 +99,7 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
             source: 'manual_entry',
             updated_at: new Date().toISOString()
         }, { onConflict: 'restaurant_id, date' })
-        .select()
+        .select('id')
         .single()
 
     if (error) {
@@ -107,7 +107,7 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     revalidatePath('/') // Refresh Executive Dashboard
     revalidatePath('/dashboard') // Refresh if accessed via /dashboard alias
     return { success: true, data }
@@ -162,7 +162,7 @@ export async function upsertOperatingExpense(formData: z.infer<typeof OperatingE
             withholding_amount: validData.withholding_amount,
             is_professional_invoice: validData.is_professional_invoice
         })
-        .select()
+        .select('id')
         .single()
 
     if (error) {
@@ -170,7 +170,7 @@ export async function upsertOperatingExpense(formData: z.infer<typeof OperatingE
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     return { success: true, data }
 }
 
@@ -186,7 +186,7 @@ export async function deleteOperatingExpense(id: string) {
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     revalidatePath('/')
     revalidatePath('/dashboard')
     return { success: true }
@@ -199,14 +199,14 @@ export async function updateOperatingExpense(id: string, updates: Partial<Operat
         .from('operating_expenses')
         .update(updates)
         .eq('id', id)
-        .select()
+        .select('id')
         .single()
 
     if (error) {
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     revalidatePath('/')
     revalidatePath('/dashboard')
     return { success: true, data }
@@ -226,17 +226,18 @@ export async function getBillingDashboardData(restaurantId: string, date: string
 
     // Fetch both months in parallel
     const [currentMonth, prevMonth] = await Promise.all([
-        supabase.from('daily_sales').select('*').eq('restaurant_id', restaurantId).gte('date', currentStart).lte('date', currentEnd).order('date', { ascending: true }),
-        supabase.from('daily_sales').select('*').eq('restaurant_id', restaurantId).gte('date', prevStart).lte('date', prevEnd)
+        supabase.from('daily_sales').select('date, revenue_total, iva_collected, day_status').eq('restaurant_id', restaurantId).gte('date', currentStart).lte('date', currentEnd).order('date', { ascending: true }),
+        supabase.from('daily_sales').select('date, revenue_total, iva_collected, day_status').eq('restaurant_id', restaurantId).gte('date', prevStart).lte('date', prevEnd)
     ])
 
     if (currentMonth.error || prevMonth.error) throw new Error("Error fetching billing data")
-
-    const sales = currentMonth.data || []
-    const prevSales = prevMonth.data || []
+    
+    // Use Pick to enforce strict type safety on the restricted payload
+    const sales = (currentMonth.data || []) as Pick<DailySales, 'date' | 'revenue_total' | 'iva_collected' | 'day_status'>[]
+    const prevSales = (prevMonth.data || []) as Pick<DailySales, 'date' | 'revenue_total' | 'iva_collected' | 'day_status'>[]
 
     // Helper: Calculate Net Revenue (Base Imponible)
-    const getNet = (s: DailySales) => (s?.revenue_total || 0) - (s?.iva_collected || 0)
+    const getNet = (s: Pick<DailySales, 'revenue_total' | 'iva_collected'>) => (s?.revenue_total || 0) - (s?.iva_collected || 0)
 
     // KPI 1: Total Net Monthly
     const totalNetCurrent = sales.reduce((acc, s) => acc + getNet(s), 0)
@@ -286,7 +287,7 @@ export async function getFinancialHubData(restaurantId: string, startDate: strin
     // 1. Fetch Daily Sales
     const { data: sales, error: salesError } = await supabase
         .from('daily_sales')
-        .select('*')
+        .select('date, revenue_total, cost_of_goods, labor_hours')
         .eq('restaurant_id', restaurantId)
         .gte('date', startDate)
         .lte('date', endDate)
@@ -297,7 +298,7 @@ export async function getFinancialHubData(restaurantId: string, startDate: strin
     // 2. Fetch Expenses
     const { data: expenses, error: expensesError } = await supabase
         .from('operating_expenses')
-        .select('*')
+        .select('id, amount, expense_date, category')
         .eq('restaurant_id', restaurantId)
         .gte('expense_date', startDate)
         .lte('expense_date', endDate)
@@ -319,8 +320,8 @@ export async function getFinancialHubData(restaurantId: string, startDate: strin
     const primeCost = costOfGoods + laborCost
 
     return {
-        sales: sales || [],
-        expenses: expenses || [],
+        sales: (sales || []) as Pick<DailySales, 'date' | 'revenue_total' | 'cost_of_goods' | 'labor_hours'>[],
+        expenses: (expenses || []) as Pick<OperatingExpense, 'id' | 'amount' | 'expense_date' | 'category'>[],
         kpis: {
             totalRevenue,
             totalExpenses,
@@ -339,7 +340,7 @@ export async function getMonthlyTarget(restaurantId: string, monthYear: string) 
 
     const { data, error } = await supabase
         .from('monthly_targets')
-        .select('*')
+        .select('id, month_year, revenue_target, cogs_target_pct, labor_target_pct')
         .eq('restaurant_id', restaurantId)
         .eq('month_year', monthYear)
         .single()
@@ -372,7 +373,7 @@ export async function upsertMonthlyTarget(formData: z.infer<typeof MonthlyTarget
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     return { success: true, data }
 }
 
@@ -397,7 +398,7 @@ export interface ExpenseDashboardData {
         ratioToSales: number
         ratioToTarget: number
         theoreticalTarget: number
-        expenses: OperatingExpense[]
+        expenses: Pick<OperatingExpense, 'id' | 'amount' | 'expense_date' | 'category' | 'description' | 'provider_detail' | 'tag'>[]
         tags: Record<string, number>
     }[]
     insight: {
@@ -415,8 +416,8 @@ export interface ExpenseDashboardData {
 }
 
 // Helper functions for expense calculations
-function groupExpensesByCategory(expenses: OperatingExpense[]) {
-    const groups: Record<string, OperatingExpense[]> = {}
+function groupExpensesByCategory<T extends Pick<OperatingExpense, 'category'>>(expenses: T[]) {
+    const groups: Record<string, T[]> = {}
     expenses.forEach(exp => {
         if (!groups[exp.category]) {
             groups[exp.category] = []
@@ -474,14 +475,14 @@ export async function getExpenseDashboardData(
     const [currentMonthExpenses, prevMonthExpenses, salesData] = await Promise.all([
         supabase
             .from('operating_expenses')
-            .select('*')
+            .select('id, amount, expense_date, category, description, provider_detail, tag')
             .eq('restaurant_id', restaurantId)
             .gte('expense_date', currentStart)
             .lte('expense_date', currentEnd)
             .order('expense_date', { ascending: true }),
         supabase
             .from('operating_expenses')
-            .select('*')
+            .select('id, amount, expense_date, category')
             .eq('restaurant_id', restaurantId)
             .gte('expense_date', prevStart)
             .lte('expense_date', prevEnd),
@@ -497,9 +498,9 @@ export async function getExpenseDashboardData(
     if (prevMonthExpenses.error) throw new Error('Failed to fetch previous expenses')
     if (salesData.error) throw new Error('Failed to fetch sales data')
 
-    const currentExpenses = currentMonthExpenses.data || []
-    const prevExpenses = prevMonthExpenses.data || []
-    const sales = salesData.data || []
+    const currentExpenses = (currentMonthExpenses.data || []) as Pick<OperatingExpense, 'id' | 'amount' | 'expense_date' | 'category' | 'description' | 'provider_detail' | 'tag'>[]
+    const prevExpenses = (prevMonthExpenses.data || []) as Pick<OperatingExpense, 'id' | 'amount' | 'expense_date' | 'category'>[]
+    const sales = (salesData.data || []) as Pick<DailySales, 'revenue_total' | 'iva_collected'>[]
 
     // Calculate total net sales (Base Imponible)
     const totalNetSales = sales.reduce((sum, s) => {
@@ -597,7 +598,7 @@ export async function getExpenseDashboardData(
 
     const history: ExpenseDashboardData['history'] = historyMonths.map(({ month }) => {
         const monthExpenses = (allHistExpenses || []).filter(e =>
-            e.expense_date.startsWith(month)
+            e.expense_date?.startsWith(month)
         )
         return calculateHistoryEntry(month, monthExpenses)
     })
@@ -775,7 +776,7 @@ export async function getQuarterlyFiscalData(restaurantId: string, year: number,
     }
 
     // IRPF Concept grouping
-    const irpfConceptsMap: Record<string, any> = {
+    const irpfConceptsMap: Record<string, { categoria: string; modelo: string; baseSujeta: number; porcentajeRetencion: number; cuotaIngresar: number; count: number }> = {
         "Nóminas": { categoria: "Nóminas", modelo: "Mod. 111", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 },
         "Alquiler": { categoria: "Alquiler", modelo: "Mod. 115", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 },
         "Profesionales": { categoria: "Profesionales", modelo: "Mod. 111", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 }

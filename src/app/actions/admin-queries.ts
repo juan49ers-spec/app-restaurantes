@@ -21,6 +21,15 @@ export async function requireAdmin() {
 // TYPES
 // ==========================================
 
+export interface Broadcast {
+    id: string
+    title: string
+    content: string
+    severity: 'INFO' | 'WARNING' | 'CRITICAL' | 'SUCCESS'
+    expires_at: string
+    created_at: string
+}
+
 export interface AdminDashboardData {
     totalRestaurants: number
     totalSalesThisMonth: number
@@ -29,7 +38,7 @@ export interface AdminDashboardData {
     recentAuditLogs: AuditLogEntry[]
     restaurants: AdminRestaurantRow[]
     systemHealth: SystemHealthData | null
-    broadcasts: any[]
+    broadcasts: Broadcast[]
 }
 
 export interface SystemHealthData {
@@ -78,7 +87,7 @@ export async function getAllRestaurants() {
 
     const { data, error } = await supabase
         .from('restaurants')
-        .select('*')
+        .select('id, name, created_at, modules, owner_id')
         .order('created_at', { ascending: false })
 
     if (error) {
@@ -100,10 +109,14 @@ export async function getAllRestaurants() {
             }
 
             result.push({
-                ...r,
+                id: r.id,
+                name: r.name,
                 modules: r.modules || { financial_control: 'basic', operativa: 'none', proveedores: 'none', personal: 'none' },
-                created_at: safeDate
-            } as AdminRestaurantRow)
+                created_at: safeDate,
+                salesThisMonth: 0,
+                expensesThisMonth: 0,
+                employeeCount: 0
+            })
         } catch (e) {
             console.error(`[Admin - Restaurants] Fallo al parsear restaurante ID: ${r.id}`, e)
             // Se omite el restaurante corrupto en vez de tirar toda la página con un 500
@@ -135,7 +148,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         supabase.from('daily_sales').select('restaurant_id, revenue_total').gte('date', monthStart).lt('date', monthEnd),
         supabase.from('operating_expenses').select('restaurant_id, amount').gte('expense_date', monthStart).lt('expense_date', monthEnd),
         supabase.from('employees').select('restaurant_id, id'),
-        supabase.from('audit_logs').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(50),
+        supabase.from('audit_logs').select('id, table_name, record_id, action, old_data, new_data, changed_by, created_at, restaurant_id', { count: 'exact' }).order('created_at', { ascending: false }).limit(50),
         supabase.rpc('admin_get_system_health'),
         supabase.from('global_broadcasts').select('*').eq('is_active', true).order('created_at', { ascending: false })
     ])
@@ -180,7 +193,9 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
         const rMap = new Map<string, string>(restaurants.map(r => [r.id, r.name]))
         const userRestaurantMap = new Map<string, string>(
-            allUsers.filter((u: any) => u.restaurant_id).map((u: any) => [u.id, rMap.get(u.restaurant_id) || ''])
+            allUsers
+                .filter((u: { id: string; restaurant_id: string | null }) => u.restaurant_id)
+                .map((u: { id: string; restaurant_id: string | null }) => [u.id, u.restaurant_id ? (rMap.get(u.restaurant_id) || '') : ''])
         )
 
         systemHealth.users_data = systemHealth.users_data.map(u => ({
@@ -211,12 +226,12 @@ export async function getAuditLogs(page = 1, pageSize = 50): Promise<{ logs: Aud
     const [dataRes, countRes] = await Promise.all([
         supabase
             .from('audit_logs')
-            .select('*')
+            .select('id, table_name, record_id, action, old_data, new_data, changed_by, created_at, restaurant_id')
             .order('created_at', { ascending: false })
             .range(from, to),
         supabase
             .from('audit_logs')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
     ])
 
     if (dataRes.error || countRes.error) {

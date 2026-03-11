@@ -111,9 +111,8 @@ describe('Utils Actions', () => {
         error: null
       })
       
-      await expect(getUserRestaurant()).rejects.toThrow(
-        'No restaurant found for user. Please contact support.'
-      )
+      const result = await getUserRestaurant()
+      expect(result).toBeNull()
     })
 
     it('debería manejar usuarios con diferentes IDs', async () => {

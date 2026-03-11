@@ -217,7 +217,7 @@ export async function getMenuReports() {
 
     const { data } = await supabase
         .from('menu_reports')
-        .select('*')
+        .select('*, items:menu_report_items(*)')
         .eq('restaurant_id', restaurant.id)
         .order('created_at', { ascending: false })
 

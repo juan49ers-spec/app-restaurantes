@@ -41,7 +41,7 @@ export async function getFinancialDiagnosis(
     // 1. Fetch Daily Sales for current period
     const { data: salesData, error } = await supabase
         .from('daily_sales')
-        .select('*')
+        .select('id, restaurant_id, date, revenue_total, base_10, tax_10, base_21, tax_21, revenue_dine_in, revenue_takeout, revenue_delivery, iva_collected, total_covers, labor_hours, day_status, cost_of_goods, labor_cost, source, created_at')
         .eq('restaurant_id', restaurantId)
         .gte('date', start.toISOString().split('T')[0])
         .lte('date', end.toISOString().split('T')[0])

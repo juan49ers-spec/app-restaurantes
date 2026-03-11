@@ -1,13 +1,58 @@
-export default function FinanceDashboard() {
+
+import { Suspense } from "react"
+import { FinancialControlClient } from "./client"
+import { getDailySales, getOperatingExpenses, getBillingDashboardData, getExpenseDashboardData } from "@/app/actions/financial-control"
+import { getResultsDashboardData } from "@/app/actions/resultados"
+import { getCurrentRestaurant } from "@/app/actions/user"
+import { format, startOfMonth, endOfMonth } from "date-fns"
+import { redirect } from "next/navigation"
+import { FinancialHubLayout } from "@/components/financial-control/FinancialHubLayout"
+
+interface PageProps {
+    searchParams: Promise<{
+        date?: string
+        view?: string
+    }>
+}
+
+export default async function FinancialControlPage({ searchParams }: PageProps) {
+    const restaurant = await getCurrentRestaurant()
+
+    if (!restaurant) {
+        redirect("/")
+    }
+
+    const resolvedParams = await searchParams
+    const dateStr = resolvedParams.date || format(new Date(), 'yyyy-MM-dd')
+    const monthStr = format(new Date(dateStr), 'yyyy-MM')
+
+    // Calculate month range for expenses context
+    const dateObj = new Date(dateStr)
+    const monthStart = format(startOfMonth(dateObj), 'yyyy-MM-dd')
+    const monthEnd = format(endOfMonth(dateObj), 'yyyy-MM-dd')
+
+    // Fetch data in parallel
+    const [dailySales, expenses, billingData, expenseDashboardData, resultsData] = await Promise.all([
+        getDailySales(restaurant.id, dateStr),
+        getOperatingExpenses(restaurant.id, monthStart, monthEnd),
+        getBillingDashboardData(restaurant.id, dateStr),
+        getExpenseDashboardData(restaurant.id, monthStr),
+        getResultsDashboardData(restaurant.id, dateObj.getFullYear(), dateObj.getMonth() + 1)
+    ])
+
     return (
-        <div className="flex flex-col gap-y-4">
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Finanzas</h1>
-            <p className="text-gray-500">Módulo de ventas, facturación y márgenes operativos.</p>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-4">
-                {/* Placeholder cards */}
-                <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 h-32 flex items-center justify-center text-gray-400">Card 1</div>
-                <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 h-32 flex items-center justify-center text-gray-400">Card 2</div>
-            </div>
-        </div>
+        <FinancialHubLayout>
+            <Suspense fallback={<div className="p-8 text-center text-neutral-500">Cargando datos financieros del mes...</div>}>
+                <FinancialControlClient
+                    restaurantId={restaurant.id}
+                    initialDate={dateStr}
+                    initialDailySales={dailySales}
+                    initialExpenses={expenses}
+                    billingData={billingData}
+                    expenseDashboardData={expenseDashboardData}
+                    resultsData={resultsData}
+                />
+            </Suspense>
+        </FinancialHubLayout>
     )
 }

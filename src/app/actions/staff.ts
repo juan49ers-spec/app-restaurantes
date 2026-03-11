@@ -20,7 +20,7 @@ export async function getEmployees(restaurantId: string): Promise<{ data: Employ
 
         const { data, error } = await supabase
             .from("employees")
-            .select("*")
+            .select("id, first_name, last_name, role, status, color_code, hourly_rate")
             .eq("restaurant_id", restaurantId)
             .order("first_name", { ascending: true })
 
@@ -29,7 +29,7 @@ export async function getEmployees(restaurantId: string): Promise<{ data: Employ
             return { data: null, error: "No se pudieron cargar los empleados." }
         }
 
-        return { data: data as Employee[], error: null }
+        return { data: (data || []) as unknown as Employee[], error: null }
     } catch (err) {
         console.error("Unexpected error in getEmployees:", err)
         return { data: null, error: "Error inesperado al cargar empleados." }
@@ -158,7 +158,7 @@ export async function getStaffingForecast(restaurantId: string, startDate: strin
         // 1. Fetch Scheduled Shifts for the period
         const { data: shifts } = await supabase
             .from('shifts')
-            .select('*')
+            .select('id, date, start_time, end_time, estimated_cost, employee_id')
             .eq('restaurant_id', restaurantId)
             .gte('date', startDate)
             .lte('date', endDate)
@@ -243,7 +243,7 @@ export async function getStaffingForecast(restaurantId: string, startDate: strin
             })
         }
 
-        return days
+        return (days || []) as unknown as DailyForecast[]
     } catch (err) {
         console.error("Error in getStaffingForecast:", err)
         return []
@@ -259,7 +259,7 @@ export async function getShifts(restaurantId: string, startDate: string, endDate
 
         const { data, error } = await supabase
             .from("shifts")
-            .select("*, employees!inner(first_name, last_name, color_code, role)")
+            .select("id, date, start_time, end_time, estimated_cost, employee_id, employees!inner(first_name, last_name, color_code, role)")
             .eq("restaurant_id", restaurantId)
             .gte("date", startDate)
             .lte("date", endDate)
@@ -271,7 +271,7 @@ export async function getShifts(restaurantId: string, startDate: string, endDate
             return { data: null, error: "No se pudieron cargar los turnos." }
         }
 
-        return { data: data as any[], error: null }
+        return { data: (data || []) as unknown as Shift[], error: null }
     } catch (err) {
         console.error("Unexpected error in getShifts:", err)
         return { data: null, error: "Error inesperado." }
