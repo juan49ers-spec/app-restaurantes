@@ -1,4 +1,0 @@
-shortest.config.ts(1,10): error TS2305: Module '"@antiwork/shortest"' has no exported member 'defineConfig'.
-tests/e2e/smoke.test.ts(4,18): error TS2339: Property 'visit' does not exist on type 'TestAPI'.
-tests/e2e/smoke.test.ts(5,18): error TS2339: Property 'expect' does not exist on type 'TestAPI'.
-tests/e2e/smoke.test.ts(6,18): error TS2339: Property 'expect' does not exist on type 'TestAPI'.
