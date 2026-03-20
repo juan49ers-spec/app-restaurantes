@@ -1,26 +1,64 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { IVATable } from "./IVATable"
 import { IRPTable } from "./IRPTable"
-import { Download, ChevronLeft, ChevronRight, FileText, Loader2, Calendar, AlertCircle, CheckCircle2, Clock } from "lucide-react"
+import { Download, ChevronLeft, ChevronRight, FileText, Loader2, Calendar, AlertCircle, CheckCircle2, Clock, TrendingUp } from "lucide-react"
 import { getQuarterlyFiscalData, getMonthlyFiscalData, QuarterlyFiscalData, getAnnualISData, AnnualISData } from "@/app/actions/financial-control"
 import { m } from "framer-motion"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
 import { cn } from "@/lib/utils"
+import { format, parseISO, isValid } from "date-fns"
 
 interface ImpuestosDashboardProps {
     restaurantId: string;
 }
 
 export function ImpuestosDashboard({ restaurantId }: ImpuestosDashboardProps) {
-    const [date, setDate] = useState(() => new Date())
-    const [viewMode, setViewMode] = useState<'mes' | 'trimestre'>('trimestre')
+    const router = useRouter()
+    const searchParams = useSearchParams()
+
+    // Retrieve global params
+    const dateParam = searchParams.get('date')
+    const viewParam = searchParams.get('view') as 'mes' | 'trimestre' | null
+
+    const initialDate = dateParam && isValid(parseISO(dateParam)) ? parseISO(dateParam) : new Date()
+    const initialView = viewParam === 'mes' || viewParam === 'trimestre' ? viewParam : 'trimestre'
+
+    // Local state synced with URL
+    const [date, setDate] = useState<Date>(initialDate)
+    const [viewMode, setViewMode] = useState<'mes' | 'trimestre'>(initialView)
+    
     const [data, setData] = useState<QuarterlyFiscalData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [annualISData, setAnnualISData] = useState<AnnualISData | null>(null)
     const [isRate, setIsRate] = useState<0.25 | 0.15>(0.25)
+
+    // Sync state to URL if changed internally
+    useEffect(() => {
+        const currentUrlDate = searchParams.get('date')
+        const currentUrlView = searchParams.get('view')
+        const newUrlDate = format(date, 'yyyy-MM-dd')
+        
+        if (currentUrlDate !== newUrlDate || currentUrlView !== viewMode) {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set('date', newUrlDate)
+            params.set('view', viewMode)
+            router.push(`?${params.toString()}`, { scroll: false })
+        }
+    }, [date, viewMode, router, searchParams])
+
+    // Update local state if URL changes externally (e.g. going back/forward)
+    useEffect(() => {
+        if (dateParam && isValid(parseISO(dateParam))) {
+            setDate(parseISO(dateParam))
+        }
+        if (viewParam === 'mes' || viewParam === 'trimestre') {
+            setViewMode(viewParam)
+        }
+    }, [dateParam, viewParam])
 
     const year = date.getFullYear()
     const currentMonth = date.getMonth()  // 0-indexed
@@ -54,7 +92,6 @@ export function ImpuestosDashboard({ restaurantId }: ImpuestosDashboardProps) {
             })
 
         return () => { isMounted = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [restaurantId, year, monthNum, quarterNum, viewMode])
 
     const handlePeriodChange = (direction: 'prev' | 'next') => {
@@ -180,9 +217,11 @@ export function ImpuestosDashboard({ restaurantId }: ImpuestosDashboardProps) {
                         <div>
                             <h3 className="text-base font-bold text-neutral-900">Impuesto de Sociedades {annualISData.year}</h3>
                             <p className="text-xs text-neutral-500 mt-0.5">
-                                {annualISData.isYTD
-                                    ? `Proyección acumulada · ${annualISData.monthsClosed} de 12 meses cerrados`
-                                    : `Ejercicio completo · ${annualISData.monthsClosed} meses`}
+                                {annualISData.isLiveData 
+                                    ? `Datos provisionales en tiempo real · ${annualISData.monthsClosed} meses con operaciones`
+                                    : (annualISData.isYTD
+                                        ? `Proyección acumulada · ${annualISData.monthsClosed} de 12 meses cerrados`
+                                        : `Ejercicio completo · ${annualISData.monthsClosed} meses cerrados`)}
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -245,6 +284,41 @@ export function ImpuestosDashboard({ restaurantId }: ImpuestosDashboardProps) {
                                         <span className="text-[10px] text-neutral-400">{p.pct} cuota</span>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Proyección Anualizada */}
+                    {(annualISData.isYTD || annualISData.isLiveData) && annualISData.monthsClosed > 0 && annualISData.monthsClosed < 12 && (
+                        <div className="bg-neutral-900 text-white rounded-lg p-4 mt-2 shadow-sm relative overflow-hidden">
+                            {/* Decorative background element */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                            
+                            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <h4 className="text-sm font-bold flex items-center gap-1.5 mb-1">
+                                        <TrendingUp className="w-4 h-4 text-emerald-400" />
+                                        Proyección Fin de Año
+                                    </h4>
+                                    <p className="text-xs text-neutral-400">
+                                        Estimación a 12 meses manteniendo el ritmo de los {annualISData.monthsClosed} meses actuales
+                                    </p>
+                                </div>
+                                
+                                <div className="flex items-end gap-6 sm:text-right">
+                                    <div>
+                                        <p className="text-[10px] text-neutral-400 uppercase tracking-wider mb-0.5">BAI Anual Proyectado</p>
+                                        <p className="text-sm font-bold text-neutral-200">
+                                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(annualISData.projectedAnnualBAI)}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-neutral-400 uppercase tracking-wider mb-0.5">Cuota IS Proyectada ({(isRate * 100).toFixed(0)}%)</p>
+                                        <p className="text-lg font-black text-amber-400">
+                                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Math.max(0, annualISData.projectedAnnualBAI * isRate))}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

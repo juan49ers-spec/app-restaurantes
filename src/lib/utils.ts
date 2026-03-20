@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('es-ES', {
+  return new Intl.NumberFormat('de-DE', {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,
@@ -15,7 +15,7 @@ export const formatCurrency = (value: number) => {
 }
 
 export const formatPct = (value: number) => {
-  return new Intl.NumberFormat('es-ES', {
+  return new Intl.NumberFormat('de-DE', {
     style: 'percent',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

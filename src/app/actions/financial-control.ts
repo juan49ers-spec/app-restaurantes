@@ -993,15 +993,14 @@ async function fetchFiscalPeriodData(
             cuotaIngresar: c.cuotaIngresar
         }))
 
-    // Quarterly deadline: 20th of the month after the last month in the period
+    // Deadline: siempre calcular respecto al trimestre padre del periodo
+    // Esto asegura que daysRemaining funcione tanto en vista mes como trimestre
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    let daysRemaining = 0
-    if (numMonths === 3) {
-        const deadlineDate = new Date(year, endMonth, 20)
-        deadlineDate.setHours(0, 0, 0, 0)
-        daysRemaining = Math.max(0, Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
-    }
+    const parentQuarterEnd = Math.ceil(endMonth / 3) * 3 // Último mes del trimestre padre
+    const deadlineDate = new Date(year, parentQuarterEnd, 20) // Día 20 del mes siguiente al cierre
+    deadlineDate.setHours(0, 0, 0, 0)
+    const daysRemaining = Math.max(0, Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
 
     return {
         pulseData: {
@@ -1035,11 +1034,16 @@ export interface AnnualISData {
     monthsClosed: number
     monthsTotal: number
     isYTD: boolean
+    projectedAnnualBAI: number  // BAI extrapolado a 12 meses
+    isLiveData: boolean         // true si los datos vienen de daily_sales/expenses en vez de monthly_results
 }
 
 export async function getAnnualISData(restaurantId: string, year: number): Promise<AnnualISData> {
     const supabase = await createClient()
+    const currentYear = new Date().getFullYear()
+    const isYTD = year === currentYear
 
+    // Intento 1: Datos consolidados de monthly_results
     const { data: months, error } = await supabase
         .from('monthly_results')
         .select('month, total_ingresos, ingresos_netos, resultado_neto, materia_prima_total, personal_total, suministros, mantenimiento, marketing, gastos_extra, financiaciones, inversiones, is_closed')
@@ -1050,30 +1054,77 @@ export async function getAnnualISData(restaurantId: string, year: number): Promi
     if (error) throw new Error("Error fetching annual IS data")
 
     const closedMonths = (months || []).filter(m => m.is_closed)
-    const currentYear = new Date().getFullYear()
-    const isYTD = year === currentYear
 
-    let totalIngresos = 0
-    let totalGastos = 0
+    // Si hay meses cerrados, usar datos consolidados
+    if (closedMonths.length > 0) {
+        let totalIngresos = 0
+        let totalGastos = 0
 
-    for (const m of closedMonths) {
-        totalIngresos += m.ingresos_netos || 0
-        const gastos = (m.materia_prima_total || 0) + (m.personal_total || 0) +
-            (m.suministros || 0) + (m.mantenimiento || 0) +
-            (m.marketing || 0) + (m.gastos_extra || 0) +
-            (m.financiaciones || 0) + (m.inversiones || 0)
-        totalGastos += gastos
+        for (const m of closedMonths) {
+            totalIngresos += m.ingresos_netos || 0
+            const gastos = (m.materia_prima_total || 0) + (m.personal_total || 0) +
+                (m.suministros || 0) + (m.mantenimiento || 0) +
+                (m.marketing || 0) + (m.gastos_extra || 0) +
+                (m.financiaciones || 0) + (m.inversiones || 0)
+            totalGastos += gastos
+        }
+
+        const bai = totalIngresos - totalGastos
+        const projectedAnnualBAI = closedMonths.length > 0
+            ? (bai / closedMonths.length) * 12
+            : 0
+
+        return {
+            year, totalIngresos, totalGastos, bai,
+            monthsClosed: closedMonths.length,
+            monthsTotal: 12, isYTD,
+            projectedAnnualBAI,
+            isLiveData: false
+        }
     }
 
+    // Fallback: Sin meses cerrados → calcular desde datos vivos (daily_sales + operating_expenses)
+    const startDate = `${year}-01-01`
+    const endDate = `${year}-12-31`
+
+    const [salesResult, expensesResult] = await Promise.all([
+        supabase.from('daily_sales')
+            .select('date, revenue_total, iva_collected')
+            .eq('restaurant_id', restaurantId)
+            .gte('date', startDate)
+            .lte('date', endDate),
+        supabase.from('operating_expenses')
+            .select('expense_date, amount')
+            .eq('restaurant_id', restaurantId)
+            .gte('expense_date', startDate)
+            .lte('expense_date', endDate)
+    ])
+
+    const sales = salesResult.data || []
+    const expenses = expensesResult.data || []
+
+    // Ingresos netos = revenue - IVA
+    const totalIngresos = sales.reduce((sum, s) =>
+        sum + (s.revenue_total || 0) - (s.iva_collected || 0), 0
+    )
+    const totalGastos = expenses.reduce((sum, e) => sum + (e.amount || 0), 0)
     const bai = totalIngresos - totalGastos
 
+    // Contar meses distintos con datos para proyectar
+    const monthsWithData = new Set([
+        ...sales.map(s => s.date.substring(0, 7)),
+        ...expenses.map(e => e.expense_date.substring(0, 7))
+    ]).size
+
+    const projectedAnnualBAI = monthsWithData > 0
+        ? (bai / monthsWithData) * 12
+        : 0
+
     return {
-        year,
-        totalIngresos,
-        totalGastos,
-        bai,
-        monthsClosed: closedMonths.length,
-        monthsTotal: 12,
-        isYTD
+        year, totalIngresos, totalGastos, bai,
+        monthsClosed: monthsWithData,
+        monthsTotal: 12, isYTD,
+        projectedAnnualBAI,
+        isLiveData: true
     }
 }

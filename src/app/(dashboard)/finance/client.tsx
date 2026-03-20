@@ -36,6 +36,10 @@ const ResultadosDashboard = dynamic(() => import("@/components/financial-control
     ssr: false // Results dashboard uses heavy charts
 })
 
+const MonthlyReportUploader = dynamic(() => import("@/components/financial-control/MonthlyReportUploader").then(mod => mod.MonthlyReportUploader), {
+    loading: () => <Skeleton className="w-full h-32 rounded-2xl" />
+})
+
 const BillingDrillDownModal = dynamic(() => import("@/components/financial-control/BillingDrillDownModal").then(mod => mod.BillingDrillDownModal), {
     loading: () => <Skeleton className="w-full h-96 rounded-3xl" />
 })
@@ -172,10 +176,16 @@ export function FinancialControlClient({
                     )}
 
                     {activeTab === 'RESULTADOS' && (
-                        <div className="max-w-5xl mx-auto">
+                        <div className="max-w-5xl mx-auto space-y-8">
                             <ResultadosDashboard
                                 dashboardData={resultsData?.data ?? null}
                             />
+                            <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200/60 dark:border-neutral-800 p-6">
+                                <h3 className="text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-4">
+                                    Importar Informe Mensual (PDF)
+                                </h3>
+                                <MonthlyReportUploader restaurantId={restaurantId} />
+                            </div>
                         </div>
                     )}
                 </m.div>

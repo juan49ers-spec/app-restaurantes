@@ -17,14 +17,14 @@ interface ExpenseDonutChartProps {
 }
 
 const COLORS = [
-    { hex: "#3b82f6", bgClass: "bg-blue-500" },
-    { hex: "#10b981", bgClass: "bg-emerald-500" },
-    { hex: "#f59e0b", bgClass: "bg-amber-500" },
-    { hex: "#ef4444", bgClass: "bg-red-500" },
-    { hex: "#8b5cf6", bgClass: "bg-violet-500" },
-    { hex: "#ec4899", bgClass: "bg-pink-500" },
-    { hex: "#06b6d4", bgClass: "bg-cyan-500" },
-    { hex: "#f97316", bgClass: "bg-orange-500" },
+    { hex: "#171717", bgClass: "bg-neutral-900" }, // neutral-900
+    { hex: "#404040", bgClass: "bg-neutral-700" }, // neutral-700
+    { hex: "#737373", bgClass: "bg-neutral-500" }, // neutral-500
+    { hex: "#a3a3a3", bgClass: "bg-neutral-400" }, // neutral-400
+    { hex: "#d4d4d4", bgClass: "bg-neutral-300" }, // neutral-300
+    { hex: "#e5e5e5", bgClass: "bg-neutral-200" }, // neutral-200
+    { hex: "#0a0a0a", bgClass: "bg-neutral-950" }, // neutral-950
+    { hex: "#262626", bgClass: "bg-neutral-800" }, // neutral-800
 ]
 
 interface CustomTooltipProps {
@@ -179,7 +179,7 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                             }}
                         >
                             <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                                <div className={cn("w-2 h-2 rounded-full flex-shrink-0", item.bgClass)} />
                                 <span className="text-neutral-600 font-medium truncate">{item.name}</span>
                             </div>
                             <div className="flex items-center gap-3 ml-2 flex-shrink-0">

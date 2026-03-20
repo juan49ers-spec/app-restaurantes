@@ -51,7 +51,40 @@ next-env.d.ts
 *.sln
 *.sw?
 
-# Agent/AI
+# Agent/AI/IDE tools
 .gemini/
 .agent/
+.agents/
 brain/
+.augment/
+.claude/
+.codebuddy/
+.commandcode/
+.continue/
+.crush/
+.factory/
+.goose/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.windsurf/
+.zencoder/
+skills/
+skills-lock.json
+
+# Temp/logs
+*.txt
+!README.txt
+*.pdf
+supabase/.temp/

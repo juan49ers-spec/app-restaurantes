@@ -8,7 +8,7 @@ import { ExpenseDonutChart } from "./ExpenseDonutChart"
 import { ExpenseDetailTable, ExpenseItem } from "./ExpenseDetailTable"
 import { ExpensesFormModal } from "./ExpensesFormModal"
 import { ExpenseDashboardData } from "@/app/actions/financial-control"
-import { OperatingExpense, OperatingExpenseCategorySchema } from "@/types/schema"
+import { OperatingExpense } from "@/types/schema"
 import { isCOGSCategory } from "@/lib/financial-constants"
 
 // Expense shape as fetched by the dashboard query (subset of OperatingExpense)
@@ -48,11 +48,11 @@ const fmt = (v: number) =>
     }).format(v)
 
 function Semaforo({ ratio, target }: { ratio: number; target: number }) {
-    if (target === 0) return <span className="text-neutral-400 text-xs">—</span>
+    if (target === 0) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-neutral-100 text-neutral-500 uppercase tracking-widest">Var.</span>
     const diff = ratio - target
-    if (diff <= 0) return <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" title="En objetivo" />
-    if (diff <= 3) return <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400" title="Atención" />
-    return <span className="inline-block w-2.5 h-2.5 rounded-full bg-rose-500" title="Desviado" />
+    if (diff <= 0) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase tracking-widest" title="En objetivo">Bien</span>
+    if (diff <= 3) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-widest" title="Atención">Ojo</span>
+    return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 uppercase tracking-widest" title="Desviado">Mal</span>
 }
 
 const container = {
@@ -171,17 +171,23 @@ export function ExpensesDashboard({ data, restaurantId }: ExpensesDashboardProps
                         </div>
                         <div className="bg-white rounded-xl border border-neutral-200 p-4 shadow-sm">
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 mb-1">Ratio Personal</p>
-                            <p className={cn("text-xl font-bold", kpis.personalRatio > 33 ? "text-rose-600" : "text-emerald-600")}>
-                                {kpis.personalRatio.toFixed(1)}%
-                            </p>
-                            <p className="text-[10px] text-neutral-400 mt-0.5">objetivo ≤ 33%</p>
+                            <div className="flex items-center justify-between mt-1">
+                                <p className="text-xl font-bold text-neutral-900">
+                                    {kpis.personalRatio.toFixed(1)}%
+                                </p>
+                                <Semaforo ratio={kpis.personalRatio} target={33} />
+                            </div>
+                            <p className="text-[10px] text-neutral-400 mt-1">Teórico: ≤ 33%</p>
                         </div>
                         <div className="bg-white rounded-xl border border-neutral-200 p-4 shadow-sm">
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 mb-1">Ratio Mat. Prima</p>
-                            <p className={cn("text-xl font-bold", kpis.cogsRatio > 33 ? "text-rose-600" : "text-emerald-600")}>
-                                {kpis.cogsRatio.toFixed(1)}%
-                            </p>
-                            <p className="text-[10px] text-neutral-400 mt-0.5">objetivo ≤ 33%</p>
+                            <div className="flex items-center justify-between mt-1">
+                                <p className="text-xl font-bold text-neutral-900">
+                                    {kpis.cogsRatio.toFixed(1)}%
+                                </p>
+                                <Semaforo ratio={kpis.cogsRatio} target={33} />
+                            </div>
+                            <p className="text-[10px] text-neutral-400 mt-1">Teórico: ≤ 33%</p>
                         </div>
                     </m.div>
 
@@ -209,17 +215,23 @@ export function ExpensesDashboard({ data, restaurantId }: ExpensesDashboardProps
                                         {data.categories.map((cat) => {
                                             const label = CATEGORY_LABELS[cat.category] ?? cat.category
                                             const varEur = cat.prevAmount != null ? cat.amount - cat.prevAmount : null
+                                            const varPct = cat.prevAmount ? ((cat.amount - cat.prevAmount) / cat.prevAmount) * 100 : null
                                             const isUp = cat.momVariation > 0
                                             return (
                                                 <tr key={cat.category} className="hover:bg-neutral-50/60 transition-colors">
                                                     <td className="px-5 py-3 font-medium text-neutral-800">{label}</td>
                                                     <td className="px-4 py-3 text-right font-semibold text-neutral-900 tabular-nums">{fmt(cat.amount)}</td>
                                                     <td className="px-4 py-3 text-right tabular-nums">
-                                                        {varEur !== null ? (
-                                                            <span className={cn("inline-flex items-center gap-0.5 font-semibold", isUp ? "text-rose-600" : "text-emerald-600")}>
-                                                                {isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                                                                {fmt(Math.abs(varEur))}
-                                                            </span>
+                                                        {varEur !== null && varPct !== null ? (
+                                                            <div className="flex flex-col items-end">
+                                                                <span className={cn("inline-flex items-center gap-0.5 font-semibold", isUp ? "text-rose-600" : "text-emerald-600")}>
+                                                                    {isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                                                                    {fmt(Math.abs(varEur))}
+                                                                </span>
+                                                                <span className="text-[10px] text-neutral-400 font-medium">
+                                                                    {isUp ? '+' : ''}{varPct.toFixed(1)}%
+                                                                </span>
+                                                            </div>
                                                         ) : (
                                                             <span className="text-neutral-300">—</span>
                                                         )}
@@ -254,10 +266,11 @@ export function ExpensesDashboard({ data, restaurantId }: ExpensesDashboardProps
                             </div>
                             {/* Legend */}
                             <div className="px-5 py-3 border-t border-neutral-100 flex items-center gap-4">
-                                <span className="text-[10px] text-neutral-400 font-medium">Estado:</span>
-                                <span className="flex items-center gap-1.5 text-[10px] text-neutral-500"><span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />En objetivo</span>
-                                <span className="flex items-center gap-1.5 text-[10px] text-neutral-500"><span className="inline-block w-2 h-2 rounded-full bg-amber-400" />Atención (&lt;3pp)</span>
-                                <span className="flex items-center gap-1.5 text-[10px] text-neutral-500"><span className="inline-block w-2 h-2 rounded-full bg-rose-500" />Desviado (&gt;3pp)</span>
+                                <span className="text-[10px] text-neutral-400 font-medium">Semáforo de Ratio:</span>
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase tracking-widest">Bien</span>
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase tracking-widest">Ojo</span>
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 uppercase tracking-widest">Mal</span>
+                                <span className="text-[10px] text-neutral-400 ml-auto">Tolerancia ±3pp</span>
                             </div>
                         </div>
 
@@ -366,7 +379,7 @@ function MateriaPrimaBreakdown({ expenses, total }: {
                                     <div className="flex items-center gap-2">
                                         <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
                                             <m.div
-                                                className="h-full bg-violet-500 rounded-full"
+                                                className="h-full bg-neutral-800 rounded-full"
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${pct}%` }}
                                                 transition={{ duration: 0.6, ease: "easeOut" }}
@@ -397,7 +410,7 @@ function MateriaPrimaBreakdown({ expenses, total }: {
                                     <div className="flex items-center gap-2">
                                         <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
                                             <m.div
-                                                className="h-full bg-emerald-500 rounded-full"
+                                                className="h-full bg-neutral-400 rounded-full"
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${pct}%` }}
                                                 transition={{ duration: 0.6, ease: "easeOut" }}

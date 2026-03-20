@@ -139,6 +139,12 @@ export const InvoiceSchema = z.object({
     total_amount: z.number().optional(),
     date: z.string().optional(), // ISO Date
     scanned_data: z.any().optional(), // JSONB
+    // Campos añadidos para trazabilidad de Drive:
+    drive_file_id: z.string().optional(),
+    drive_file_name: z.string().optional(),
+    extracted_data: z.any().optional(), // JSONB del LLM
+    confidence_score: z.number().min(0).max(1).default(0).optional(),
+    processing_error: z.string().optional(),
     created_at: z.string().optional()
 })
 
@@ -585,3 +591,32 @@ export const WasteLogSchema = z.object({
 });
 
 export type WasteLog = z.infer<typeof WasteLogSchema>;
+
+// 18. AI Period Reports (Indicaciones transversales)
+export const PeriodReportSchema = z.object({
+    id: z.string().uuid().optional(),
+    restaurant_id: z.string().uuid(),
+    module_name: z.string(), // e.g. 'BILLING', 'TAXES'
+    period_key: z.string(), // e.g. '2026-03', '2026-Q1'
+    context_notes: z.string().optional(),
+    ai_draft: z.string().optional(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional()
+});
+
+export type PeriodReport = z.infer<typeof PeriodReportSchema>;
+
+// 19. Google Drive Sync Config
+export const DriveSyncConfigSchema = z.object({
+    id: z.string().uuid().optional(),
+    restaurant_id: z.string().uuid(),
+    inbox_folder_id: z.string().min(1, "Inbox folder ID is required"),
+    processed_folder_id: z.string().min(1, "Processed folder ID is required"),
+    review_folder_id: z.string().min(1, "Review folder ID is required"),
+    is_active: z.boolean().default(true),
+    last_sync_at: z.string().optional(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional()
+});
+
+export type DriveSyncConfig = z.infer<typeof DriveSyncConfigSchema>;
