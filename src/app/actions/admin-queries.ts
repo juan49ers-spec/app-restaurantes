@@ -5,7 +5,9 @@
  */
 import { createClient } from "@/lib/supabaseServer"
 
-const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
+const DEFAULT_ADMINS = ['juan49ers@gmail.com', 'admin@controlhub.com']
+const ENV_ADMINS = process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map(e => e.trim().toLowerCase()) : []
+const ADMIN_EMAILS = Array.from(new Set([...DEFAULT_ADMINS, ...ENV_ADMINS]))
 
 export async function requireAdmin() {
     const supabase = await createClient()

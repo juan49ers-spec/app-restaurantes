@@ -10,16 +10,14 @@ import {
     PieChart,
     Scale
 } from "lucide-react"
-import { format, isSameMonth } from "date-fns"
+import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import dynamic from "next/dynamic"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { DailySalesForm } from "@/components/financial-control/DailySalesForm"
-import { Button } from "@/components/ui/button"
-import { MonthlyPerformanceWidget } from "@/components/financial-control/MonthlyPerformanceWidget"
+import { BillingDashboard } from "@/components/financial-control/BillingDashboard"
 
-import type { DailySales, OperatingExpense } from "@/types/schema"
 import type { ExpenseDashboardData } from "@/app/actions/financial-control"
+import type { BillingPeriodData } from "@/app/actions/financial-control"
 import type { DashboardData as ResultsData } from "@/app/actions/resultados"
 
 import { Skeleton } from "@/components/ui/skeleton"
@@ -51,21 +49,6 @@ type GlobalTab = 'FACTURACION' | 'GASTOS' | 'IMPUESTOS' | 'RESULTADOS'
 interface FinancialControlClientProps {
     restaurantId: string
     initialDate: string
-    initialDailySales: DailySales | null
-    initialExpenses: OperatingExpense[]
-    billingData: {
-        stats: {
-            totalNet: number
-            momVariation: number
-            avgDaily: number
-            avgVariation: number
-            cashTotal: number
-            cardTotal: number
-            isFirstDay: boolean
-            revenue_target?: number
-        }
-        dailyData: import("@/components/financial-control/BillingDrillDownModal").BillingDataPoint[]
-    }
     expenseDashboardData?: ExpenseDashboardData
     resultsData?: {
         data: ResultsData | null
@@ -76,18 +59,14 @@ interface FinancialControlClientProps {
 export function FinancialControlClient({
     restaurantId,
     initialDate,
-    initialDailySales,
-    billingData,
     expenseDashboardData,
     resultsData
 }: FinancialControlClientProps) {
     const [activeTab, setActiveTab] = useState<GlobalTab>('FACTURACION')
     const [isMenuLocked, setIsMenuLocked] = useState(true)
     const [isDrillDownOpen, setIsDrillDownOpen] = useState(false)
-
-    const hasTargets = billingData.stats.revenue_target && billingData.stats.revenue_target > 0
-    const isCurrentMonth = isSameMonth(new Date(initialDate), new Date())
-    const [isTargetModalOpen, setIsTargetModalOpen] = useState(!hasTargets && isCurrentMonth)
+    const [drillDownData, setDrillDownData] = useState<BillingPeriodData['dailyData']>([])
+    const [isTargetModalOpen, setIsTargetModalOpen] = useState(false)
 
 
 
@@ -161,78 +140,18 @@ export function FinancialControlClient({
                     transition={{ duration: 0.3, ease: "easeOut" }}
                 >
                     {activeTab === 'FACTURACION' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                            {/* Left: Global Analytics & Summary */}
-                            <div className="lg:col-span-4 space-y-6">
-                                <MonthlyPerformanceWidget
-                                    stats={billingData.stats}
-                                    onClick={() => setIsDrillDownOpen(true)}
-                                />
-
-                                <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 rounded-2xl p-4 text-white ring-1 ring-white/5 shadow-lg">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="p-1.5 bg-white/10 rounded-lg">
-                                                <TrendingUp className="w-4 h-4 text-emerald-400" />
-                                            </div>
-                                            <h4 className="font-semibold text-[11px] uppercase tracking-wide text-neutral-300">Objetivo Mensual</h4>
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-[9px] font-semibold uppercase tracking-wide text-emerald-400 hover:text-emerald-300 hover:bg-white/5 rounded-lg h-7 px-2.5 border border-emerald-400/20"
-                                            onClick={() => setIsTargetModalOpen(true)}
-                                        >
-                                            Configurar
-                                        </Button>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {(() => {
-                                            const target = billingData.stats.revenue_target || 0
-                                            const actual = billingData.stats.totalNet || 0
-                                            const progress = target > 0 ? Math.min(Math.round((actual / target) * 100), 100) : 0
-                                            const remaining = Math.max(target - actual, 0)
-
-                                            return (
-                                                <>
-                                                    <div className="flex justify-between items-baseline">
-                                                        <span className="text-xl font-semibold">{progress}%</span>
-                                                        <span className="text-[10px] text-neutral-400">Meta: {new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(target)}</span>
-                                                    </div>
-                                                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                                                        <m.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${progress}%` }}
-                                                            className="h-full bg-emerald-500 rounded-full"
-                                                        />
-                                                    </div>
-                                                    <p className="text-[10px] text-neutral-400 leading-snug font-medium">
-                                                        {remaining > 0 ? (
-                                                            <>Faltan <span className="text-white font-semibold">{new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(remaining)}</span></>
-                                                        ) : (
-                                                            <span className="text-emerald-400 font-semibold">¡Objetivo superado!</span>
-                                                        )}
-                                                    </p>
-                                                </>
-                                            )
-                                        })()}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right: Daily Operations Form */}
-                            <div className="lg:col-span-8">
-                                <DailySalesForm
-                                    restaurantId={restaurantId}
-                                    date={initialDate}
-                                    initialData={initialDailySales}
-                                />
-                            </div>
-                        </div>
+                        <BillingDashboard
+                            restaurantId={restaurantId}
+                            onOpenDrillDown={(data) => {
+                                setDrillDownData(data)
+                                setIsDrillDownOpen(true)
+                            }}
+                            onOpenTargetModal={() => setIsTargetModalOpen(true)}
+                        />
                     )}
 
                     {activeTab === 'GASTOS' && (
-                        <div className="max-w-7xl mx-auto">
+                        <div className="max-w-5xl mx-auto">
                             {expenseDashboardData ? (
                                 <ExpensesDashboard
                                     data={expenseDashboardData}
@@ -247,7 +166,7 @@ export function FinancialControlClient({
                     )}
 
                     {activeTab === 'IMPUESTOS' && (
-                        <div className="max-w-5xl mx-auto space-y-6">
+                        <div className="max-w-5xl mx-auto">
                             <ImpuestosDashboard restaurantId={restaurantId} />
                         </div>
                     )}
@@ -266,7 +185,7 @@ export function FinancialControlClient({
             <BillingDrillDownModal
                 isOpen={isDrillDownOpen}
                 onClose={() => setIsDrillDownOpen(false)}
-                data={billingData.dailyData}
+                data={drillDownData}
             />
 
             {/* Monthly Target Modal */}

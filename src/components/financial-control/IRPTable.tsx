@@ -5,8 +5,7 @@ import { Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface IRPTableProps {
-    year: number
-    quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4'
+    periodLabel: string
     data: {
         categoria: string
         modelo: string
@@ -16,7 +15,7 @@ interface IRPTableProps {
     }[]
 }
 
-export function IRPTable({ year, quarter, data }: IRPTableProps) {
+export function IRPTable({ periodLabel, data }: IRPTableProps) {
     const totalRetenido = data.reduce((sum, item) => sum + item.cuotaIngresar, 0)
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)
@@ -34,7 +33,7 @@ export function IRPTable({ year, quarter, data }: IRPTableProps) {
                     </div>
                 </div>
                 <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal text-neutral-500 bg-neutral-50">
-                    {quarter} {year}
+                    {periodLabel}
                 </Badge>
             </div>
 

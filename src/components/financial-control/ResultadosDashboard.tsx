@@ -18,15 +18,15 @@ import {
   Users,
   Calendar,
   Package,
-  Sparkles
+  Sparkles,
+  Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CuentaResultados } from "./CuentaResultados"
 import { DesarrolloNegocio } from "./DesarrolloNegocio"
-import { ProfitBridge } from "./ProfitBridge"
-import { ExpenseIntelligenceWidget } from "./ExpenseIntelligenceWidget"
+import { IANarrativa } from "./IANarrativa"
 import type { DashboardData as ServerDashboardData } from "@/app/actions/resultados"
 import type { FinancialResult, HistoricalData, VarianceAnalysis, BreakEvenData, MonthlyResult } from "@/types/resultados"
 
@@ -68,8 +68,10 @@ const EMPTY_DATA: DashboardUiData = {
     ingresosNetos: 0, ingresosExtra: 0, totalIngresos: 0,
     personal: { sueldosNetos: 0, seguridadSocial: 0, irpf: 0, total: 0 },
     materiaPrima: { comida: 0, bebida: 0, variacionExistencias: 0, total: 0 },
-    suministros: 0, mantenimiento: 0, marketing: 0,
+    suministros: 0, suministrosFijos: undefined, suministrosVariables: undefined,
+    mantenimiento: 0, marketing: 0,
     gastosExtra: 0, financiaciones: 0, inversiones: 0,
+    inventoryValue: undefined,
     resultadoBruto: 0, resultadoNeto: 0, margenNeto: 0,
     ratioPersonal: 0, ratioMateriaPrima: 0, ratioGastosFijos: 0
   },
@@ -87,6 +89,65 @@ const EMPTY_DATA: DashboardUiData = {
   breakEvenData: {
     puntoEquilibrio: 0, diaBreakEven: null, alcanzado: false,
     ventasActuales: 0, costesFijos: 0, margenContribucion: 0
+  }
+}
+
+// ==========================================
+// SIMULATION DATA
+// ==========================================
+
+// Helper that fills all required MonthlyResult fields with zero defaults so
+// simulated entries are fully typed without unsafe casts.
+const SIM_DEFAULTS: Omit<MonthlyResult, 'id' | 'restaurant_id' | 'created_at' | 'updated_at' | 'month' | 'year' | 'month_name' | 'month_year' | 'is_closed' | 'total_ingresos' | 'resultado_neto' | 'margen_neto' | 'materia_prima_total' | 'personal_total' | 'break_even_alcanzado'> = {
+  ingresos_netos: 0, ingresos_extra: 0,
+  personal_sueldos_netos: 0, personal_seguridad_social: 0, personal_irpf: 0,
+  materia_prima_comida: 0, materia_prima_bebida: 0, materia_prima_variacion_existencias: 0,
+  suministros: 0, mantenimiento: 0, marketing: 0,
+  gastos_extra: 0, inversiones: 0, financiaciones: 0,
+  resultado_bruto: 0, ratio_personal: 0, ratio_materia_prima: 0, ratio_gastos_fijos: 0,
+  break_even_punto: 0, break_even_dia: undefined,
+}
+
+function simMonth(partial: Partial<MonthlyResult> & Pick<MonthlyResult,
+  'id' | 'restaurant_id' | 'created_at' | 'updated_at' | 'month' | 'year' |
+  'month_name' | 'month_year' | 'is_closed' | 'total_ingresos' |
+  'resultado_neto' | 'margen_neto' | 'materia_prima_total' | 'personal_total' | 'break_even_alcanzado'
+>): MonthlyResult {
+  return { ...SIM_DEFAULTS, ...partial }
+}
+
+const SIMULATED_SCENARIOS: Record<string, ServerDashboardData> = {
+  success: {
+    isClosed: true,
+    history: [
+      simMonth({ id: '1', restaurant_id: 'sim', created_at: '', updated_at: '', month: 1, year: 2026, month_name: 'Enero', month_year: '2026-01', total_ingresos: 55000, ingresos_netos: 52700, ingresos_extra: 2300, resultado_neto: 12000, margen_neto: 21.8, materia_prima_total: 13500, personal_total: 18000, is_closed: true, break_even_alcanzado: true }),
+      simMonth({ id: '2', restaurant_id: 'sim', created_at: '', updated_at: '', month: 12, year: 2025, month_name: 'Diciembre', month_year: '2025-12', total_ingresos: 52000, ingresos_netos: 49700, ingresos_extra: 2300, resultado_neto: 11000, margen_neto: 21.1, materia_prima_total: 12600, personal_total: 18100, is_closed: true, break_even_alcanzado: true }),
+      simMonth({ id: '3', restaurant_id: 'sim', created_at: '', updated_at: '', month: 1, year: 2025, month_name: 'Enero', month_year: '2025-01', total_ingresos: 42000, ingresos_netos: 39700, ingresos_extra: 2300, resultado_neto: 6800, margen_neto: 16.2, materia_prima_total: 12100, personal_total: 17200, is_closed: true, break_even_alcanzado: true }),
+    ],
+    currentMonth: simMonth({ id: 'sim-1', restaurant_id: 'sim', created_at: '', updated_at: '', month: 1, year: 2026, month_name: 'Enero', month_year: '2026-01', total_ingresos: 55000, ingresos_netos: 52700, ingresos_extra: 2300, resultado_neto: 12000, margen_neto: 21.8, materia_prima_total: 13500, personal_total: 18000, is_closed: true, break_even_dia: 15, break_even_alcanzado: true }),
+  },
+  stock: {
+    isClosed: false,
+    history: [
+      simMonth({ id: 'h1', restaurant_id: 'sim', created_at: '', updated_at: '', month: 1, year: 2026, month_name: 'Enero', month_year: '2026-01', total_ingresos: 42000, resultado_neto: 4500, materia_prima_total: 14500, personal_total: 18000, margen_neto: 10.7, is_closed: false, break_even_alcanzado: true }),
+      simMonth({ id: 'h2', restaurant_id: 'sim', created_at: '', updated_at: '', month: 12, year: 2025, month_name: 'Diciembre', month_year: '2025-12', total_ingresos: 55000, resultado_neto: 12000, materia_prima_total: 13500, personal_total: 18000, margen_neto: 21.8, is_closed: true, break_even_alcanzado: true }),
+    ],
+    currentMonth: simMonth({ id: 'sim-2', restaurant_id: 'sim', created_at: '', updated_at: '', month: 1, year: 2026, month_name: 'Enero', month_year: '2026-01', total_ingresos: 42000, ingresos_netos: 39700, ingresos_extra: 2300, resultado_neto: 4500, margen_neto: 10.7, materia_prima_total: 14500, personal_total: 18000, is_closed: false, break_even_dia: 28, break_even_alcanzado: true }),
+  },
+  labor: {
+    isClosed: false,
+    history: [
+      simMonth({ id: 'h1', restaurant_id: 'sim', created_at: '', updated_at: '', month: 2, year: 2026, month_name: 'Febrero', month_year: '2026-02', total_ingresos: 35000, resultado_neto: 800, materia_prima_total: 11000, personal_total: 18000, margen_neto: 2.3, is_closed: false, break_even_alcanzado: false }),
+      simMonth({ id: 'h2', restaurant_id: 'sim', created_at: '', updated_at: '', month: 1, year: 2026, month_name: 'Enero', month_year: '2026-01', total_ingresos: 48000, resultado_neto: 8500, materia_prima_total: 13800, personal_total: 18000, margen_neto: 17.7, is_closed: true, break_even_alcanzado: true }),
+    ],
+    currentMonth: simMonth({ id: 'sim-3', restaurant_id: 'sim', created_at: '', updated_at: '', month: 2, year: 2026, month_name: 'Febrero', month_year: '2026-02', total_ingresos: 35000, ingresos_netos: 32700, ingresos_extra: 2300, resultado_neto: 800, margen_neto: 2.3, materia_prima_total: 11000, personal_total: 18000, is_closed: false, break_even_dia: undefined, break_even_alcanzado: false }),
+  },
+  postseason: {
+    isClosed: true,
+    history: [
+      simMonth({ id: 'h1', restaurant_id: 'sim', created_at: '', updated_at: '', month: 9, year: 2025, month_name: 'Septiembre', month_year: '2025-09', total_ingresos: 42000, resultado_neto: 6500, materia_prima_total: 12800, personal_total: 17500, margen_neto: 15.4, is_closed: true, break_even_alcanzado: true }),
+    ],
+    currentMonth: simMonth({ id: 'sim-4', restaurant_id: 'sim', created_at: '', updated_at: '', month: 9, year: 2025, month_name: 'Septiembre', month_year: '2025-09', total_ingresos: 42000, ingresos_netos: 39700, ingresos_extra: 2300, resultado_neto: 6500, margen_neto: 15.4, materia_prima_total: 12800, personal_total: 17500, is_closed: true, break_even_dia: 22, break_even_alcanzado: true }),
   }
 }
 
@@ -456,13 +517,19 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
   const [isClosingMonth, setIsClosingMonth] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [closeError, setCloseError] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
+
+  // Estados de Simulación
+  const [isSimulated, setIsSimulated] = useState(false)
+  const [scenarioId, setScenarioId] = useState<string>('success')
 
   // Data memoizada - Calcula comparativas desde el histórico real
   const data = useMemo(() => {
-    if (!dashboardData?.currentMonth) return null
+    const dataSource = isSimulated ? SIMULATED_SCENARIOS[scenarioId] : dashboardData
+    if (!dataSource?.currentMonth) return null
 
-    const current = dashboardData.currentMonth
-    const history = dashboardData.history || []
+    const current = dataSource.currentMonth
+    const history = dataSource.history || []
 
     // Buscar el mismo mes del año anterior en el histórico
     const lastYearMonth = history.find(
@@ -550,7 +617,9 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
           sueldosNetos: current.personal_sueldos_netos || 0,
           seguridadSocial: current.personal_seguridad_social || 0,
           irpf: current.personal_irpf || 0,
-          total: current.personal_total || 0
+          total: current.personal_total || 0,
+          despidos: current.personal_despidos || undefined,
+          recMedico: current.personal_rec_medico || undefined,
         },
         materiaPrima: {
           comida: current.materia_prima_comida || 0,
@@ -559,11 +628,14 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
           total: current.materia_prima_total || 0
         },
         suministros: current.suministros || 0,
+        suministrosFijos: current.suministros_fijos || undefined,
+        suministrosVariables: current.suministros_variables || undefined,
         mantenimiento: current.mantenimiento || 0,
         marketing: current.marketing || 0,
         gastosExtra: current.gastos_extra || 0,
         financiaciones: current.financiaciones || 0,
         inversiones: current.inversiones || 0,
+        inventoryValue: current.inventory_value || undefined,
         resultadoBruto: current.resultado_bruto || 0,
         resultadoNeto: current.resultado_neto || 0,
         margenNeto: current.margen_neto || 0,
@@ -623,6 +695,57 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
     return ((safeData.currentMonth.totalIngresos - lastYear) / lastYear) * 100
   }, [safeData])
 
+  // Handler de exportación PDF
+  const handleExportPDF = useCallback(async () => {
+    if (!data) return
+    setIsExporting(true)
+    try {
+      const { exportPnLToPDF } = await import('@/lib/export-utils')
+      const current = data.currentMonth
+      const totalExpenses =
+        current.personal.total + current.materiaPrima.total +
+        current.suministros + current.mantenimiento + current.marketing +
+        current.gastosExtra + current.inversiones + current.financiaciones
+      const expenseLabels: Record<string, string> = {
+        personal: 'Personal', materiaPrima: 'Materia Prima', suministros: 'Suministros',
+        mantenimiento: 'Mantenimiento', marketing: 'Marketing',
+        gastosExtra: 'Otros Gastos', inversiones: 'Inversiones', financiaciones: 'Financiaciones'
+      }
+      const expenseItems = [
+        { id: 'personal', amount: current.personal.total },
+        { id: 'materiaPrima', amount: current.materiaPrima.total },
+        { id: 'suministros', amount: current.suministros },
+        { id: 'mantenimiento', amount: current.mantenimiento },
+        { id: 'marketing', amount: current.marketing },
+        { id: 'gastosExtra', amount: current.gastosExtra },
+        { id: 'inversiones', amount: current.inversiones },
+        { id: 'financiaciones', amount: current.financiaciones },
+      ].filter(e => e.amount > 0)
+
+      await exportPnLToPDF(
+        {
+          revenue: { total: current.totalIngresos, dineIn: current.ingresosNetos, takeout: 0, delivery: 0 },
+          totalExpenses,
+          netProfit: current.resultadoNeto,
+          netProfitMargin: current.margenNeto,
+          reportExpenses: expenseItems.map(e => ({
+            id: e.id,
+            label: expenseLabels[e.id] || e.id,
+            amount: e.amount,
+            pct: current.totalIngresos > 0 ? (e.amount / current.totalIngresos) * 100 : 0
+          })),
+          chartData: []
+        },
+        `${current.month} ${current.year}`,
+        'Chamaca Antojería Mexicana'
+      )
+    } catch (err) {
+      console.error('Error exportando PDF:', err)
+    } finally {
+      setIsExporting(false)
+    }
+  }, [data])
+
   // Handler de cierre de mes — llama a server action real
   const handleCloseMonth = useCallback(async () => {
     if (!dashboardData?.currentMonth) return
@@ -651,45 +774,105 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
   }, [dashboardData])
 
   // Empty state si no hay datos
-  if (!data) {
+  if (!data && !isSimulated) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="p-4 bg-neutral-100 rounded-2xl mb-4">
           <PieChart className="w-8 h-8 text-neutral-400" />
         </div>
         <h3 className="font-bold text-lg text-neutral-900 mb-2">Sin datos de resultados</h3>
-        <p className="text-sm text-neutral-500 max-w-sm">
+        <p className="text-sm text-neutral-500 max-w-sm mb-6">
           Registra ventas diarias y gastos operativos desde las pestañas de Facturación y Gastos para ver tus resultados aquí.
         </p>
+        <Button
+          onClick={() => setIsSimulated(true)}
+          className="rounded-full bg-emerald-600 hover:bg-emerald-700 font-bold px-6"
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Simular Datos de Ejemplo
+        </Button>
       </div>
     )
   }
 
+  // Guardia de nulidad para TypeScript
+  if (!data) return null
+
   return (
     <div className="space-y-4 pb-12 max-w-5xl mx-auto">
+      {/* Banner de Simulación */}
+      {isSimulated && (
+        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl p-3 text-white flex items-center justify-between shadow-lg mb-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 rounded-lg">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="font-bold text-xs">Modo Simulación Activo</p>
+              <p className="text-[10px] opacity-80 text-violet-100">Visualizando escenarios de negocio hipotéticos</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              aria-label="Seleccionar escenario de simulación"
+              value={scenarioId}
+              onChange={(e) => setScenarioId(e.target.value)}
+              className="bg-white/10 border border-white/20 rounded-lg text-xs font-bold px-2 py-1 outline-none cursor-pointer hover:bg-white/20 transition-colors"
+            >
+              <option value="success" className="text-neutral-900">Escenario: Éxito Total</option>
+              <option value="stock" className="text-neutral-900">Escenario: Anomalía de Stock</option>
+              <option value="labor" className="text-neutral-900">Escenario: Rigidez Laboral</option>
+              <option value="postseason" className="text-neutral-900">Escenario: Post-Temporada</option>
+            </select>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsSimulated(false)}
+              className="h-7 text-[10px] font-bold bg-white text-violet-600 hover:bg-neutral-100 rounded-lg"
+            >
+              Salir
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black text-neutral-900">Resultados</h1>
           <p className="text-xs text-neutral-500">
-            {data.currentMonth.month} {data.currentMonth.year} • Análisis completo
+            {data.currentMonth.month} {data.currentMonth.year} • Análisis completo {isSimulated && <span className="text-violet-500 font-bold ml-1">(SIMULADO)</span>}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className="rounded-lg gap-1.5 text-xs font-bold h-8 border-neutral-200 bg-white hover:bg-neutral-50"
+            aria-label="Exportar informe PDF"
+          >
+            {isExporting
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <FileDown className="w-3.5 h-3.5" />}
+            <span>{isExporting ? 'Generando...' : 'PDF'}</span>
+          </Button>
         <Button
           size="sm"
           className={cn(
             "rounded-lg gap-1.5 text-xs font-bold h-8",
-            dashboardData?.isClosed ? "bg-emerald-600" : showSuccess ? "bg-emerald-600" : "bg-neutral-900"
+            (isSimulated ? SIMULATED_SCENARIOS[scenarioId].isClosed : dashboardData?.isClosed) ? "bg-emerald-600" : showSuccess ? "bg-emerald-600" : "bg-neutral-900"
           )}
           onClick={handleCloseMonth}
-          disabled={isClosingMonth || dashboardData?.isClosed === true}
+          disabled={isClosingMonth || (isSimulated ? SIMULATED_SCENARIOS[scenarioId].isClosed : dashboardData?.isClosed === true)}
           aria-label={
-            dashboardData?.isClosed
+            (isSimulated ? SIMULATED_SCENARIOS[scenarioId].isClosed : dashboardData?.isClosed)
               ? "Mes ya cerrado"
               : isClosingMonth ? "Cerrando mes" : showSuccess ? "Mes cerrado correctamente" : "Cerrar mes y generar informe"
           }
         >
-          {dashboardData?.isClosed ? (
+          {(isSimulated ? SIMULATED_SCENARIOS[scenarioId].isClosed : dashboardData?.isClosed) ? (
             <>
               <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Cerrado</span>
@@ -711,6 +894,7 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
             </>
           )}
         </Button>
+        </div>
       </header>
 
       {/* Mensaje de Error (Cierre de mes) */}
@@ -775,7 +959,7 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
         </div>
       </section>
 
-      {/* KPIs Grid */}
+      {/* KPIs Grid — resumen rápido */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3" aria-label="Indicadores clave">
         <KpiCard
           title="Ingresos"
@@ -817,101 +1001,84 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
         />
       </section>
 
-      {/* INTELLIGENCE WIDGET: Inteligencia de Gastos */}
-      <section className="mt-6" aria-label="Inteligencia de Gastos con IA">
+      {/* Cuenta de Resultados — vista principal */}
+      <section aria-label="Cuenta de resultados">
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-4 h-4 text-violet-500" aria-hidden="true" />
-          <h2 className="font-bold text-sm text-neutral-900">Análisis Automático con IA</h2>
-          <span className="text-xs text-neutral-400">Insights en tiempo real</span>
+          <Calculator className="w-4 h-4 text-neutral-500" aria-hidden="true" />
+          <h2 className="font-bold text-sm text-neutral-900">Cuenta de Resultados</h2>
+          <span className="text-xs text-neutral-400">{data.currentMonth.month} {data.currentMonth.year}</span>
         </div>
-        <ExpenseIntelligenceWidget
-          kpis={intelligenceKPIs}
-          insight={{
-            summary: (() => {
-              const ratio = intelligenceKPIs.expenseToSalesRatio
-              const personal = intelligenceKPIs.personalRatio
-              const materia = intelligenceKPIs.cogsRatio
-              if (ratio === 0) return 'Sin datos suficientes para generar análisis.'
-              const parts: string[] = []
-              if (ratio > 85) parts.push(`Gastos al ${ratio.toFixed(2)}% de ventas — margen muy ajustado.`)
-              else if (ratio > 70) parts.push(`Gastos operativos contenidos al ${ratio.toFixed(2)}% de ventas.`)
-              else parts.push(`Estructura de gastos eficiente al ${ratio.toFixed(2)}% de ventas.`)
-              if (personal > 35) parts.push(`Personal (${personal.toFixed(2)}%) por encima del benchmark del 33%.`)
-              if (materia > 35) parts.push(`Materia prima (${materia.toFixed(2)}%) por encima del benchmark del 33%.`)
-              if (personal <= 33 && materia <= 33) parts.push('Ambos ratios principales dentro de objetivo.')
-              return parts.join(' ')
-            })(),
-            editable: false
+        <CuentaResultados data={{
+          ingresosNetos: data.currentMonth.ingresosNetos,
+          ingresosExtra: data.currentMonth.ingresosExtra,
+          personal: data.currentMonth.personal,
+          materiaPrima: data.currentMonth.materiaPrima,
+          suministros: data.currentMonth.suministros,
+          suministrosFijos: data.currentMonth.suministrosFijos,
+          suministrosVariables: data.currentMonth.suministrosVariables,
+          mantenimiento: data.currentMonth.mantenimiento,
+          marketing: data.currentMonth.marketing,
+          gastosExtra: data.currentMonth.gastosExtra,
+          inversiones: data.currentMonth.inversiones,
+          financiaciones: data.currentMonth.financiaciones,
+          resultadoNeto: data.currentMonth.resultadoNeto,
+          inventoryValue: data.currentMonth.inventoryValue,
+        }} totalIngresos={data.currentMonth.totalIngresos} />
+      </section>
+
+      {/* Evolución histórica */}
+      <section aria-label="Evolución de ingresos">
+        <div className="flex items-center gap-2 mb-3">
+          <PieChart className="w-4 h-4 text-neutral-500" aria-hidden="true" />
+          <h2 className="font-bold text-sm text-neutral-900">Evolución de Ingresos Netos</h2>
+        </div>
+        <DesarrolloNegocio
+          data={{
+            months: data.historicalData.months,
+            ingresos: data.historicalData.ingresos
           }}
+          currentMonthIndex={Math.max(0, data.historicalData.months.length - 1)}
         />
       </section>
 
-      {/* Diagnóstico Inteligente */}
-      {
-        diagnoses.length > 0 && (
-          <section aria-label="Diagnósticos inteligentes">
-            <div className="flex items-center gap-2 mb-3">
-              <Lightbulb className="w-4 h-4 text-amber-500" aria-hidden="true" />
-              <h2 className="font-bold text-sm text-neutral-900">Diagnóstico Inteligente</h2>
-              <span className="text-xs text-neutral-400">({diagnoses.length})</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {diagnoses.map((diagnosis) => (
-                <DiagnosisCardComponent key={diagnosis.id} card={diagnosis} />
-              ))}
-            </div>
-          </section>
-        )
-      }
-
-      {/* Análisis Detallado */}
-      <section className="space-y-3" aria-label="Análisis detallado">
-        <CollapsibleSection
-          title="Cuenta de Resultados"
-          subtitle="Desglose completo de ingresos y gastos"
-          icon={Calculator}
-        >
-          <div className="p-4">
-            <CuentaResultados data={{
-              ingresosNetos: data.currentMonth.ingresosNetos,
-              ingresosExtra: data.currentMonth.ingresosExtra,
-              personal: data.currentMonth.personal,
-              materiaPrima: data.currentMonth.materiaPrima,
-              suministros: data.currentMonth.suministros,
-              mantenimiento: data.currentMonth.mantenimiento,
-              marketing: data.currentMonth.marketing,
-              gastosExtra: data.currentMonth.gastosExtra,
-              inversiones: data.currentMonth.inversiones,
-              financiaciones: data.currentMonth.financiaciones,
-              resultadoNeto: data.currentMonth.resultadoNeto
-            }} totalIngresos={data.currentMonth.totalIngresos} />
+      {/* Diagnóstico Inteligente — solo si hay alertas */}
+      {diagnoses.length > 0 && (
+        <section aria-label="Diagnósticos inteligentes">
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb className="w-4 h-4 text-amber-500" aria-hidden="true" />
+            <h2 className="font-bold text-sm text-neutral-900">Alertas</h2>
+            <span className="text-xs text-neutral-400">({diagnoses.length})</span>
           </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Evolución y Comparativas"
-          subtitle="Histórico 12 meses + Análisis de varianza"
-          icon={PieChart}
-        >
-          <div className="p-4 space-y-4">
-            <DesarrolloNegocio
-              data={{
-                months: data.historicalData.months,
-                ingresos: data.historicalData.ingresos
-              }}
-              currentMonthIndex={Math.max(0, data.historicalData.months.length - 1)}
-            />
-            <ProfitBridge data={data.varianceAnalysis} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {diagnoses.map((diagnosis) => (
+              <DiagnosisCardComponent key={diagnosis.id} card={diagnosis} />
+            ))}
           </div>
-        </CollapsibleSection>
+        </section>
+      )}
+
+      {/* Análisis Narrativo con IA */}
+      <section aria-label="Análisis inteligente narrativo">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles className="w-4 h-4 text-blue-500" aria-hidden="true" />
+          <h2 className="font-bold text-sm text-neutral-900">Análisis</h2>
+          <span className="text-xs text-neutral-400">Generado automáticamente · editable</span>
+        </div>
+        <IANarrativa
+          data={{
+            ingresosActual: data.currentMonth.totalIngresos,
+            ingresosAnterior: data.varianceAnalysis.previousMonth.ingresos || 1,
+            ingresosAnoAnterior: data.sameMonthLastYear.ingresos || 1,
+            margenActual: data.currentMonth.margenNeto,
+            margenAnterior: data.varianceAnalysis.previousMonth.margen,
+            gastoMateriaPrima: data.currentMonth.materiaPrima.total,
+            ventas: data.currentMonth.totalIngresos || 1,
+            gastoPersonal: data.currentMonth.personal.total,
+            gastoPersonalAnterior: data.varianceAnalysis.previousMonth.gastosPersonal || 1,
+          }}
+        />
       </section>
-
-      {/* Footer */}
-      <footer className="text-center text-xs text-neutral-400 pt-4">
-        Datos calculados automáticamente de Facturación y Gastos •
-        Actualizado {new Date().toLocaleDateString('es-ES')}
-      </footer>
-    </div >
+    </div>
   )
 }
 

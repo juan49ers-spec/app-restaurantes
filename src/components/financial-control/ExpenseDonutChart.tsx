@@ -97,8 +97,8 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
 
 
     return (
-        <Card className="shadow-sm border-neutral-200 bg-white h-full flex flex-col overflow-hidden">
-            <CardHeader className="pb-2 pt-4 px-4 flex-none border-b border-neutral-100">
+        <Card className="shadow-sm border-neutral-200 bg-white">
+            <CardHeader className="pb-2 pt-4 px-4 border-b border-neutral-100">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-neutral-50 rounded-lg text-neutral-500">
@@ -126,16 +126,17 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col sm:flex-row items-center p-0 overflow-hidden min-h-[220px]">
-                <div className="relative w-full sm:w-1/2 h-[180px] sm:h-full p-4 flex items-center justify-center">
+            <CardContent className="p-4 space-y-4">
+                {/* Donut */}
+                <div className="relative h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
                                 data={activeData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={55}
-                                outerRadius={80}
+                                innerRadius={62}
+                                outerRadius={88}
                                 paddingAngle={2}
                                 dataKey="value"
                                 stroke="none"
@@ -144,7 +145,7 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                                         setSelectedCategory(data.category as OperatingExpenseCategory)
                                     }
                                 }}
-                                className="cursor-pointer focus:outline-none"
+                                className={cn(selectedCategory ? "cursor-default" : "cursor-pointer", "outline-none")}
                             >
                                 {activeData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -153,52 +154,44 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                             <Tooltip content={<CustomTooltip totalValue={totalValue} />} />
                         </PieChart>
                     </ResponsiveContainer>
-
                     {/* Center Text */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-center">
                             <p className="text-[9px] text-neutral-400 font-medium">Total</p>
-                            <p className="text-xs font-bold text-neutral-900">{formatCurrency(totalValue)}</p>
+                            <p className="text-sm font-bold text-neutral-900">{formatCurrency(totalValue)}</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Legend Section */}
-                <div className="w-full sm:w-1/2 h-full p-4 bg-neutral-50/50 border-t sm:border-t-0 sm:border-l border-neutral-100 overflow-y-auto max-h-[180px] sm:max-h-none">
-                    <div className="space-y-1">
-                        {activeData.map((item, index) => (
-                            <div
-                                key={index}
-                                className={cn(
-                                    "flex items-center justify-between text-[10px] p-1.5 rounded-lg transition-all",
-                                    !selectedCategory ? "hover:bg-white hover:shadow-sm cursor-pointer" : ""
-                                )}
-                                onClick={() => {
-                                    if (!selectedCategory && 'category' in item) {
-                                        setSelectedCategory(item.category as OperatingExpenseCategory)
-                                    }
-                                }}
-                            >
-                                <div className="flex items-center gap-2 overflow-hidden flex-1">
-                                    <div
-                                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                        style={{ backgroundColor: item.color }}
-                                    />
-                                    <span className="text-neutral-600 font-medium truncate" title={item.name}>
-                                        {item.name}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2 ml-2">
-                                    <span className="font-mono text-neutral-400">
-                                        {totalValue > 0 ? Math.round((item.value / totalValue) * 100) : 0}%
-                                    </span>
-                                    <span className="font-bold text-neutral-900 min-w-[50px] text-right">
-                                        {formatCurrency(item.value)}
-                                    </span>
-                                </div>
+                {/* Legend */}
+                <div className="space-y-1">
+                    {activeData.map((item, index) => (
+                        <div
+                            key={index}
+                            className={cn(
+                                "flex items-center justify-between text-[11px] px-2 py-1.5 rounded-lg transition-colors",
+                                !selectedCategory ? "hover:bg-neutral-50 cursor-pointer" : ""
+                            )}
+                            onClick={() => {
+                                if (!selectedCategory && 'category' in item) {
+                                    setSelectedCategory(item.category as OperatingExpenseCategory)
+                                }
+                            }}
+                        >
+                            <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                                <span className="text-neutral-600 font-medium truncate">{item.name}</span>
                             </div>
-                        ))}
-                    </div>
+                            <div className="flex items-center gap-3 ml-2 flex-shrink-0">
+                                <span className="text-neutral-400 tabular-nums">
+                                    {totalValue > 0 ? Math.round((item.value / totalValue) * 100) : 0}%
+                                </span>
+                                <span className="font-semibold text-neutral-900 tabular-nums">
+                                    {formatCurrency(item.value)}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </CardContent>
         </Card>

@@ -259,6 +259,14 @@ export const DailySalesSchema = z.object({
     revenue_dine_in: z.number().default(0),
     revenue_takeout: z.number().default(0),
     revenue_delivery: z.number().default(0),
+    // Delivery por plataforma
+    delivery_uber_eats: z.number().default(0).optional(),
+    delivery_just_eat: z.number().default(0).optional(),
+    delivery_al_punto: z.number().default(0).optional(),
+    delivery_glovo: z.number().default(0).optional(),
+    // Método de pago
+    cash_amount: z.number().default(0).optional(),
+    card_amount: z.number().default(0).optional(),
     // Aggregated tax for backward compatibility
     iva_collected: z.number().default(0),
     total_covers: z.number().int().default(0),

@@ -9,7 +9,8 @@ import {
     CheckCircle2,
     Eye,
     EyeOff,
-    Calculator
+    Calculator,
+    Package
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Tooltip } from "@/components/ui/Tooltip"
@@ -27,6 +28,8 @@ interface CuentaResultadosProps {
             sueldosNetos: number
             seguridadSocial: number
             irpf: number
+            despidos?: number
+            recMedico?: number
         }
         materiaPrima: {
             total: number
@@ -35,15 +38,16 @@ interface CuentaResultadosProps {
             variacionExistencias: number
         }
         suministros: number
+        suministrosFijos?: number
+        suministrosVariables?: number
         mantenimiento: number
         marketing: number
         gastosExtra: number
         inversiones: number
         financiaciones: number
         resultadoNeto: number
+        inventoryValue?: number
     }
-    /** Si se proporciona, se usa directamente en vez de recalcular ingresosNetos+ingresosExtra.
-     *  Previene discrepancias si la BD tiene un total_ingresos diferente de la suma de partes. */
     totalIngresos?: number
     benchmarks?: {
         personalPct?: number
@@ -291,24 +295,11 @@ export function CuentaResultados({ data, totalIngresos: totalIngresosProp, bench
             benchmark: benchmarks?.personalPct ? { value: benchmarks.personalPct, label: "benchmark" } : undefined,
             tooltip: "Costes de personal: sueldos, SS e impuestos",
             children: [
-                {
-                    id: 'pers-sueldos',
-                    label: 'Sueldos netos',
-                    value: -data.personal.sueldosNetos,
-                    type: 'expense'
-                },
-                {
-                    id: 'pers-ss',
-                    label: 'Seguridad Social',
-                    value: -data.personal.seguridadSocial,
-                    type: 'expense'
-                },
-                {
-                    id: 'pers-irpf',
-                    label: 'IRPF Retenido',
-                    value: -data.personal.irpf,
-                    type: 'expense'
-                }
+                { id: 'pers-sueldos', label: 'Sueldos netos', value: -data.personal.sueldosNetos, type: 'expense' },
+                { id: 'pers-ss', label: 'Seguridad Social', value: -data.personal.seguridadSocial, type: 'expense' },
+                { id: 'pers-irpf', label: 'IRPF Retenido', value: -data.personal.irpf, type: 'expense' },
+                ...(data.personal.despidos ? [{ id: 'pers-despidos', label: 'Despidos / Finiquitos', value: -data.personal.despidos, type: 'expense' as const }] : []),
+                ...(data.personal.recMedico ? [{ id: 'pers-rec', label: 'Reconocimientos Médicos', value: -data.personal.recMedico, type: 'expense' as const }] : []),
             ]
         },
         {
@@ -347,7 +338,12 @@ export function CuentaResultados({ data, totalIngresos: totalIngresosProp, bench
             value: -data.suministros,
             type: 'expense',
             category: 'operating',
-            tooltip: "Luz, agua, gas, teléfono, internet"
+            expandable: !!(data.suministrosFijos || data.suministrosVariables),
+            tooltip: "Luz, agua, gas, teléfono, internet",
+            children: (data.suministrosFijos || data.suministrosVariables) ? [
+                ...(data.suministrosFijos ? [{ id: 'sum-fijos', label: 'Fijos (alquiler, internet…)', value: -data.suministrosFijos, type: 'expense' as const }] : []),
+                ...(data.suministrosVariables ? [{ id: 'sum-var', label: 'Variables (luz, agua, gas)', value: -data.suministrosVariables, type: 'expense' as const }] : []),
+            ] : undefined
         },
         {
             id: 'mantenimiento',
@@ -470,8 +466,20 @@ export function CuentaResultados({ data, totalIngresos: totalIngresosProp, bench
                 </div>
             </div>
 
+            {/* Inventario — informativo */}
+            {data.inventoryValue != null && data.inventoryValue > 0 && (
+                <div className="flex items-center gap-3 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg">
+                    <Package className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <span className="text-xs font-semibold text-blue-700">Valor de Inventario</span>
+                        <span className="text-xs text-blue-500 ml-1">(balance — no impacta P&L)</span>
+                    </div>
+                    <span className="text-sm font-bold text-blue-700 tabular-nums">{formatCurrency(data.inventoryValue)}</span>
+                </div>
+            )}
+
             {showDetails && (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <p className="text-xs text-blue-600 mb-1">Personal/Ventas</p>
                         <p className={cn(

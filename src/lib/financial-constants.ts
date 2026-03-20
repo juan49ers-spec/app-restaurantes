@@ -60,27 +60,37 @@ export const EXPENSE_RATIOS = {
 } as const
 
 /**
+ * Estimaciones para LiveMarginCard (indicador en tiempo real del formulario diario)
+ * Valores orientativos — ajustar según el perfil de costes real del restaurante
+ */
+export const LIVE_MARGIN_ESTIMATES = {
+    /** Coste laboral por hora cargado (salario neto + SS + otros). Media sector hostelería. */
+    HOURLY_LABOR_COST_EUR: 15,
+    /** Porcentaje de food cost sobre ventas brutas. Rango saludable: 25–33% */
+    COGS_PCT: 0.30,
+    /** Costes fijos diarios estimados (alquiler + suministros + seguros). Ajustar al local. */
+    DAILY_FIXED_COST_EUR: 200,
+} as const
+
+/**
  * Objetivos de ratios financieros (KPIs)
  * Metas a alcanzar para restaurante saludable
  */
 export const TARGET_RATIOS = {
-    /**
-     * Coste Personal objetivo como % de ventas
-     * Ideal: 28-33%
-     */
+    /** Coste Personal objetivo como % de ventas. Ideal: 28-33% */
     PERSONAL_TARGET_PCT: 33,
-
-    /**
-     * Coste Materia Prima objetivo como % de ventas
-     * Ideal: 28-32%
-     */
+    /** Coste Materia Prima objetivo como % de ventas. Ideal: 28-32% */
     COGS_TARGET_PCT: 33,
-
-    /**
-     * Prime Cost objetivo (Personal + COGS)
-     * Ideal: ≤ 60% de ventas
-     */
+    /** Prime Cost objetivo (Personal + COGS). Ideal: ≤ 60% de ventas */
     PRIME_COST_MAX_PCT: 60,
+    /** Suministros (luz, agua, gas, telefonía) objetivo. Ideal: ≤ 10% */
+    SUMINISTROS_TARGET_PCT: 10,
+    /** Mantenimiento objetivo. Ideal: ≤ 2% */
+    MANTENIMIENTO_TARGET_PCT: 2,
+    /** Marketing objetivo. Ideal: ≤ 2% */
+    MARKETING_TARGET_PCT: 2,
+    /** Inversiones CAPEX objetivo. Ideal: ≤ 2% */
+    INVERSIONES_TARGET_PCT: 2,
 } as const
 
 /**
