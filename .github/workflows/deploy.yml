@@ -27,7 +27,10 @@ jobs:
                   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
             - name: Deploy to Vercel
+              if: env.VERCEL_TOKEN != ''
               run: npx vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }}
+              env:
+                  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
               # Nota: Esto asume que el usuario configurará VERCEL_TOKEN si quiere despliegue manual desde CI
               # En la mayoría de los casos, Vercel lo hace automáticamente al detectar el push a GitHub.
 
