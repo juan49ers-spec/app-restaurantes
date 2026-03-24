@@ -1,9 +1,36 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
-import { scanInvoiceWithGPT4o } from "@/services/openai-vision"
+import { extractInvoiceData, ExtractedInvoiceData } from "@/lib/invoice-extractor"
 import { InvoiceStatus, Invoice } from "@/types/schema"
 import { revalidatePath } from "next/cache"
+
+// ── Normalizer: Convert Motor A (ExtractedInvoiceData) → Motor B format ──
+// This allows existing UI (InvoiceReviewForm, review-invoice) to work without changes
+function normalizeToScannedData(data: ExtractedInvoiceData) {
+    return {
+        supplier: {
+            name: data.supplier_name ?? '',
+            tax_id: null as string | null,
+            address: null as string | null
+        },
+        date: data.date,
+        invoice_number: data.invoice_number ?? null,
+        total_amount: data.total,
+        currency: 'EUR',
+        items: data.items.map(item => ({
+            line_text: item.description,
+            description: item.description,
+            qty: item.quantity,
+            unit: 'unit',
+            unit_price: item.unit_price,
+            price: item.unit_price,
+            total_price: item.total,
+            total: item.total,
+            category: item.category ?? null
+        }))
+    }
+}
 
 export async function getInvoices() {
     const supabase = await createClient()
@@ -77,139 +104,62 @@ export async function processInvoice(formData: FormData) {
 
     try {
         // 4. CHECK CREDITS (Billing)
-        // Only check if we are going to use OCR.
         const { getCredits, deductCredit } = await import("./billing")
         const credits = await getCredits()
         if (credits <= 0) {
             throw new Error("No tienes créditos OCR suficientes. Recarga para continuar.")
         }
 
-        // 5. Get Signed URL for OpenAI
-        const { data: signedUrlData, error: signError } = await supabase.storage
+        // 5. Download file from Storage as Buffer
+        const { data: fileBuffer, error: downloadError } = await supabase.storage
             .from('invoices')
-            .createSignedUrl(filePath, 60) // 60 seconds
+            .download(filePath)
 
-        if (signError || !signedUrlData?.signedUrl) throw new Error("Could not generate signed URL")
-        const signedUrl = signedUrlData.signedUrl
+        if (downloadError || !fileBuffer) throw new Error("Could not download file from storage")
 
-        // 5. Call OpenAI
-        const apiKey = process.env.OPENAI_API_KEY
-        if (!apiKey) throw new Error("Server Config Error: Missing OpenAI Key")
+        // 6. Convert Blob to Buffer
+        const arrayBuffer = await fileBuffer.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
 
-        const scannedData = await scanInvoiceWithGPT4o(signedUrl, apiKey)
+        // 7. Call Motor A (Ollama/Anthropic/Mock based on OCR_PROVIDER)
+        const extractionResult = await extractInvoiceData(buffer, file.type, file.name)
 
-        // 6. Update Invoice with Results
-        await supabase
-            .from('invoices')
-            .update({
-                status: 'review_required',
-                scanned_data: scannedData,
-                invoice_number: scannedData.invoice_number,
-                total_amount: scannedData.total_amount,
-                date: scannedData.date,
-                processed_at: new Date().toISOString()
-            })
-            .eq('id', invoice.id)
-
-        // 7. Deduct Credit (Success)
-        await deductCredit(1)
-
-        revalidatePath('/invoices')
-        return { success: true, invoiceId: invoice.id }
-
-    } catch (error: unknown) {
-        // Rollback or Mark Error
-        console.error(error)
-        await supabase
-            .from('invoices')
-            .update({ status: 'error' })
-            .eq('id', invoice.id)
-
-        return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
-    }
-}
-
-export async function createInvoiceRecord(filePath: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error("Unauthorized")
-
-    // Get restaurant
-    const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single()
-
-    if (!restaurant) throw new Error("No restaurant found")
-
-    // INSERT directo — sin RPC innecesario
-    const newInvoiceId = crypto.randomUUID()
-
-    const { error: dbError } = await supabase
-        .from('invoices')
-        .insert({
-            id: newInvoiceId,
-            restaurant_id: restaurant.id,
-            invoice_number: 'PENDING',
-            date: new Date().toISOString().split('T')[0],
-            total_amount: 0,
-            status: 'processing' as InvoiceStatus,
-            file_url: filePath,
-            created_by: user.id,
-            user_id: user.id,
-            created_at: new Date().toISOString()
-        })
-
-    if (dbError) throw new Error(`DB Insert failed: ${dbError.message}`)
-
-    const invoice = { id: newInvoiceId }
-
-    // Trigger OCR (Background)
-    try {
-        // CHECK CREDITS (Billing)
-        const { getCredits, deductCredit } = await import("./billing")
-        const credits = await getCredits()
-        if (credits <= 0) {
-            throw new Error("No tienes créditos OCR suficientes.")
+        if (!extractionResult.success || !extractionResult.data) {
+            throw new Error(extractionResult.error || "OCR extraction failed")
         }
 
-        const { data: signedUrlData, error: signError } = await supabase.storage
-            .from('invoices')
-            .createSignedUrl(filePath, 60)
+        // 8. Normalize to legacy format for UI compatibility
+        const normalizedData = normalizeToScannedData(extractionResult.data)
 
-        if (signError || !signedUrlData?.signedUrl) throw new Error("Could not generate signed URL")
-        const signedUrl = signedUrlData.signedUrl
-
-        const apiKey = process.env.OPENAI_API_KEY
-        if (!apiKey) throw new Error("Server Config Error: Missing OpenAI Key")
-
-        const scannedData = await scanInvoiceWithGPT4o(signedUrl, apiKey)
-
+        // 9. Update Invoice with Results (both normalized for UI + raw for analytics)
         await supabase
             .from('invoices')
             .update({
                 status: 'review_required',
-                scanned_data: scannedData,
-                invoice_number: scannedData.invoice_number,
-                total_amount: scannedData.total_amount,
-                date: scannedData.date,
+                scanned_data: normalizedData,
+                extracted_data: extractionResult.data,
+                confidence_score: extractionResult.data.confidence,
+                invoice_number: extractionResult.data.invoice_number ?? 'PENDING',
+                total_amount: extractionResult.data.total,
+                date: extractionResult.data.date,
                 processed_at: new Date().toISOString()
             })
             .eq('id', invoice.id)
 
-        // Deduct Credit
+        // 10. Deduct Credit (Success)
         await deductCredit(1)
 
         revalidatePath('/invoices')
         return { success: true, invoiceId: invoice.id }
 
     } catch (error: unknown) {
-        console.error("OCR Error:", error)
+        console.error("[Invoice Processing Error]:", error)
         await supabase
             .from('invoices')
             .update({ status: 'error' })
             .eq('id', invoice.id)
+
         return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
     }
 }
+

@@ -4,10 +4,9 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { UploadCloud, Coins, AlertCircle } from "lucide-react"
-import { createInvoiceRecord } from "@/app/actions/invoices"
+import { processInvoice } from "@/app/actions/invoices"
 import { getCredits } from "@/app/actions/billing"
 import { toast } from "sonner"
-import { supabase } from "@/lib/supabaseClient"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function UploadInvoice() {
@@ -44,16 +43,11 @@ export default function UploadInvoice() {
         setIsUploading(true)
 
         try {
-            // 1. Upload to Supabase Storage
-            const fileName = `${Date.now()}-${file.name}`
-            const { data, error } = await supabase.storage
-                .from('invoices')
-                .upload(fileName, file)
+            // 1. Create FormData and process (upload + OCR handled in server action)
+            const formData = new FormData()
+            formData.append('file', file)
 
-            if (error) throw error
-
-            // 2. Create Record in DB & Trigger OCR
-            const result = await createInvoiceRecord(data.path)
+            const result = await processInvoice(formData)
 
             if (!result.success) {
                 throw new Error(result.error)
