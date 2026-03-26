@@ -27,6 +27,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CuentaResultados } from "./CuentaResultados"
 import { DesarrolloNegocio } from "./DesarrolloNegocio"
 import { IANarrativa } from "./IANarrativa"
+import { AiInsightsPanel } from "@/components/shared/AiInsightsPanel"
 import type { DashboardData as ServerDashboardData } from "@/app/actions/resultados"
 import type { FinancialResult, HistoricalData, VarianceAnalysis, BreakEvenData, MonthlyResult } from "@/types/resultados"
 
@@ -1078,6 +1079,32 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
           }}
         />
       </section>
+
+      {/* AI Insights Panel — Notas contextuales + borrador IA */}
+      {dashboardData?.currentMonth?.restaurant_id && (
+        <section aria-label="Notas contextuales e insights IA">
+          <AiInsightsPanel
+            restaurantId={dashboardData.currentMonth.restaurant_id}
+            moduleName="Resultados"
+            periodKey={`${data.currentMonth.month} ${data.currentMonth.year}`}
+            metricsData={{
+              totalIngresos: data.currentMonth.totalIngresos,
+              resultadoNeto: data.currentMonth.resultadoNeto,
+              margenNeto: data.currentMonth.margenNeto,
+              ratioPersonal: data.currentMonth.personal.total / (data.currentMonth.totalIngresos || 1) * 100,
+              ratioMateriaPrima: data.currentMonth.materiaPrima.total / (data.currentMonth.totalIngresos || 1) * 100,
+              momChange,
+              yoyChange,
+              breakEven: data.breakEvenData,
+              varianceAnalysis: {
+                variacionVentas: data.varianceAnalysis.variacionVentas,
+                variacionMargen: data.varianceAnalysis.variacionMargen,
+                variacionGastosFijos: data.varianceAnalysis.variacionGastosFijos,
+              },
+            }}
+          />
+        </section>
+      )}
     </div>
   )
 }

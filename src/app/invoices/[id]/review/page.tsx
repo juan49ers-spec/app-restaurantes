@@ -23,6 +23,12 @@ export default async function InvoiceReviewPage({ params }: PageProps) {
 
     if (!invoice) notFound()
 
+    // DEBUG: inspeccionar qué datos tiene scanned_data en la DB
+    console.log('[DEBUG REVIEW] Invoice ID:', invoice.id)
+    console.log('[DEBUG REVIEW] scanned_data:', JSON.stringify(invoice.scanned_data, null, 2))
+    console.log('[DEBUG REVIEW] extracted_data:', JSON.stringify(invoice.extracted_data, null, 2))
+    console.log('[DEBUG REVIEW] scanned_data.items count:', invoice.scanned_data?.items?.length ?? 'NO ITEMS FIELD')
+
     // 2. Parallelize: signed URL, ingredients, and suppliers
     const [{ data: signedUrlData }, { data: ingredients }, { data: suppliers }] = await Promise.all([
         supabase.storage

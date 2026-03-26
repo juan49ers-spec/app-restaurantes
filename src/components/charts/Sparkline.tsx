@@ -19,7 +19,7 @@ export function Sparkline({ data, width = 100, height = 30, color = "#2563eb" }:
 
     return (
         <div style={{ width, height }}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                 <LineChart data={data}>
                     <YAxis domain={[min, max]} hide />
                     <Tooltip

@@ -91,8 +91,8 @@ export async function addWasteEntry(entry: {
 
     if (wasteError) throw new Error(`Error registrando desperdicio: ${wasteError.message}`)
 
-    // 2. Create stock movement (negative = salida)
-    await supabase.from('stock_movements').insert({
+    // 2. Create stock movement (negative = salida) — best-effort
+    const { error: movError } = await supabase.from('stock_movements').insert({
         restaurant_id: restaurantId,
         ingredient_id: entry.ingredientId,
         type: 'WASTE',
@@ -100,25 +100,30 @@ export async function addWasteEntry(entry: {
         notes: `Desperdicio: ${entry.reason}${entry.notes ? ` - ${entry.notes}` : ''}`,
         date: entry.date
     })
+    if (movError) console.warn('[WasteAction] stock_movements insert failed:', movError.message)
 
-    // 3. Deduct from stock
-    const { data: currentStock } = await supabase
-        .from('inventory_stock')
-        .select('current_qty')
-        .eq('restaurant_id', restaurantId)
-        .eq('ingredient_id', entry.ingredientId)
-        .single()
-
-    if (currentStock) {
-        const newQty = Math.max(0, currentStock.current_qty - entry.quantity)
-        await supabase
+    // 3. Deduct from stock — best-effort (tabla puede no existir aún)
+    try {
+        const { data: currentStock } = await supabase
             .from('inventory_stock')
-            .update({
-                current_qty: newQty,
-                last_updated: new Date().toISOString()
-            })
+            .select('current_qty')
             .eq('restaurant_id', restaurantId)
             .eq('ingredient_id', entry.ingredientId)
+            .single()
+
+        if (currentStock) {
+            const newQty = Math.max(0, currentStock.current_qty - entry.quantity)
+            await supabase
+                .from('inventory_stock')
+                .update({
+                    current_qty: newQty,
+                    last_updated: new Date().toISOString()
+                })
+                .eq('restaurant_id', restaurantId)
+                .eq('ingredient_id', entry.ingredientId)
+        }
+    } catch (stockErr) {
+        console.warn('[WasteAction] inventory_stock deduction failed:', stockErr)
     }
 
     revalidatePath('/desperdicios')
@@ -150,23 +155,27 @@ export async function deleteWasteEntry(id: string) {
 
     if (error) throw new Error(`Error eliminando desperdicio: ${error.message}`)
 
-    // Restore stock
-    const { data: currentStock } = await supabase
-        .from('inventory_stock')
-        .select('current_qty')
-        .eq('restaurant_id', restaurantId)
-        .eq('ingredient_id', entry.ingredient_id)
-        .single()
-
-    if (currentStock) {
-        await supabase
+    // Restore stock — best-effort
+    try {
+        const { data: currentStock } = await supabase
             .from('inventory_stock')
-            .update({
-                current_qty: currentStock.current_qty + entry.quantity,
-                last_updated: new Date().toISOString()
-            })
+            .select('current_qty')
             .eq('restaurant_id', restaurantId)
             .eq('ingredient_id', entry.ingredient_id)
+            .single()
+
+        if (currentStock) {
+            await supabase
+                .from('inventory_stock')
+                .update({
+                    current_qty: currentStock.current_qty + entry.quantity,
+                    last_updated: new Date().toISOString()
+                })
+                .eq('restaurant_id', restaurantId)
+                .eq('ingredient_id', entry.ingredient_id)
+        }
+    } catch (stockErr) {
+        console.warn('[WasteAction] inventory_stock restore failed:', stockErr)
     }
 
     revalidatePath('/desperdicios')

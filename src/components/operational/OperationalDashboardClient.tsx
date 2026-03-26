@@ -1,7 +1,6 @@
-'use client'
-
 // import { useState } from 'react'
 import { OperationalAlert, OperationalKPIs, PendingTask } from '@/app/actions/operational'
+import { SmartPrepList } from '@/components/operations/SmartPrepList'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +16,7 @@ import {
   TrendingUp,
   AlertCircle,
   ArrowRight,
-  RefreshCw
+  Trash2
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -195,40 +194,49 @@ export function OperationalDashboardClient({ alerts, kpis, tasks }: Omit<Props, 
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <QuickActionButton
-              href="/escandallos"
-              icon={Package}
-              label="Ver Ingredientes"
-              description="Gestionar stock"
-            />
-            <QuickActionButton
-              href="/escandallos"
-              icon={ChefHat}
-              label="Ver Recetas"
-              description="Revisar escandallos"
-            />
-            <QuickActionButton
-              href="/menu-engineering"
-              icon={TrendingUp}
-              label="Ingeniería Menú"
-              description="Análisis de rentabilidad"
-            />
-            <QuickActionButton
-              href="/purchasing"
-              icon={RefreshCw}
-              label="Actualizar Precios"
-              description="Importar facturas"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Quick Actions */}
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="text-lg">Acciones Rápidas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                <QuickActionButton
+                  href="/desperdicios"
+                  icon={Trash2}
+                  label="Registrar Merma"
+                  description="Ajustar stock"
+                />
+                <QuickActionButton
+                  href="/escandallos"
+                  icon={Package}
+                  label="Ingredientes"
+                  description="Gestionar stock"
+                />
+                <QuickActionButton
+                  href="/operations/inventory"
+                  icon={CheckCircle2}
+                  label="Inventario"
+                  description="Conteo físico"
+                />
+                <QuickActionButton
+                  href="/menu-engineering"
+                  icon={TrendingUp}
+                  label="Análisis Menú"
+                  description="Rentabilidad"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Smart Prep List */}
+        <div className="lg:col-span-2">
+          <SmartPrepList />
+        </div>
+      </div>
 
       {/* Health Score */}
       <Card className="bg-gradient-to-r from-slate-900 to-slate-800 text-white">
@@ -296,13 +304,7 @@ function KPICard({
               <p className="text-2xl font-bold">{value}</p>
               <div className={cn(
                 "flex items-center text-xs font-medium mb-1",
-                trend === 'up' ? "text-green-600" : "text-red-600",
-                // Invert colors for "bad" metrics where up is bad, but for now assuming standard green=up, red=down
-                // Actually the parent passes color based on logic, so maybe just use that or standard?
-                // Examples pass 'down' when bad (e.g. ingredientsWithoutPrice > 0).
-                // Let's stick to standard up/down icons but color based on context if we want, or just generic.
-                // But wait, "Trend" usually implies direction.
-                // Let's use the icons.
+                trend === 'up' ? "text-green-600" : "text-red-600"
               )}>
                 {trend === 'up' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
               </div>

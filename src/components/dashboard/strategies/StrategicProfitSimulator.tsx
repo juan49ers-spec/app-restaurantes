@@ -176,7 +176,7 @@ export function StrategicProfitSimulator({ currentMetrics }: StrategicProfitSimu
                     {/* Waterfall Chart */}
                     <div className="h-[300px] w-full bg-white/40 dark:bg-black/20 rounded-2xl p-4 border border-white/10 relative">
                         <h4 className="absolute top-4 left-4 text-xs font-bold uppercase tracking-widest opacity-50">Puente de Rentabilidad</h4>
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                             <BarChart data={waterfallData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, opacity: 0.7 }} />

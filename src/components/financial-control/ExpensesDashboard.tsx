@@ -22,6 +22,7 @@ import { exportExpensesToCSV } from "@/lib/export-utils"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { AiInsightsPanel } from "@/components/shared/AiInsightsPanel"
 
 interface ExpensesDashboardProps {
     data: ExpenseDashboardData
@@ -308,6 +309,28 @@ export function ExpensesDashboard({ data, restaurantId }: ExpensesDashboardProps
                     </m.div>
                 </>
             )}
+
+            {/* AI Insights Panel */}
+            <m.div variants={item}>
+                <AiInsightsPanel
+                    restaurantId={restaurantId}
+                    moduleName="Gastos"
+                    periodKey={data.history.length > 0 ? data.history[data.history.length - 1].month : "current"}
+                    metricsData={{
+                        totalExpenses: data.kpis.totalExpensesExcludingCAPEX,
+                        momVariation: data.kpis.momVariation,
+                        personalRatio: data.kpis.personalRatio,
+                        cogsRatio: data.kpis.cogsRatio,
+                        expenseToSalesRatio: data.kpis.expenseToSalesRatio,
+                        topCategories: data.categories.slice(0, 5).map(c => ({
+                            category: c.category,
+                            amount: c.amount,
+                            weight: c.weight,
+                            momVariation: c.momVariation,
+                        })),
+                    }}
+                />
+            </m.div>
 
             <ExpensesFormModal
                 isOpen={isFormOpen}

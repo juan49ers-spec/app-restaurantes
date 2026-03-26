@@ -15,9 +15,9 @@
 
 ## 🧠 Shared Memory (Shadow Brain)
 
-- **Last Sync**: 2026-02-16
-- **Completed**: Refactored `financial-control.ts` for type safety, extracted `fiscal-utils.ts`, simplified `TaxPulse.tsx`, and fixed critical regressions in `ExecutiveDashboard`.
-- **Urgent**: Performance check on the new intelligence metrics when scaling to multiple restaurants.
+- **Last Sync**: 2026-03-26
+- **Completed**: Reparado error de trigger en base de datos (columna `updated_at` faltante). Implementado Pipeline OCR v2.1 con escala 2.0x, logs de observabilidad y fallback híbrido Chandra-Ollama.
+- **Urgent**: Validar si la escala 2.0x es estable bajo carga real o si produce errores de timeout/payload en el servidor de desarrollo.
 
 ---
 *Este dashboard es la verdad única compartida entre Antigravity y Opencode.*

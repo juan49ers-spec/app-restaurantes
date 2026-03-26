@@ -106,7 +106,7 @@ export function MetricDetailDialog({ title, value, subValue, trend, data, color,
                 </div>
 
                 <div className="h-[250px] w-full mt-4 bg-background border rounded-xl p-4">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                         <AreaChart data={chartData}>
                             <defs>
                                 <linearGradient id={`gradient-detail-${title}`} x1="0" y1="0" x2="0" y2="1">

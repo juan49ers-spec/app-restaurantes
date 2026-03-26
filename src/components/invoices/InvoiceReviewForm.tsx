@@ -38,7 +38,7 @@ export function InvoiceReviewForm({ invoice, ingredients, suppliers }: InvoiceRe
         supplier_id: invoice.supplier_id || '',
         total_amount: invoice.total_amount || invoice.scanned_data?.total_amount || 0,
         items: (invoice.scanned_data?.items || []) as ScannedItem[],
-        idempotency_key: crypto.randomUUID()
+        // removed idempotency_key to prevent hydration mismatch on server vs client
     })
 
     const [mappings, setMappings] = useState<{ [key: number]: string }>(() => {
@@ -274,7 +274,7 @@ export function InvoiceReviewForm({ invoice, ingredients, suppliers }: InvoiceRe
 
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto">
+        <div suppressHydrationWarning className="space-y-6 max-w-6xl mx-auto">
             {/* Header Data Card */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">

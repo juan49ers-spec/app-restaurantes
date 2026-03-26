@@ -392,7 +392,7 @@ export function DesarrolloNegocio({
             {/* Gráfico avanzado */}
             <div className="bg-white rounded-xl border border-neutral-200 p-4">
                 <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                         <ComposedChart
                             data={chartData}
                             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

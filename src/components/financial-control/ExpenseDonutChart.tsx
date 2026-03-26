@@ -129,7 +129,7 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
             <CardContent className="p-4 space-y-4">
                 {/* Donut */}
                 <div className="relative h-[200px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                         <PieChart>
                             <Pie
                                 data={activeData}

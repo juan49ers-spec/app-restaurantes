@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
-import { extractInvoiceData, ExtractedInvoiceData } from "@/lib/invoice-extractor"
+import { extractInvoiceData, ExtractedInvoiceData } from "@/lib/invoice-extractor-v2"
 import { InvoiceStatus, Invoice } from "@/types/schema"
 import { revalidatePath } from "next/cache"
 
@@ -47,12 +47,15 @@ export async function getInvoices() {
 
 
 export async function processInvoice(formData: FormData) {
+    console.log('========= [processInvoice] FUNCTION CALLED =========')
     const supabase = await createClient()
     const file = formData.get('file') as File
+    console.log('[processInvoice] File:', file?.name, 'Size:', file?.size, 'Type:', file?.type)
 
     // 1. Auth Check
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("Unauthorized")
+    console.log('[processInvoice] Step 1: Auth OK, user:', user.id)
 
     if (!file) throw new Error("No file attached")
 
@@ -66,6 +69,7 @@ export async function processInvoice(formData: FormData) {
         .upload(filePath, file)
 
     if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`)
+    console.log('[processInvoice] Step 2: Upload OK, path:', filePath)
 
     // 3. Create Invoice Record (Processing)
     // We need restaurant_id. Let's fetch it or use active one.
@@ -91,24 +95,33 @@ export async function processInvoice(formData: FormData) {
             total_amount: 0,
             status: 'processing' as InvoiceStatus,
             file_url: filePath,
-            created_by: user.id,
-            user_id: user.id,
             created_at: new Date().toISOString()
         })
 
     if (dbError) throw new Error(`DB Insert failed: ${dbError.message}`)
+    console.log('[processInvoice] Step 3: DB Insert OK, id:', newInvoiceId)
 
     const invoice = { id: newInvoiceId }
 
 
 
+    let shouldDeductCredit = false
     try {
-        // 4. CHECK CREDITS (Billing)
-        const { getCredits, deductCredit } = await import("./billing")
-        const credits = await getCredits()
-        if (credits <= 0) {
-            throw new Error("No tienes créditos OCR suficientes. Recarga para continuar.")
+        // 4. CHECK CREDITS (Billing) — soft-fail para no bloquear el pipeline
+        let deductCredit: ((n: number) => Promise<boolean>) | null = null
+        try {
+            const billing = await import("./billing")
+            const credits = await billing.getCredits()
+            if (credits > 0) {
+                shouldDeductCredit = true
+                deductCredit = billing.deductCredit
+            } else {
+                console.warn("[Billing] 0 créditos OCR — procesando igualmente (dev mode)")
+            }
+        } catch (billingErr) {
+            console.warn("[Billing] Error al verificar créditos, continuando:", billingErr)
         }
+        console.log('[processInvoice] Step 4: Billing check done, shouldDeduct:', shouldDeductCredit)
 
         // 5. Download file from Storage as Buffer
         const { data: fileBuffer, error: downloadError } = await supabase.storage
@@ -116,38 +129,56 @@ export async function processInvoice(formData: FormData) {
             .download(filePath)
 
         if (downloadError || !fileBuffer) throw new Error("Could not download file from storage")
+        console.log('[processInvoice] Step 5: Download OK, size:', fileBuffer.size)
 
         // 6. Convert Blob to Buffer
         const arrayBuffer = await fileBuffer.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
-        // 7. Call Motor A (Ollama/Anthropic/Mock based on OCR_PROVIDER)
+        // 7. Call Motor V2 (Chandra/Gemini/Claude/Ollama with smart fallback)
         const extractionResult = await extractInvoiceData(buffer, file.type, file.name)
 
         if (!extractionResult.success || !extractionResult.data) {
+            console.error('[processInvoice] Step 7: OCR FAILED:', extractionResult.error)
             throw new Error(extractionResult.error || "OCR extraction failed")
         }
+        
+        console.log('[processInvoice] Step 7: OCR OK')
+        console.log(`[processInvoice] Provider: ${extractionResult.provider_used}`)
+        console.log(`[processInvoice] Confidence: ${extractionResult.data.confidence}`)
+        console.log(`[processInvoice] Items: ${extractionResult.data.items?.length}`)
+        console.log(`[processInvoice] Total: ${extractionResult.data.total}`)
+        console.log(`[processInvoice] Processing time: ${extractionResult.processing_time_ms}ms`)
 
         // 8. Normalize to legacy format for UI compatibility
         const normalizedData = normalizeToScannedData(extractionResult.data)
+        console.log(`[OCR Process] Normalized ${normalizedData.items.length} items`);
 
-        // 9. Update Invoice with Results (both normalized for UI + raw for analytics)
-        await supabase
+        // 9. Update Invoice with Results (including new OCR metadata fields)
+        const { data: updatedData, error: updateError } = await supabase
             .from('invoices')
             .update({
-                status: 'review_required',
+                status: 'review_required' as InvoiceStatus,
                 scanned_data: normalizedData,
-                extracted_data: extractionResult.data,
-                confidence_score: extractionResult.data.confidence,
                 invoice_number: extractionResult.data.invoice_number ?? 'PENDING',
                 total_amount: extractionResult.data.total,
                 date: extractionResult.data.date,
-                processed_at: new Date().toISOString()
+                ocr_provider: extractionResult.provider_used,
+                ocr_confidence: extractionResult.data.confidence
             })
             .eq('id', invoice.id)
+            .select()
+            .single()
 
-        // 10. Deduct Credit (Success)
-        await deductCredit(1)
+        if (updateError || !updatedData) {
+            console.error("[Supabase Update Error]:", updateError)
+            throw new Error(`Failed to update invoice: ${updateError?.message || 'No data returned after update'}`)
+        }
+
+        // 10. Deduct Credit (Success) — solo si billing está activo
+        if (shouldDeductCredit && deductCredit) {
+            await deductCredit(1)
+        }
 
         revalidatePath('/invoices')
         return { success: true, invoiceId: invoice.id }
@@ -158,6 +189,126 @@ export async function processInvoice(formData: FormData) {
             .from('invoices')
             .update({ status: 'error' })
             .eq('id', invoice.id)
+
+        return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
+    }
+}
+
+// ── Batch Operations ──
+
+export async function batchUpdateInvoiceStatus(ids: string[], status: InvoiceStatus) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Unauthorized" }
+
+    if (ids.length === 0) return { success: false, error: "No invoices selected" }
+
+    const { error } = await supabase
+        .from('invoices')
+        .update({ status })
+        .in('id', ids)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/invoices')
+    return { success: true, count: ids.length }
+}
+
+export async function deleteInvoice(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Unauthorized" }
+
+    // Borrar archivo de Storage primero
+    const { data: invoice } = await supabase
+        .from('invoices')
+        .select('file_url')
+        .eq('id', id)
+        .single()
+
+    if (invoice?.file_url) {
+        await supabase.storage.from('invoices').remove([invoice.file_url])
+    }
+
+    const { error } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('id', id)
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/invoices')
+    return { success: true }
+}
+
+export async function reprocessInvoice(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Unauthorized" }
+
+    const { data: invoice } = await supabase
+        .from('invoices')
+        .select('file_url')
+        .eq('id', id)
+        .single()
+
+    if (!invoice?.file_url) return { success: false, error: "No file found for this invoice" }
+
+    // Reset status a processing
+    await supabase
+        .from('invoices')
+        .update({ status: 'processing' as InvoiceStatus })
+        .eq('id', id)
+
+    try {
+        const { data: fileBuffer, error: downloadError } = await supabase.storage
+            .from('invoices')
+            .download(invoice.file_url)
+
+        if (downloadError || !fileBuffer) throw new Error("Could not download file from storage")
+
+        const arrayBuffer = await fileBuffer.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        const fileExt = invoice.file_url.split('.').pop() || 'pdf'
+        const mimeType = fileExt === 'pdf' ? 'application/pdf' : `image/${fileExt}`
+
+        const extractionResult = await extractInvoiceData(buffer, mimeType, `reprocess.${fileExt}`)
+
+        if (!extractionResult.success || !extractionResult.data) {
+            throw new Error(extractionResult.error || "OCR extraction failed")
+        }
+
+        const normalizedData = normalizeToScannedData(extractionResult.data)
+
+        const { data: updatedData, error: updateError } = await supabase
+            .from('invoices')
+            .update({
+                status: 'review_required' as InvoiceStatus,
+                scanned_data: normalizedData,
+                invoice_number: extractionResult.data.invoice_number ?? 'PENDING',
+                total_amount: extractionResult.data.total,
+                date: extractionResult.data.date,
+                ocr_provider: extractionResult.provider_used,
+                ocr_confidence: extractionResult.data.confidence
+            })
+            .eq('id', id)
+            .select()
+            .single()
+
+        if (updateError || !updatedData) {
+            console.error("[Supabase Update Error]:", updateError)
+            throw new Error(`Failed to update invoice: ${updateError?.message || 'No data returned after update'}`)
+        }
+
+        revalidatePath('/invoices')
+        return { success: true }
+
+    } catch (error: unknown) {
+        console.error('[Reprocess Error]:', error)
+        await supabase
+            .from('invoices')
+            .update({ status: 'error' as InvoiceStatus })
+            .eq('id', id)
 
         return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
     }

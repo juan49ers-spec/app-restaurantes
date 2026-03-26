@@ -44,7 +44,7 @@ export function SpendTrendChart({ data }: SpendTrendChartProps) {
             </CardHeader>
             <CardContent>
                 <div className="h-[280px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                         <ComposedChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                             <XAxis

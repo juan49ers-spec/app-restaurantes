@@ -1,18 +1,7 @@
-/* Optimizaciones de Rendimiento - Content Visibility y Animaciones */
-
-/* Content Visibility para contenido off-screen */
-.optimized-list {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 500px;
-}
-
-.optimized-card {
-  contain: layout style paint;
-}
+/* Optimizaciones de Rendimiento - Animaciones y Transiciones */
 
 /* Optimizaciones de animación - usar transforms en lugar de propiedades de layout */
 .animate-optimized {
-  will-change: transform, opacity;
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -27,61 +16,23 @@
   }
 }
 
-/* Reducir repintados usando transform en lugar de top/left */
-.modal-overlay {
-  transform: translateZ(0);
-  will-change: opacity;
-}
-
-/* Optimizar scrolling con contain */
-.scrollable-container {
-  contain: strict;
-  overflow-y: auto;
-}
-
 /* GPU acceleration para animaciones frecuentes */
 .gpu-accelerated {
-  transform: translate3d(0, 0, 0);
+  transform: translateZ(0);
   backface-visibility: hidden;
-  perspective: 1000px;
 }
 
 /* Optimizar layout shifts */
 .metric-card {
-  contain: layout;
   min-height: 120px;
-}
-
-/* Reducir área de repaint para tooltips */
-.tooltip {
-  contain: paint style;
-  position: fixed;
-}
-
-/* Optimizar tablas grandes */
-.data-table {
-  contain: strict;
-}
-
-.data-table tbody {
-  contain: content;
-}
-
-.data-table tr {
-  contain: layout style;
 }
 
 /* Lazy loading de imágenes */
 img[loading="lazy"] {
-  content-visibility: auto;
+  loading: lazy;
 }
 
 /* Optimizar transiciones */
 .fast-transition {
   transition: opacity 150ms ease-out, transform 150ms ease-out;
-}
-
-/* Evitar layout thrashing */
-.batched-updates * {
-  contain: style;
 }

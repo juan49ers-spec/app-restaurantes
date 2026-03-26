@@ -11,6 +11,7 @@ import { m } from "framer-motion"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
 import { cn } from "@/lib/utils"
 import { format, parseISO, isValid } from "date-fns"
+import { AiInsightsPanel } from "@/components/shared/AiInsightsPanel"
 
 interface ImpuestosDashboardProps {
     restaurantId: string;
@@ -325,6 +326,26 @@ export function ImpuestosDashboard({ restaurantId }: ImpuestosDashboardProps) {
                 </div>
             )}
 
+            {/* AI Insights Panel */}
+            <AiInsightsPanel
+                restaurantId={restaurantId}
+                moduleName="Impuestos"
+                periodKey={periodLabel}
+                metricsData={{
+                    ivaByMonth: data?.ivaByMonth || [],
+                    irpfByConcept: data?.irpfByConcept || [],
+                    annualIS: annualISData ? {
+                        bai: annualISData.bai,
+                        totalIngresos: annualISData.totalIngresos,
+                        totalGastos: annualISData.totalGastos,
+                        projectedAnnualBAI: annualISData.projectedAnnualBAI,
+                        monthsClosed: annualISData.monthsClosed,
+                        isRate,
+                    } : null,
+                    viewMode,
+                }}
+            />
+
             {/* Footer info */}
             <div className="flex items-center justify-center gap-2 py-4">
                 <FileText className="w-3.5 h-3.5 text-neutral-400" />
@@ -503,7 +524,7 @@ function IVAChart({ data, periodLabel }: {
                 </div>
             </div>
 
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height={200}>
                 <BarChart data={chartData} barGap={4} barCategoryGap="30%">
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} width={36} />

@@ -585,7 +585,9 @@ export const WasteLogSchema = z.object({
     ingredient_id: z.string().uuid(),
     date: z.string(), // ISO Date YYYY-MM-DD
     quantity: z.number().positive(), // Siempre positivo (cantidad perdida)
+    unit_cost_snapshot: z.number().min(0).default(0),
     reason: WasteReasonSchema.default('OTRO'),
+    employee_name: z.string().optional().nullable(),
     notes: z.string().optional(),
     created_at: z.string().optional()
 });
@@ -620,3 +622,35 @@ export const DriveSyncConfigSchema = z.object({
 });
 
 export type DriveSyncConfig = z.infer<typeof DriveSyncConfigSchema>;
+
+// 20. Inventory Sessions & Counts (Pilar 1: Control de Inventario)
+export const InventorySessionStatusSchema = z.enum(['draft', 'completed']);
+export type InventorySessionStatus = z.infer<typeof InventorySessionStatusSchema>;
+
+export const InventorySessionSchema = z.object({
+    id: z.string().uuid().optional(),
+    restaurant_id: z.string().uuid(),
+    date: z.string(), // ISO Date YYYY-MM-DD
+    status: InventorySessionStatusSchema.default('draft'),
+    notes: z.string().optional(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+    completed_at: z.string().optional()
+});
+
+export type InventorySession = z.infer<typeof InventorySessionSchema>;
+
+export const InventoryCountSchema = z.object({
+    id: z.string().uuid().optional(),
+    session_id: z.string().uuid(),
+    ingredient_id: z.string().uuid(),
+    quantity: z.number().min(0).default(0),
+    unit_price_snapshot: z.number().min(0).default(0),
+    category: z.string().optional(), // Denormalized for rapid filtering
+    created_at: z.string().optional(),
+    updated_at: z.string().optional()
+});
+
+export type InventoryCount = z.infer<typeof InventoryCountSchema>;
+
+

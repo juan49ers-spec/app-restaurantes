@@ -8,13 +8,15 @@
  * Si no hay ninguno configurado, devuelve un mock para desarrollo sin dependencia externa.
  */
 
-import { generateText } from "ai";
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface ExtractedInvoiceData {
     type: "VENTA" | "GASTO";
     supplier_name?: string;
+    cif?: string;
+    currency?: string;
     invoice_number?: string;
     date: string; // YYYY-MM-DD
     items: Array<{
@@ -71,7 +73,7 @@ SCHEMA JSON que debes devolver:
   "supplier_name": "string o null",
   "invoice_number": "string o null",
   "date": "YYYY-MM-DD",
-  "items": [{"description": "...", "quantity": 1, "unit_price": 0, "total": 0, "category": "..."}],
+  "items": [{"description": "nombre producto", "quantity": 1, "unit_price": 0, "total": 0, "category": "..."}], // IMPORTANTE: EXTRAE TODAS LAS LÍNEAS. Nunca lo dejes vacío.
   "subtotal": 0,
   "tax_rate": 10,
   "tax_amount": 0,
@@ -81,39 +83,9 @@ SCHEMA JSON que debes devolver:
   "confidence": 0.85
 }`;
 
-// ─── Model Resolver (Strategy Pattern) ──────────────────────────────────────
 
 type OCRProvider = "ollama" | "anthropic";
 
-/**
- * Resuelve dinámicamente qué modelo de IA usar según OCR_PROVIDER.
- * Importaciones lazy para no cargar SDKs innecesarios en memoria.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function resolveModel(): Promise<{ model: any; provider: OCRProvider }> {
-    const provider = (process.env.OCR_PROVIDER || "mock") as OCRProvider | "mock";
-
-    if (provider === "ollama") {
-        const { createOllama } = await import("ollama-ai-provider");
-        const modelName = process.env.OLLAMA_MODEL || "glm-ocr";
-        const baseURL = process.env.OLLAMA_BASE_URL || "http://localhost:11434/api";
-
-        const ollama = createOllama({ baseURL });
-        console.log(`[OCR] Usando Ollama local → modelo: ${modelName}, url: ${baseURL}`);
-        return { model: ollama(modelName), provider: "ollama" };
-    }
-
-    if (provider === "anthropic") {
-        const Anthropic = await import("@ai-sdk/anthropic");
-        const modelName = process.env.ANTHROPIC_MODEL || "claude-3-5-haiku-latest";
-
-        console.log(`[OCR] Usando Anthropic cloud → modelo: ${modelName}`);
-        return { model: Anthropic.anthropic(modelName), provider: "anthropic" };
-    }
-
-    // Si no hay proveedor configurado, lanzar error controlado que será capturado como mock
-    throw new Error("API key");
-}
 
 // ─── Extractor Principal ─────────────────────────────────────────────────────
 
@@ -123,8 +95,6 @@ export async function extractInvoiceData(
     fileName: string
 ): Promise<ExtractionResult> {
     try {
-        const base64Image = fileBuffer.toString("base64");
-
         // Validar tipo MIME
         const supportedMimes = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
         if (!supportedMimes.includes(mimeType)) {
@@ -134,33 +104,108 @@ export async function extractInvoiceData(
             };
         }
 
-        // Resolver el modelo según la configuración actual
-        const { model, provider } = await resolveModel();
+        // Si es PDF, renderizar la primera página como PNG (Ollama solo acepta imágenes)
+        let processableBuffer = fileBuffer;
+        const provider = (process.env.OCR_PROVIDER || "mock") as OCRProvider | "mock";
+        
+        if (mimeType === "application/pdf") {
+            console.log("[OCR] PDF detectado, convirtiendo a PNG...");
+            try {
+                const { convertPdfToImage } = await import("@/lib/pdf-converter");
+                processableBuffer = await convertPdfToImage(fileBuffer, 1.5);
+                console.log(`[OCR] PDF → PNG exitoso: ${processableBuffer.length} bytes`);
+            } catch (pdfErr) {
+                console.error("[OCR] Error convirtiendo PDF:", pdfErr);
+                return {
+                    success: false,
+                    error: `Error convirtiendo PDF a imagen: ${(pdfErr as Error).message}`,
+                };
+            }
+        }
 
-        const mediaType = mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+        const base64Image = processableBuffer.toString("base64");
 
-        console.log(`[OCR] Procesando "${fileName}" con ${provider}...`);
+        let text: string;
 
-        const { text } = await generateText({
-            model,
-            system: EXTRACTION_SYSTEM_PROMPT,
-            messages: [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "image",
-                            image: `data:${mediaType};base64,${base64Image}`,
-                        },
-                        {
-                            type: "text",
-                            text: `Analiza esta factura/ticket llamada "${fileName}" y extrae todos los datos financieros en el formato JSON especificado.`,
-                        },
-                    ],
-                },
-            ],
-            temperature: 0.1,
-        });
+        if (provider === "ollama") {
+            // Llamada directa a la API REST de Ollama (bypassa el SDK que es incompatible con AI SDK v6)
+            const modelName = process.env.OLLAMA_MODEL || "glm-ocr";
+            const baseURL = (process.env.OLLAMA_BASE_URL || "http://localhost:11434/api").replace(/\/api$/, '');
+
+            console.log(`[OCR] Usando Ollama local (REST API) → modelo: ${modelName}, url: ${baseURL}`);
+            console.log(`[OCR] Imagen base64 size: ${base64Image.length} chars`);
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8 * 60 * 1000); // 8 min timeout para PDFs
+
+            try {
+                const response = await fetch(`${baseURL}/api/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        model: modelName,
+                        messages: [
+                            {
+                                role: "system",
+                                content: EXTRACTION_SYSTEM_PROMPT,
+                            },
+                            {
+                                role: "user",
+                                content: `Analiza esta factura/ticket llamada "${fileName}" y extrae todos los datos financieros en el formato JSON especificado.`,
+                                images: [base64Image],
+                            },
+                        ],
+                        stream: false,
+                        options: { temperature: 0.1 },
+                    }),
+                });
+
+                clearTimeout(timeout);
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`Ollama API error (${response.status}): ${errText}`);
+                }
+
+                const result = await response.json();
+                text = result.message?.content || "";
+                console.log(`[OCR] Ollama raw response length: ${text.length} chars`);
+            } catch (fetchErr) {
+                clearTimeout(timeout);
+                throw fetchErr;
+            }
+
+        } else if (provider === "anthropic") {
+            // Anthropic via AI SDK (compatible con v2 spec)
+            const { generateText } = await import("ai");
+            const Anthropic = await import("@ai-sdk/anthropic");
+            const modelName = process.env.ANTHROPIC_MODEL || "claude-3-5-haiku-latest";
+            const mediaType = mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+
+            console.log(`[OCR] Usando Anthropic cloud → modelo: ${modelName}`);
+
+            const aiResult = await generateText({
+                model: Anthropic.anthropic(modelName),
+                system: EXTRACTION_SYSTEM_PROMPT,
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            { type: "image", image: `data:${mediaType};base64,${base64Image}` },
+                            { type: "text", text: `Analiza esta factura/ticket llamada "${fileName}" y extrae todos los datos financieros en el formato JSON especificado.` },
+                        ],
+                    },
+                ],
+                temperature: 0.1,
+            });
+            text = aiResult.text;
+
+        } else {
+            // Sin proveedor configurado → mock
+            console.warn("[OCR] Sin proveedor configurado, retornando mock de desarrollo");
+            return createMockExtraction(fileName);
+        }
 
         // Parsear la respuesta JSON
         const cleanedText = text
@@ -178,7 +223,7 @@ export async function extractInvoiceData(
             };
         }
 
-        console.log(`[OCR] ✅ Extracción exitosa (${provider}): confianza ${parsed.confidence}`);
+        console.log(`[OCR] ✅ Extracción exitosa (${provider}): ${parsed.items?.length || 0} items, total: ${parsed.total}, confianza: ${parsed.confidence}`);
         return {
             success: true,
             data: parsed,
@@ -186,12 +231,7 @@ export async function extractInvoiceData(
         };
     } catch (err: unknown) {
         const error = err as Error;
-
-        // Si no hay proveedor/API key configurado, devolver mock para desarrollo local
-        if (error.message?.includes("API key") || error.message?.includes("401")) {
-            console.warn("[OCR] Sin proveedor configurado, retornando mock de desarrollo");
-            return createMockExtraction(fileName);
-        }
+        console.error(`[OCR] ❌ Error:`, error.message);
 
         return {
             success: false,

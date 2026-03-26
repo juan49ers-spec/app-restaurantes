@@ -69,7 +69,7 @@ export function CostEvolutionChart({ data, currentCost, title = "Evolución de C
             </CardHeader>
             <CardContent>
                 <div className="h-[200px] w-full mt-4">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                         <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                             <XAxis

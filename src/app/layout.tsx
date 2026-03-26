@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabaseServer"
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import "./driver-theme.css";
-import "./performance.css";
+// import "./driver-theme.css";
+// import "./performance.css";
 import { Toaster } from "@/components/ui/sonner"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MotionProvider } from "@/components/providers/MotionProvider"

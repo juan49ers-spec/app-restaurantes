@@ -6,10 +6,12 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['canvas', '@napi-rs/canvas', 'pdfjs-dist', 'unpdf'],
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
   experimental: {
+
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-icons',

@@ -158,7 +158,7 @@ export function BillingDrillDownModal({ data, isOpen, onClose }: BillingDrillDow
                                     transition={{ delay: 0.2 }}
                                     className="h-[380px] w-full bg-white/40 backdrop-blur-sm p-6 rounded-[2rem] border border-neutral-200/60 shadow-inner"
                                 >
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                                         <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(229, 231, 235, 0.4)" />
                                             <XAxis

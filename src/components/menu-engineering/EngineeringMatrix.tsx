@@ -470,7 +470,7 @@ export function EngineeringMatrix({ items, avgPopularity, avgMargin }: Engineeri
 
                 {/* Main Chart Area */}
                 <div className="flex-1 w-full min-h-[400px] relative z-0">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                         <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" opacity={0.05} stroke="#fff" />
 

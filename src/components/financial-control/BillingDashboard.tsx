@@ -274,7 +274,7 @@ function DashboardContent({ data, viewMode, periodLabel, onOpenTargetModal, onOp
                     </div>
 
                     <div className="h-[320px] w-full mt-2">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                             <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorNeta" x1="0" y1="0" x2="0" y2="1">
@@ -445,7 +445,7 @@ function PrimaryKPI({ label, value, subtext, data, delay = 0 }: { label: string,
             className="bg-white rounded-3xl p-6 flex flex-col relative overflow-hidden shadow-sm border border-neutral-200/60 h-full"
         >
             <div className="absolute bottom-0 left-0 right-0 h-[50%] opacity-40 pointer-events-none origin-bottom translate-y-2">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
                     <LineChart data={data}>
                         <Line type="basis" dataKey="Neta" stroke="#94a3b8" strokeWidth={2} dot={false} isAnimationActive={true} animationDuration={2000} />
                     </LineChart>
