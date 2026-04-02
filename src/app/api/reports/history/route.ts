@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
+const getSupabaseAdmin = () => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "restaurant_id requerido" }, { status: 400 });
         }
 
-        const { data, error } = await supabaseAdmin
+        const { data, error } = await getSupabaseAdmin()
             .from("report_imports")
             .select("id, month_key, file_name, source, status, confidence, expenses_inserted, sales_inserted, discrepancies, errors, created_at")
             .eq("restaurant_id", restaurantId)

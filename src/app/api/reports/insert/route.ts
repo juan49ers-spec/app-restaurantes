@@ -6,10 +6,7 @@ import {
     type ExtractedMonthlyReport,
 } from "@/lib/report-extractor";
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const getSupabaseAdmin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 /**
  * POST /api/reports/insert
@@ -45,7 +42,7 @@ export async function POST(request: Request) {
 
         // Insertar gastos
         if (expenses.length > 0) {
-            const { error: expError } = await supabaseAdmin
+            const { error: expError } = await getSupabaseAdmin()
                 .from("operating_expenses")
                 .insert(expenses);
 
@@ -57,7 +54,7 @@ export async function POST(request: Request) {
         }
 
         // Insertar resumen de ventas
-        const { error: salesError } = await supabaseAdmin
+        const { error: salesError } = await getSupabaseAdmin()
             .from("daily_sales")
             .insert(salesSummary);
 
@@ -69,7 +66,7 @@ export async function POST(request: Request) {
 
         // Log import in history table (best-effort, don't fail if table doesn't exist)
         try {
-            await supabaseAdmin.from("report_imports").insert({
+            await getSupabaseAdmin().from("report_imports").insert({
                 restaurant_id,
                 month_key: report.month,
                 file_name: file_name || `informe_${report.month}.pdf`,

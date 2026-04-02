@@ -6,7 +6,7 @@ import {
     reportToDailySalesSummary,
 } from "@/lib/report-extractor";
 
-const supabaseAdmin = createClient(
+const getSupabaseAdmin = () => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
             // Insertar gastos
             if (expenses.length > 0) {
-                const { error: expError, count } = await supabaseAdmin
+                const { error: expError, count } = await getSupabaseAdmin()
                     .from("operating_expenses")
                     .insert(expenses, { count: "exact" });
 
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
             }
 
             // Insertar resumen de ventas
-            const { error: salesError } = await supabaseAdmin
+            const { error: salesError } = await getSupabaseAdmin()
                 .from("daily_sales")
                 .insert(salesSummary);
 

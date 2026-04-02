@@ -5,10 +5,7 @@ import { extractInvoiceData } from '@/lib/invoice-extractor';
 import { extractMonthlyReport, reportToOperatingExpenses, reportToDailySalesSummary } from '@/lib/report-extractor';
 
 // Usar el cliente admin porque esto corre en background (cron) sin usuario autenticado
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const getSupabaseAdmin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 export const maxDuration = 300; // 5 minutos máximo para Vercel Functions
 // export const dynamic = 'force-dynamic'; // Asegura que siempre se ejecute si es llamado
@@ -27,7 +24,7 @@ export async function GET(request: Request) {
         console.log('[DRIVE-SYNC] Iniciando sincronización de Inboxes...');
 
         // 2. Obtener TODAS las configuraciones activas de restaurantes
-        const { data: configs, error: configError } = await supabaseAdmin
+        const { data: configs, error: configError } = await getSupabaseAdmin()
             .from('drive_sync_config')
             .select(`
                 id, restaurant_id, inbox_folder_id, processed_folder_id, review_folder_id
@@ -78,20 +75,20 @@ export async function GET(request: Request) {
                                 let reportErrors: string[] = [];
 
                                 if (expenses.length > 0) {
-                                    const { error: expErr } = await supabaseAdmin
+                                    const { error: expErr } = await getSupabaseAdmin()
                                         .from('operating_expenses')
                                         .insert(expenses);
                                     if (expErr) reportErrors.push(`Expenses: ${expErr.message}`);
                                 }
 
-                                const { error: salesErr } = await supabaseAdmin
+                                const { error: salesErr } = await getSupabaseAdmin()
                                     .from('daily_sales')
                                     .insert(salesSummary);
                                 if (salesErr) reportErrors.push(`Sales: ${salesErr.message}`);
 
                                 // Log in report_imports
                                 try {
-                                    await supabaseAdmin.from('report_imports').insert({
+                                    await getSupabaseAdmin().from('report_imports').insert({
                                         restaurant_id: config.restaurant_id,
                                         month_key: report.month,
                                         file_name: file.name,
@@ -145,7 +142,7 @@ export async function GET(request: Request) {
 
                                 // INSERTAR EN TABLA CORRESPONDIENTE
                                 if (data.type === 'GASTO') {
-                                    const { error: insertError } = await supabaseAdmin
+                                    const { error: insertError } = await getSupabaseAdmin()
                                         .from('operating_expenses')
                                         .insert({
                                             restaurant_id: config.restaurant_id,
@@ -162,7 +159,7 @@ export async function GET(request: Request) {
                                         });
                                     if (insertError) throw new Error(`DB Insert Error (Expense): ${insertError.message}`);
                                 } else if (data.type === 'VENTA') {
-                                    const { error: insertError } = await supabaseAdmin
+                                    const { error: insertError } = await getSupabaseAdmin()
                                         .from('daily_sales')
                                         .insert({
                                             restaurant_id: config.restaurant_id,
@@ -200,7 +197,7 @@ export async function GET(request: Request) {
                         }
 
                         // Guardar el registro de log de la factura
-                        await supabaseAdmin.from('invoices').insert(invoiceRecord);
+                        await getSupabaseAdmin().from('invoices').insert(invoiceRecord);
 
                     } catch (fileErr) {
                         const err = fileErr as Error;
@@ -208,7 +205,7 @@ export async function GET(request: Request) {
                         errorCount++;
                         // Intentar registrar el error crítico si es posible
                         try {
-                            await supabaseAdmin.from('invoices').insert({
+                            await getSupabaseAdmin().from('invoices').insert({
                                 restaurant_id: config.restaurant_id,
                                 drive_file_id: file.id,
                                 drive_file_name: file.name,
@@ -225,7 +222,7 @@ export async function GET(request: Request) {
                 } // Fin for de archivos
 
                 // Update last_sync_at
-                await supabaseAdmin
+                await getSupabaseAdmin()
                     .from('drive_sync_config')
                     .update({ last_sync_at: new Date().toISOString() })
                     .eq('id', config.id);

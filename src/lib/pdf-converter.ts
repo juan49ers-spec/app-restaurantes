@@ -6,7 +6,7 @@
  * funcionan sin problemas de bundling.
  */
 
-import { execFile } from 'child_process';
+
 import { join } from 'path';
 import { writeFileSync, readFileSync, unlinkSync } from 'fs';
 import { tmpdir } from 'os';
@@ -33,12 +33,15 @@ export async function convertPdfToImage(
         // Ejecutar conversión en proceso hijo de Node.js puro
         // Usar import.meta.url para obtener la ruta del script relativa al archivo actual
         const scriptsDir = join(process.cwd(), 'scripts');
-        const scriptPath = join(scriptsDir, 'pdf-to-png.mjs');
+        const scriptFile = 'pdf-to-png.mjs';
+        const scriptPath = join(scriptsDir, scriptFile);
         
         await new Promise<void>((resolve, reject) => {
-            execFile('node', [scriptPath, tmpPdf, tmpPng, String(scale)], {
+            const cmd = `node "${scriptPath}" "${tmpPdf}" "${tmpPng}" ${scale}`;
+            const { exec } = require('child_process');
+            exec(cmd, {
                 timeout: 30000,
-            }, (error, stdout, stderr) => {
+            }, (error: Error | null, stdout: string, stderr: string) => {
                 if (stdout) console.log('[PDF→PNG worker]', stdout);
                 if (stderr) console.error('[PDF→PNG worker err]', stderr);
                 if (error) {

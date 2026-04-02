@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { ExtractedMonthlyReport } from "@/lib/report-extractor";
 
-const supabaseAdmin = createClient(
+const getSupabaseAdmin = () => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -49,13 +49,13 @@ export async function POST(request: Request) {
 
         // Fetch existing DB data for the month
         const [salesResult, expensesResult] = await Promise.all([
-            supabaseAdmin
+            getSupabaseAdmin()
                 .from("daily_sales")
                 .select("*")
                 .eq("restaurant_id", restaurant_id)
                 .gte("date", monthStart)
                 .lte("date", monthEnd),
-            supabaseAdmin
+            getSupabaseAdmin()
                 .from("operating_expenses")
                 .select("*")
                 .eq("restaurant_id", restaurant_id)
