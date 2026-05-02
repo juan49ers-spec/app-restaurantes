@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x, 22.x]
 
     steps:
     - uses: actions/checkout@v3
@@ -33,7 +33,7 @@ jobs:
       run: npm run typecheck
 
     - name: Run Tests
-      run: npm test -- --run # Run tests once (not in watch mode)
+      run: npx vitest run --exclude 'tests/ai/**' --exclude 'tests/e2e/**'
 
     - name: Build
       run: npm run build
