@@ -17,9 +17,10 @@ interface AppLayoutProps {
     restaurantId?: string
     restaurantName?: string
     isImpersonating?: boolean
+    isAdmin?: boolean
 }
 
-export function AppLayout({ children, user, activeAddons = [], restaurantId, restaurantName, isImpersonating = false }: AppLayoutProps) {
+export function AppLayout({ children, user, activeAddons = [], restaurantId, restaurantName, isImpersonating = false, isAdmin = false }: AppLayoutProps) {
     const [collapsed, setCollapsed] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [scenarioId, setScenarioId] = useState<string | null>(null)
@@ -81,6 +82,7 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
                 restaurantId={restaurantId}
                 restaurantName={restaurantName}
                 isImpersonating={isImpersonating}
+                isAdmin={isAdmin}
             />
             <main
                 className={cn(

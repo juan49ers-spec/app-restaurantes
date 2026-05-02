@@ -58,7 +58,7 @@ export async function insertMonthlyTestData(
 
         if (error) throw error
 
-        revalidatePath("/financial-control")
+        revalidatePath("/finance")
         return { success: true, error: null }
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Error al insertar los datos"
@@ -156,7 +156,7 @@ export async function closeMonth(
 
         if (error) throw error
 
-        revalidatePath("/financial-control")
+        revalidatePath("/finance")
         return { success: true, error: null }
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Error al cerrar el mes"

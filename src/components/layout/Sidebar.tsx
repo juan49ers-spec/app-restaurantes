@@ -34,9 +34,10 @@ interface SidebarProps {
     restaurantId?: string
     restaurantName?: string
     isImpersonating?: boolean
+    isAdmin?: boolean
 }
 
-export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile, activeAddons = [], restaurantId, restaurantName, isImpersonating = false }: SidebarProps) {
+export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile, activeAddons = [], restaurantId, restaurantName, isImpersonating = false, isAdmin = false }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
 
@@ -72,6 +73,7 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                         restaurantId={restaurantId}
                         restaurantName={restaurantName}
                         isImpersonating={isImpersonating}
+                        isAdmin={isAdmin}
                     />
                 </SheetContent>
             </Sheet>
@@ -101,6 +103,7 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                 restaurantId={restaurantId}
                 restaurantName={restaurantName}
                 isImpersonating={isImpersonating}
+                isAdmin={isAdmin}
             />
         </aside>
     )
@@ -118,9 +121,10 @@ interface SidebarContentProps {
     restaurantId?: string
     restaurantName?: string
     isImpersonating: boolean
+    isAdmin: boolean
 }
 
-function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout, activeAddons, restaurantId, restaurantName, isImpersonating }: SidebarContentProps) {
+function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout, activeAddons, restaurantId, restaurantName, isImpersonating, isAdmin }: SidebarContentProps) {
     const router = useRouter()
 
     const getInitials = () => {
@@ -138,13 +142,12 @@ function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGro
 
     const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Invitado"
     const userRole = user?.user_metadata?.role || "Usuario"
-    const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-    const isAdmin = userRole === 'admin' || userRole === 'superadmin' || (user?.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase()))
+    const isAdminUser = isAdmin
 
     const filteredMenuGroups = menuGroups.map(group => {
         // If it's a superadmin AND they are NOT impersonating, show everything.
         // If they ARE impersonating, we want them to see what the client sees (respect activeAddons).
-        if (isAdmin && !isImpersonating) return group
+        if (isAdminUser && !isImpersonating) return group
 
         if (group.title === "CORE") return group
         if (group.title === "OPERATIVA" && activeAddons.includes('operativa')) return group

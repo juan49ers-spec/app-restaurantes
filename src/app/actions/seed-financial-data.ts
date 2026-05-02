@@ -215,6 +215,6 @@ export async function seedFinancialData(restaurantId: string) {
         return { success: false, error: expError.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     return { success: true, message: `Seeded ${salesPayloads.length} sales and ${expensesPayloads.length} expenses.` }
 }

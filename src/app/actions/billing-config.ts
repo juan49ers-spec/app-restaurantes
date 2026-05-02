@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabaseServer';
 import { revalidatePath } from 'next/cache';
 import { BillingModule, UpdateModuleParams } from '@/types/billing';
 
-import { requireSuperAdmin } from './broadcasts';
+import { requireAdmin } from '@/lib/admin';
 
 /**
  * Obtiene la configuración de todos los módulos de facturación desde la base de datos.
@@ -30,7 +30,7 @@ export async function getBillingModulesConfig(): Promise<BillingModule[]> {
  * Actualiza la configuración de un módulo de facturación (Solo Super Admin).
  */
 export async function updateBillingModule(params: UpdateModuleParams) {
-    await requireSuperAdmin();
+    await requireAdmin();
     const supabase = await createClient();
 
     // La política RLS 'billing_modules_admin_all' ya se encarga de verificar que sea Super Admin

@@ -106,7 +106,7 @@ export function UnifiedDashboard({
                         </span>
                     </div>
                     <button
-                        onClick={() => window.location.href = '/financial-control'}
+                        onClick={() => router.push('/finance')}
                         className="text-[9px] font-black uppercase tracking-widest text-primary/70 hover:text-primary transition-all flex items-center gap-1.5"
                     >
                         Informe Detallado <TrendingUp className="w-2.5 h-2.5" />

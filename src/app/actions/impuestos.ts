@@ -66,7 +66,7 @@ export async function createTaxPeriod(restaurantId: string, year: number, quarte
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     return { success: true }
 }
 
@@ -97,6 +97,6 @@ export async function addTaxPayment(payment: {
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     return { success: true }
 }

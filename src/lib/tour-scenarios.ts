@@ -137,7 +137,7 @@ export const SCENARIOS: Scenario[] = [
         description: 'Cómo leer la salud de tu restaurante en 5 minutos cada mañana.',
         icon: 'BarChart3',
         module: 'finance',
-        startUrl: '/financial-control',
+        startUrl: '/finance',
         difficulty: 'Avanzado',
         duration: '4 min',
         category: 'Optimización',

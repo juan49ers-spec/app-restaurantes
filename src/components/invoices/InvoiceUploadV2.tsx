@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { Upload, FileText, X, CheckCircle, AlertCircle, Loader2, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,7 @@ interface InvoiceUploadProps {
 }
 
 export function InvoiceUploadV2({ onInvoiceProcessed, maxFiles = 20, maxSize = 10 * 1024 * 1024 }: InvoiceUploadProps) {
+    const router = useRouter()
     const [files, setFiles] = useState<FileUploadStatus[]>([])
     const [isProcessing, setIsProcessing] = useState(false)
 
@@ -348,7 +350,7 @@ export function InvoiceUploadV2({ onInvoiceProcessed, maxFiles = 20, maxSize = 1
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                onClick={() => window.location.href = `/invoices/${fileStatus.invoiceId}/review`}
+                                                onClick={() => router.push(`/invoices/${fileStatus.invoiceId}/review`)}
                                             >
                                                 <Eye className="h-4 w-4 mr-1" />
                                                 Revisar
