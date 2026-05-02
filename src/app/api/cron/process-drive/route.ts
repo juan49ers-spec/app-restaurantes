@@ -75,7 +75,7 @@ export async function GET(request: Request) {
                                 const expenses = reportToOperatingExpenses(report, config.restaurant_id);
                                 const salesSummary = reportToDailySalesSummary(report, config.restaurant_id);
 
-                                let reportErrors: string[] = [];
+                                const reportErrors: string[] = [];
 
                                 if (expenses.length > 0) {
                                     const { error: expErr } = await getSupabaseAdmin()

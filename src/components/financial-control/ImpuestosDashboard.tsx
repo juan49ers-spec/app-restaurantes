@@ -395,7 +395,6 @@ function FiscalCalendar({ year, activeQuarter }: { year: number; activeQuarter: 
         else status = 'upcoming'
 
         return { ...d, deadline, daysLeft, isPast, isImminent, isActive, status }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [year, activeQuarter])
 
     return (
