@@ -47,6 +47,10 @@ vi.mock('date-fns', () => ({
   subMonths: () => new Date(),
 }))
 
+vi.mock('@/lib/verify-access', () => ({
+  verifyRestaurantAccess: vi.fn().mockResolvedValue(undefined)
+}))
+
 describe('Financial Control Actions', () => {
 
   beforeEach(() => {

@@ -14,10 +14,12 @@ import {
     calculateHistoryEntry,
     generateHistoryMonths
 } from "@/lib/financial-utils"
+import { verifyRestaurantAccess } from "@/lib/verify-access"
 
 // --- Daily Sales Actions ---
 
 export async function getDailySales(restaurantId: string, date: string) {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -36,6 +38,7 @@ export async function getDailySales(restaurantId: string, date: string) {
 }
 
 export async function getDailySalesRange(restaurantId: string, startDate: string, endDate: string) {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -119,6 +122,7 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
 }
 
 export async function unlockDailySales(restaurantId: string, date: string) {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const { error } = await supabase
@@ -140,6 +144,7 @@ export async function unlockDailySales(restaurantId: string, date: string) {
 // --- Operating Expenses Actions ---
 
 export async function getOperatingExpenses(restaurantId: string, startDate: string, endDate: string) {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -235,6 +240,7 @@ export async function updateOperatingExpense(id: string, updates: Partial<Operat
 }
 
 export async function getBillingDashboardData(restaurantId: string, date: string) {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const targetDate = new Date(date)
 
@@ -348,6 +354,7 @@ export async function getBillingPeriodData(
     startMonth: number,  // 1-indexed
     numMonths: number
 ): Promise<BillingPeriodData> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const endMonth = startMonth + numMonths - 1
@@ -467,6 +474,7 @@ export async function getBillingPeriodData(
 // --- Financial Hub Aggregation ---
 
 export async function getFinancialHubData(restaurantId: string, startDate: string, endDate: string) {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     // 1. Fetch Daily Sales
@@ -521,6 +529,7 @@ export async function getFinancialHubData(restaurantId: string, startDate: strin
 // --- Monthly Target Actions ---
 
 export async function getMonthlyTarget(restaurantId: string, monthYear: string) {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -645,6 +654,7 @@ export async function getExpenseDashboardData(
     restaurantId: string,
     currentMonth: string // YYYY-MM
 ): Promise<ExpenseDashboardData> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     // Calculate date ranges for current and previous month
@@ -816,6 +826,7 @@ export interface FiscalMetrics {
 }
 
 export async function getFiscalMetrics(restaurantId: string, startDate: string, endDate: string): Promise<FiscalMetrics> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     // 1. Fetch Sales (IVA Repercutido)
@@ -1014,11 +1025,13 @@ async function fetchFiscalPeriodData(
 }
 
 export async function getQuarterlyFiscalData(restaurantId: string, year: number, quarter: number): Promise<QuarterlyFiscalData> {
+    await verifyRestaurantAccess(restaurantId)
     const startMonth = (quarter - 1) * 3 + 1
     return fetchFiscalPeriodData(restaurantId, year, startMonth, 3)
 }
 
 export async function getMonthlyFiscalData(restaurantId: string, year: number, month: number): Promise<QuarterlyFiscalData> {
+    await verifyRestaurantAccess(restaurantId)
     return fetchFiscalPeriodData(restaurantId, year, month, 1)
 }
 
@@ -1039,6 +1052,7 @@ export interface AnnualISData {
 }
 
 export async function getAnnualISData(restaurantId: string, year: number): Promise<AnnualISData> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const currentYear = new Date().getFullYear()
     const isYTD = year === currentYear

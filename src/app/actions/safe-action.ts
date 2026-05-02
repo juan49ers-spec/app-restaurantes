@@ -40,11 +40,12 @@ export async function executeSafeAction<TInput, TOutput>(
         return { success: true, data };
 
     } catch (error: unknown) {
-        console.error("Action Error:", error);
+        const isAccessDenied = error instanceof Error && error.message.includes('Access denied')
+        const clientMessage = isAccessDenied
+            ? 'No tienes permiso para esta operación'
+            : 'Ha ocurrido un error inesperado'
 
-        const message = error instanceof Error ? error.message : "An unexpected error occurred";
-
-        return { success: false, error: message };
+        return { success: false, error: clientMessage };
     }
 }
 

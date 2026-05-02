@@ -13,6 +13,10 @@ vi.mock('@/app/actions/utils', () => ({
   getUserRestaurant: (...args: unknown[]) => mockGetUserRestaurant(...args)
 }))
 
+vi.mock('@/lib/verify-access', () => ({
+  verifyRestaurantAccess: vi.fn().mockResolvedValue(undefined)
+}))
+
 describe('Safe Action', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -72,12 +76,12 @@ describe('Safe Action', () => {
       
       const schema = z.object({ name: z.string() })
       const mockHandler = vi.fn()
-      mockGetUserRestaurant.mockRejectedValue(new Error('Unauthorized'))
-      
+      mockGetUserRestaurant.mockRejectedValue(new Error('Access denied'))
+
       const result = await executeSafeAction(schema, { name: 'Test' }, mockHandler)
-      
+
       expect(result.success).toBe(false)
-      expect(result.error).toBe('Unauthorized')
+      expect(result.error).toBe('No tienes permiso para esta operación')
     })
 
     it('debería manejar errores del handler', async () => {
@@ -90,7 +94,7 @@ describe('Safe Action', () => {
       const result = await executeSafeAction(schema, { name: 'Test' }, mockHandler)
       
       expect(result.success).toBe(false)
-      expect(result.error).toBe('Database connection failed')
+      expect(result.error).toBe('Ha ocurrido un error inesperado')
     })
 
     it('debería manejar errores no-Error', async () => {
@@ -103,7 +107,7 @@ describe('Safe Action', () => {
       const result = await executeSafeAction(schema, { name: 'Test' }, mockHandler)
       
       expect(result.success).toBe(false)
-      expect(result.error).toBe('An unexpected error occurred')
+      expect(result.error).toBe('Ha ocurrido un error inesperado')
     })
 
     it('debería formatear múltiples errores de validación', async () => {
@@ -205,7 +209,7 @@ describe('Safe Action', () => {
       const result = await action('test-data')
       
       expect(result.success).toBe(false)
-      expect(result.error).toBe('Action failed')
+      expect(result.error).toBe('Ha ocurrido un error inesperado')
     })
 
     it('debería validar datos en acción creada', async () => {

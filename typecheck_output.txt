@@ -1,7 +1,0 @@
-
-> temp_app@0.1.0 typecheck
-> tsc --noEmit
-
-src/app/(dashboard)/layout.tsx(21,40): error TS2339: Property 'getAll' does not exist on type 'Promise<ReadonlyRequestCookies>'.
-src/components/layout/AppLayout.tsx(75,17): error TS2322: Type '{ user: User | undefined; collapsed: boolean; setCollapsed: () => void; isMobile: boolean; activeAddons: string[]; restaurantId: string | undefined; restaurantName: string | undefined; }' is not assignable to type 'IntrinsicAttributes'.
-  Property 'user' does not exist on type 'IntrinsicAttributes'.

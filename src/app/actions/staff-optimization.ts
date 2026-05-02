@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
+import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { subDays, format, getDay } from "date-fns"
 
 export interface StaffEfficiencyData {
@@ -70,6 +71,7 @@ export async function getStaffEfficiency(
     startDate?: string,
     endDate?: string
 ): Promise<StaffEfficiencySummary> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const start = startDate ? new Date(startDate) : subDays(new Date(), 30)

@@ -83,8 +83,20 @@ brain/
 skills/
 skills-lock.json
 
-# Temp/logs
+# Temp/logs/debug artifacts
 *.txt
 !README.txt
 *.pdf
+*.csv
+*.sql
+!supabase/migrations/*.sql
 supabase/.temp/
+debug-*.js
+debug-*.ts
+check_db.*
+repro_*.ts
+verify_*.ts
+test-bundle.*
+dummy_out.*
+invoice-debug.*
+*.bat

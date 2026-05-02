@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { extractInvoiceData } from '@/lib/invoice-extractor-v2'
 import { createClient } from '@/lib/supabaseServer'
+import { validateUploadedFile, sanitizeFilename } from '@/lib/upload-validation'
 
 /**
  * API Endpoint para subir y procesar facturas
@@ -46,20 +47,11 @@ export async function POST(req: NextRequest) {
 
         console.log(`[Upload] User: ${user.id}, File: ${file.name}, Size: ${file.size}, Type: ${file.type}`)
 
-        // 3. Validar tamaño (máx 10MB)
-        const MAX_SIZE = 10 * 1024 * 1024
-        if (file.size > MAX_SIZE) {
+        // 3. Validar archivo (tamaño, MIME, extensión)
+        const validation = validateUploadedFile(file)
+        if (!validation.valid) {
             return NextResponse.json(
-                { success: false, error: 'Archivo demasiado grande (máx 10MB)' },
-                { status: 400 }
-            )
-        }
-
-        // 4. Validar tipo MIME
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-        if (!allowedTypes.includes(file.type)) {
-            return NextResponse.json(
-                { success: false, error: `Tipo no soportado: ${file.type}. Usa JPG, PNG, WEBP o PDF` },
+                { success: false, error: validation.error },
                 { status: 400 }
             )
         }
@@ -79,7 +71,8 @@ export async function POST(req: NextRequest) {
         }
 
         // 6. Upload a Supabase Storage
-        const fileExt = file.name.split('.').pop()
+        const safeName = sanitizeFilename(file.name)
+        const fileExt = safeName.split('.').pop()
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
         const filePath = `${user.id}/${fileName}`
 

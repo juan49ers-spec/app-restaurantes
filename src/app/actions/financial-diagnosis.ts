@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
+import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { startOfMonth, endOfMonth, subMonths } from "date-fns"
 import { DailySales } from "@/types/schema"
 
@@ -31,6 +32,7 @@ export async function getFinancialDiagnosis(
     startDate?: string,
     endDate?: string
 ): Promise<FinancialDiagnosis> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const now = new Date()
 
