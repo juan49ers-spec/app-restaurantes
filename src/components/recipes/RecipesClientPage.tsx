@@ -26,7 +26,7 @@ export function RecipesClientPage({ initialRecipes }: Props) {
         <div className="space-y-6">
             <div className="flex justify-end">
                 <Link href="/recipes/new/edit">
-                    <Button className="gap-2 shadow-lg hover:shadow-xl transition-all">
+                    <Button id="new-recipe-btn" className="gap-2 shadow-lg hover:shadow-xl transition-all">
                         <Plus className="h-4 w-4" />
                         Nueva Receta
                     </Button>
@@ -34,7 +34,9 @@ export function RecipesClientPage({ initialRecipes }: Props) {
             </div>
 
             {/* KPI Cards */}
-            <RecipeSummaryCards recipes={initialRecipes} />
+            <div id="recipe-summary-cards">
+                <RecipeSummaryCards recipes={initialRecipes} />
+            </div>
 
             {/* Search and Filter Bar */}
             <div className="flex items-center space-x-2 bg-white/50 p-1 rounded-lg">
@@ -50,7 +52,9 @@ export function RecipesClientPage({ initialRecipes }: Props) {
             </div>
 
             {/* Main Table */}
-            <RecipesTable recipes={filteredRecipes} />
+            <div id="recipes-table">
+                <RecipesTable recipes={filteredRecipes} />
+            </div>
         </div>
     )
 }

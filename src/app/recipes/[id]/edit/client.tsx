@@ -40,14 +40,15 @@ interface Props {
     initialData?: RecipeEditData
 }
 
-function KpiCard({ label, icon: Icon, children, className = '' }: {
+function KpiCard({ label, icon: Icon, children, className = '', id }: {
     label: string
     icon: React.ComponentType<{ className?: string }>
     children: React.ReactNode
     className?: string
+    id?: string
 }) {
     return (
-        <div className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-muted/30 border border-border/50 min-w-[80px] ${className}`}>
+        <div id={id} className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-muted/30 border border-border/50 min-w-[80px] ${className}`}>
             <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">
                 <Icon className="w-3 h-3" />
                 {label}
@@ -84,7 +85,6 @@ export function RecipeEditorClient({ initialIngredients, initialRecipes, recipeI
     const [name, setName] = useState(initialData?.name || "Nueva Receta")
     const [isSaving, setIsSaving] = useState(false)
     const [showPrint, setShowPrint] = useState(false)
-    const [idempotencyKey] = useState(() => crypto.randomUUID())
 
     const {
         ingredients,
@@ -123,7 +123,6 @@ export function RecipeEditorClient({ initialIngredients, initialRecipes, recipeI
                 prep_time_minutes: prepTime,
                 yields,
                 ingredients,
-                idempotency_key: idempotencyKey
             })
 
             if (result.success) {
@@ -154,7 +153,7 @@ export function RecipeEditorClient({ initialIngredients, initialRecipes, recipeI
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                 </Link>
-                <div className="flex-1 min-w-0 mr-2">
+                <div id="recipe-name-input" className="flex-1 min-w-0 mr-2">
                     <Input
                         className="text-lg font-black italic tracking-tighter border-none shadow-none px-0 h-auto focus-visible:ring-0 bg-transparent truncate"
                         value={name}
@@ -173,7 +172,7 @@ export function RecipeEditorClient({ initialIngredients, initialRecipes, recipeI
                 </div>
 
                 {/* Yield + Scaler */}
-                <div className="flex items-center gap-2 border-l border-border/50 pl-3">
+                <div id="production-yield" className="flex items-center gap-2 border-l border-border/50 pl-3">
                     <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground whitespace-nowrap">Rend.</span>
                         <Input
@@ -191,20 +190,20 @@ export function RecipeEditorClient({ initialIngredients, initialRecipes, recipeI
                 </div>
 
                 {/* KPI Strip */}
-                <div className="flex items-center gap-2 border-l border-border/50 pl-3">
+                <div id="kpi-strip" className="flex items-center gap-2 border-l border-border/50 pl-3">
                     <KpiCard label={isScaling ? "Prod." : "Coste"} icon={Euro}>
                         <span className={`text-base font-black italic tabular-nums tracking-tighter ${isScaling ? 'text-primary' : 'text-foreground'}`}>
                             €{(metrics.primeCost * scalingFactor).toFixed(2)}
                         </span>
                     </KpiCard>
 
-                    <KpiCard label="MP %" icon={TrendingUp}>
+                    <KpiCard label="MP %" icon={TrendingUp} id="kpi-food-cost">
                         <span className={`text-base font-black italic tabular-nums tracking-tighter ${foodCostColor}`}>
                             {sellingPrice > 0 ? foodCostPct.toFixed(0) : '--'}%
                         </span>
                     </KpiCard>
 
-                    <div className="flex flex-col items-center gap-0.5">
+                    <div id="price-input" className="flex flex-col items-center gap-0.5">
                         <KpiCard label="PVP" icon={Euro} className="pb-1">
                             <Input
                                 type="number"
@@ -222,7 +221,9 @@ export function RecipeEditorClient({ initialIngredients, initialRecipes, recipeI
                         </span>
                     </KpiCard>
 
-                    <MarginIndicator margin={metrics.calculatedMargin} target={targetMargin} />
+                    <div id="kpi-gross-margin">
+                        <MarginIndicator margin={metrics.calculatedMargin} target={targetMargin} />
+                    </div>
                 </div>
 
                 {/* Actions */}
@@ -305,7 +306,7 @@ export function RecipeEditorClient({ initialIngredients, initialRecipes, recipeI
 
                 {/* Right Panel: Recipe Builder + Analysis */}
                 <div className="flex-1 bg-muted/5 flex flex-col overflow-hidden">
-                    <div className="flex-1 min-h-0 relative">
+                    <div id="ingredients-section" className="flex-1 min-h-0 relative">
                         <RecipeBuilder
                             ingredients={scaledIngredients}
                             onUpdate={updateIngredient}
