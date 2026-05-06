@@ -3,6 +3,11 @@
 ![Project Status](https://img.shields.io/badge/status-active_development-brightgreen)
 ![CI](https://github.com/juan49ers-spec/app-restaurantes/actions/workflows/ci.yml/badge.svg)
 
+> **Note on language**: this README and code comments are in English. End-user
+> facing documentation (`GUIA_USUARIO.md`, `OCR_SETUP.md`, `DEPLOY_GUIDE.md`,
+> `SUPABASE_SETUP.md`) is in Spanish, since the product targets Spanish-speaking
+> hospitality teams.
+
 ## Project Overview
 
 A comprehensive financial control and menu engineering platform tailored for the hospitality industry. This application helps restaurant managers and owners optimize their profitability through:

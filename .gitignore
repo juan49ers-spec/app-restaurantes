@@ -89,6 +89,9 @@ skills-lock.json
 *.pdf
 supabase/.temp/
 
+# Local AI tooling configs
+opencode.json
+
 # Test artifacts
 /playwright-report
 /test-results
