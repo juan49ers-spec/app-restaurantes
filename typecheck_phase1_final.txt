@@ -1,9 +1,0 @@
-
-> temp_app@0.1.0 typecheck
-> tsc --noEmit
-
-src/app/actions/recipes.ts(190,44): error TS2345: Argument of type '(item: RecipeIngredientItem) => FormattedRecipeIngredient' is not assignable to parameter of type '(value: { id: any; quantity_gross: any; quantity_net: any; cost_at_time: any; yield_factor: any; master_ingredient: { id: any; name: any; base_unit: any; standard_waste_pct: any; current_avg_price: any; }[]; sub_recipe: { ...; }[]; }, index: number, array: { ...; }[]) => FormattedRecipeIngredient'.
-  Types of parameters 'item' and 'value' are incompatible.
-    Type '{ id: any; quantity_gross: any; quantity_net: any; cost_at_time: any; yield_factor: any; master_ingredient: { id: any; name: any; base_unit: any; standard_waste_pct: any; current_avg_price: any; }[]; sub_recipe: { ...; }[]; }' is not assignable to type 'RecipeIngredientItem'.
-      Types of property 'master_ingredient' are incompatible.
-        Type '{ id: any; name: any; base_unit: any; standard_waste_pct: any; current_avg_price: any; }[]' is missing the following properties from type '{ id: string; name: string; base_unit: string; current_avg_price: number | null; standard_waste_pct: number | null; allergens: string[]; }': id, name, base_unit, current_avg_price, and 2 more.
