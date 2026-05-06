@@ -88,3 +88,45 @@ skills-lock.json
 !README.txt
 *.pdf
 supabase/.temp/
+
+# Test artifacts
+/playwright-report
+/test-results
+
+# Backups / planners
+.opencode_backup/
+.planr/
+
+# Build/debug dumps
+build*.log
+build_output*
+build_full.log
+build_error.log
+build_final.txt
+ci_*.txt
+debug_*.txt
+debug-*.json
+debug-*.{js,ts}
+lint*.json
+lint*.txt
+lint*.log
+lint-*.log
+tsc*.txt
+tsc*.log
+typecheck_*.txt
+test_*.txt
+test-bundle.js
+oc_*.txt
+ollama_status.txt
+opencode_*.txt
+vercel_*.txt
+shortest_err.txt
+npm_err.txt
+status_check.txt
+help.txt
+progress.md
+invoice-debug.json
+dummy_out.png
+check_db.{ts,mjs,js}
+repro_*.ts
+verify_*.ts
