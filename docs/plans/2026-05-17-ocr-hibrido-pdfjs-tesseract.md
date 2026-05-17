@@ -1,15 +1,21 @@
-# Plan de implementación — OCR híbrido (pdfjs-dist + tesseract.js + GPT-4o)
+# Plan de implementación — OCR híbrido (pdfjs-dist + tesseract.js + Edge Function + GPT-4o)
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
-> **Before touching code:** read [`docs/ai/05-invoices.md`](../ai/05-invoices.md), [`docs/ai/T02-base-de-datos.md`](../ai/T02-base-de-datos.md), [`docs/ai/T06-server-actions-comunes.md`](../ai/T06-server-actions-comunes.md). After implementing, update [`docs/ai/05-invoices.md`](../ai/05-invoices.md) per the protocol in [`CLAUDE.md`](../../CLAUDE.md).
+> **Before touching code:** read [`docs/ai/05-invoices.md`](../ai/05-invoices.md), [`docs/ai/T02-base-de-datos.md`](../ai/T02-base-de-datos.md), [`docs/ai/T03-autenticacion.md`](../ai/T03-autenticacion.md), [`docs/ai/T06-server-actions-comunes.md`](../ai/T06-server-actions-comunes.md). After implementing, update [`docs/ai/05-invoices.md`](../ai/05-invoices.md) per the protocol in [`CLAUDE.md`](../../CLAUDE.md).
 
-**Goal:** Reemplazar el OCR actual (`openai-vision.ts` server → URL al modelo) por una cascada híbrida cliente-primero: extracción nativa de texto con `pdfjs-dist`, fallback a `tesseract.js` para escaneados, envío de texto (no imagen) a GPT-4o, fallback final a regex local. Añade extracción de líneas de factura (que Factyra no hace pero esta app necesita) y una UI de confianza por campo.
+**Goal:** Reemplazar el OCR actual (server-side, vision con URL) por una arquitectura híbrida en tres tiempos:
+
+1. **Cliente** (Next App Router): extrae texto del documento con `pdfjs-dist` (PDF nativo) y `tesseract.js` (escaneados/imágenes). Sube el archivo al bucket `invoices` de Storage.
+2. **Edge Function de Supabase** (Deno): recibe el texto extraído (o URL firmada si no se pudo extraer texto), llama a GPT-4o, devuelve `ScannedInvoice` JSON estructurado. Esta función es **stateless**: no toca DB.
+3. **Server Action de Next** (delgada): persiste el resultado en `invoices`, decrementa créditos solo si la Edge Function usó IA, dispara `revalidatePath`. Tiempo de ejecución <500ms.
+
+Añade extracción de **líneas de factura** (que Factyra no hace pero esta app necesita) y una UI de confianza por campo.
 
 **Architecture:**
 
 ```
-[Cliente]
-  Usuario suelta PDF/imagen
+[Cliente — navegador]
+  Usuario suelta PDF/imagen en InvoiceDropzone
         ↓
   extractDocumentText(file)        ← src/lib/ocr/extract-document-text.ts
         ├─ PDF: pdfjs-dist.getTextContent (3 páginas)
@@ -17,105 +23,323 @@
         │     └─ Si pobre → renderPdfPageToImage(2.5x) + tesseract.recognize('spa')
         └─ Imagen: tesseract.recognize('spa')
         ↓
-  { text, source, quality, pages }
+  { text, source, quality, pageCount }
         ↓
-  Upload archivo a Supabase Storage (bucket invoices)
+  Upload archivo a Supabase Storage (bucket invoices, path: ${user.id}/...)
         ↓
-  processInvoiceFromText(filePath, text, source)   ← server action
+  supabase.functions.invoke('analyze-invoice', {
+    body: { extractedText, filePath, fileMime, source }
+  })
         ↓
-[Servidor]
-  analyzeInvoiceFromText(text)     ← src/services/openai-invoice.ts
-        ├─ Llama GPT-4o (texto, no imagen) con prompt restaurant-aware
-        ├─ Devuelve { supplier, header, items[], confidence }
-        ├─ Si falla → localParser(text) → header mínimo, items=[]
+[Edge Function — Deno en Supabase]
+  ├─ Valida JWT del usuario
+  ├─ Resuelve restaurant_id desde DB
+  ├─ Si extractedText con calidad suficiente:
+  │     → llama GPT-4o con TEXTO (cheaper, faster)
+  │  else:
+  │     → createSignedUrl del filePath
+  │     → llama GPT-4o con IMAGE_URL (último recurso)
+  ├─ Valida respuesta con Zod (ScannedInvoiceSchema)
+  ├─ Si OpenAI falla → parseInvoiceLocally(extractedText) (regex)
+  └─ Devuelve { scanned, used_ai, source }
         ↓
-  INSERT invoices (status=review_required, scanned_data, source)
+[Cliente]
+  saveInvoiceExtraction({ filePath, scanned, used_ai, source })
         ↓
-  Decrementa ocr_credits SOLO si llamó al modelo
+[Server Action — Next, <500ms]
+  ├─ INSERT en invoices (status='review_required', scanned_data, file_url)
+  ├─ Si used_ai === true → deductCredit(1)
+  ├─ revalidatePath
+  └─ return { invoiceId }
         ↓
 [Cliente]
   Redirige a /invoices/[id]/review
-  InvoiceReviewForm muestra confidence card + items
-  Usuario revisa y confirma → updateInvoice (sin cambios)
+  InvoiceReviewForm + OcrConfidenceCard
 ```
 
 **Tech Stack:**
 
 - `pdfjs-dist@^5.4.530` (extracción nativa de texto en navegador).
-- `tesseract.js@^7.0.0` (OCR en navegador para PDFs escaneados e imágenes).
-- OpenAI GPT-4o (mantener) — pero recibe **texto** (cheaper, faster) excepto último recurso.
-- Next.js 16 App Router + Supabase + Zod.
+- `tesseract.js@^7.0.0` (OCR en navegador para escaneados).
+- **Supabase Edge Functions** (Deno Deploy) para el call a OpenAI.
+- OpenAI GPT-4o.
+- Next.js 16 + Supabase + Zod (en server actions).
+- `zod` también dentro de la Edge Function (Deno-compatible via JSR/npm specifier).
 
 ---
 
 ## Resumen de decisiones (tomadas con el usuario)
 
-| Decisión | Elección |
-|----------|----------|
-| Alcance | (a) Reemplazo del OCR existente de facturas. No se extiende a otros documentos en este plan. |
-| Cliente vs Servidor para extracción | **Cliente** (pdfjs + tesseract en el navegador). Sólo el análisis IA se queda en server. |
-| Proveedor IA | **OpenAI** (GPT-4o). Sin migrar a otros. |
-| Line items | Sí — Factyra no los extrae pero esta app sí los necesita. Se hace con prompt enriquecido a GPT-4o. |
-| Estrategia de migración | Reemplazo. El archivo `openai-vision.ts` se reemplaza. Se elimina solo cuando los tests E2E pasen. |
+| Decisión | Elección | Por qué |
+|----------|----------|---------|
+| Alcance | Reemplazo del OCR existente de facturas. Otras superficies (tickets de gasto, etc.) quedan fuera de este plan. | Foco. |
+| Cliente vs Servidor para extracción | Cliente (pdfjs + tesseract en el navegador). | Reduce coste de OpenAI ~70% (texto vs vision) y elimina ida-vuelta extra. |
+| Proveedor IA | OpenAI GPT-4o. | Consistencia con Factyra y app actual. |
+| Dónde corre el call a OpenAI | **Supabase Edge Function** (no Server Action de Next). | Timeout 150s (vs 10s Hobby/60s Pro Vercel), aislamiento del workload caro, reutilizable desde otros clientes, incluido en Supabase Free. |
+| Persistencia | Server Action delgada que solo escribe en DB. | Mantiene la convención del repo y el `revalidatePath` de Next funciona. |
+| Plan Supabase necesario | **Free tier es suficiente** para empezar. | 500K invocaciones Edge Functions/mes + 100h CPU. A 10K facturas/mes está al 2%. |
+| Line items | Sí, vía prompt enriquecido en la Edge Function. | Factyra no los hace; la app de restaurantes los necesita para mapeo a `master_ingredients`. |
+| Estrategia de migración | Reemplazo total. Borrar `openai-vision.ts` cuando el flujo nuevo funcione con 3 facturas reales. | El usuario aprobó "cambiar entero si hace falta". |
+| Crédito OCR | Se decrementa solo si la Edge Function devolvió `used_ai: true`. Si cae a regex local → no se cobra. | Justo y monitorizable. |
 
 ---
 
 ## Decisiones técnicas no obvias
 
-1. **Por qué texto y no imagen** para GPT-4o cuando hay texto nativo:
-   - ~70% más barato (input tokens vs vision tokens).
-   - ~3-5× más rápido.
-   - Mejor precisión en facturas digitales (el modelo lee texto, no interpreta píxeles).
-2. **Por qué `pdfjs-dist` v5+:** soporta worker como `.mjs`, mejor compat con Next 16 (que ya usa Turbopack/Webpack5).
+1. **Texto-first reduce coste OpenAI ~70%.** Para una factura típica, vision usa ~5K tokens, texto plano usa ~1.5K tokens. Cuando el PDF es digital, evitas pagar vision tokens.
+2. **`pdfjs-dist` v5+** usa worker `.mjs`. El plan copia ese worker a `public/` en postinstall — el `import.meta.url` clásico no funciona en build de Next 16.
 3. **Render scale 2.5×** antes de Tesseract es **obligatorio** (Factyra lo aprendió por las malas). Sin esto, escaneados a 72 DPI son ilegibles.
-4. **Idioma Tesseract `'spa'`** hardcoded. El proyecto opera en España. Si más adelante se internacionaliza, parametrizar.
-5. **Crédito OCR se decrementa solo si el modelo se llama.** Si la extracción local (pdfjs+regex local) cubre todo, sería gratis — pero por simplicidad y porque GPT-4o siempre se llama si está disponible, mantenemos el consumo en GPT-4o exitoso. Si GPT-4o falla y se cae a regex local, no se consume crédito.
-6. **`scanned_data` JSONB** debe incluir `source` (`pdf-native | tesseract | image-direct | local-regex`) y `confidence` para auditoría y debug.
-7. **Field naming:** corregir la inconsistencia `file_url` vs `image_url` (ver `docs/ai/05-invoices.md` §6). Canonizamos a `file_url`.
+4. **Idioma Tesseract `'spa'`** hardcoded. España. Si se internacionaliza, parametrizar.
+5. **Edge Function debe validar JWT** con `Authorization: Bearer <token>` para evitar invocaciones anónimas. La cabecera viaja automáticamente cuando usas `supabase.functions.invoke()`.
+6. **`OPENAI_API_KEY` se guarda como Supabase secret** (no como env var de Vercel). Se accede en la Edge Function con `Deno.env.get('OPENAI_API_KEY')`.
+7. **`scanned_data` JSONB** incluye `_meta.source`, `_meta.used_ai`, `_meta.confidence` para auditoría y para que un dashboard futuro (`/admin/billing` o similar) pueda calcular % de cada path.
+8. **`file_url` canónico:** corregimos la inconsistencia `file_url` vs `image_url` (ver `docs/ai/05-invoices.md` §6). Canonizamos a `file_url`.
+9. **Bucket privado + signed URL bajo demanda.** El bucket `invoices` mantiene RLS estricto. La página de review firma cuando muestra el PDF, no guarda URLs eternas.
+10. **El cliente no llama a OpenAI directamente** (evidente pero conviene escribirlo): no se expone API key en cliente. Edge Function intermedia.
+
+---
+
+## Coste y límites — números concretos
+
+Para 10K facturas/mes (estimación inicial: 100 restaurantes × 100 facturas):
+
+| Recurso | Consumo estimado | Free tier | Pro tier |
+|---------|------------------|-----------|----------|
+| Edge Function invocations | 10K/mes | 500K incluidos | 2M incluidos |
+| Edge Function CPU time | ~28h/mes (10s × 10K) | 100h incluidas | 1000h incluidas |
+| OpenAI GPT-4o (texto) — path ~70% | 7K × $0.005 = $35 | — | — |
+| OpenAI GPT-4o (vision) — path ~25% | 2.5K × $0.025 = $62.5 | — | — |
+| OpenAI fallido (regex local) — path ~5% | $0 | — | — |
+| **Coste OpenAI total/mes** | **~$100** | — | — |
+| Storage `invoices` bucket | ~5GB (10K × 500KB) | 1GB | 100GB |
+
+**Conclusión:** las Edge Functions están holgadas en Free tier. El cuello que sí podría empujar a Pro es **Storage** (1GB Free vs 100GB Pro) o el **DB compute** según uso de los queries. Esa decisión es independiente de este plan.
 
 ---
 
 ## Done definition
 
-- `processInvoice` server action procesa al menos 3 facturas reales del usuario (1 PDF digital, 1 PDF escaneado, 1 imagen JPG) sin caer a `status='error'`.
-- El path "PDF digital" no consume crédito de vision (porque manda texto, no imagen) — o consume al precio de tokens texto.
-- `InvoiceReviewForm` muestra confidence card con ✓/✗ por campo + % completitud.
-- Si OpenAI cae, el upload **no se rompe** — se guarda con el regex local y status `review_required`.
-- `docs/ai/05-invoices.md` actualizado con el flujo nuevo + el inventario de archivos nuevos.
-- Tests unitarios pasan: `pdf-extractor`, `tesseract-extractor`, `local-fallback-parser`, `similarity`.
+- Edge Function `analyze-invoice` desplegada en Supabase y accesible vía `supabase.functions.invoke()`.
+- `processInvoiceFromExtraction` (server action) acepta el resultado del Edge Function y persiste en `invoices` en <500ms.
+- 3 facturas reales procesadas sin caer a `status='error'`: 1 PDF digital, 1 PDF escaneado, 1 imagen JPG.
+- Path "PDF digital" entra por `pdf-native` y consume tokens TEXTO (verificable en `scanned_data._meta.source`).
+- Si OpenAI cae, el upload **no se rompe**: se guarda con regex local, `used_ai=false`, no se descuenta crédito.
+- `OcrConfidenceCard` visible en `/invoices/[id]/review` con ✓/✗ por campo + % completitud.
+- RLS policies del bucket `invoices` permiten upload desde cliente autenticado en su propia carpeta.
+- `docs/ai/05-invoices.md` actualizado.
+- Tests unitarios: `similarity`, `pdf-extractor` (smoke), `local-fallback-parser`.
 - `openai-vision.ts` legacy eliminado.
-- No quedan imports rotos. `npm run typecheck` y `npm run lint` limpios.
+- `npm run typecheck` y `npm run lint` limpios.
 
 ---
 
-## Fase 0 — Setup de dependencias
+## Fase 0 — Setup local de Supabase CLI
 
-### Task 0.1: Instalar paquetes
+### Task 0.1: Verificar/instalar Supabase CLI
 
-**Files:** `package.json`, `package-lock.json`
+**Step 1:** Comprobar si está:
 
-**Step 1:** Ejecutar
+```bash
+supabase --version
+```
+
+**Step 2:** Si no está, instalar (Windows con scoop o npm global):
+
+```bash
+npm install -g supabase
+# o
+scoop install supabase
+```
+
+**Step 3:** Login y link al proyecto:
+
+```bash
+supabase login
+supabase link --project-ref <REF_DEL_PROYECTO>
+```
+
+El `REF_DEL_PROYECTO` está en el dashboard de Supabase → Project Settings → General.
+
+**Step 4:** Verificar:
+
+```bash
+supabase status
+```
+
+Debe listar conexión activa.
+
+**No commit.** Es setup local.
+
+---
+
+## Fase 1 — Migración: storage policies + columnas auxiliares
+
+### Task 1.1: RLS policies del bucket `invoices` para upload cliente
+
+El flujo actual sube desde server (service_role bypass RLS). Al pasar a cliente, hace falta política explícita.
+
+**Files:**
+- Create: `supabase/migrations/20260517_invoices_storage_policies.sql`
+
+**Step 1:** Crear migración:
+
+```sql
+-- Permitir INSERT a usuarios autenticados solo en su propia carpeta.
+-- Convención de path: ${auth.uid()}/timestamp-uuid.ext
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND policyname = 'invoices_insert_own_folder'
+  ) THEN
+    CREATE POLICY "invoices_insert_own_folder"
+      ON storage.objects FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        bucket_id = 'invoices'
+        AND (storage.foldername(name))[1] = auth.uid()::text
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND policyname = 'invoices_select_own_folder'
+  ) THEN
+    CREATE POLICY "invoices_select_own_folder"
+      ON storage.objects FOR SELECT
+      TO authenticated
+      USING (
+        bucket_id = 'invoices'
+        AND (storage.foldername(name))[1] = auth.uid()::text
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage'
+      AND tablename = 'objects'
+      AND policyname = 'invoices_delete_own_folder'
+  ) THEN
+    CREATE POLICY "invoices_delete_own_folder"
+      ON storage.objects FOR DELETE
+      TO authenticated
+      USING (
+        bucket_id = 'invoices'
+        AND (storage.foldername(name))[1] = auth.uid()::text
+      );
+  END IF;
+END $$;
+```
+
+**Step 2:** Aplicar:
+
+```bash
+supabase db push
+```
+
+**Step 3:** Verificar en dashboard → Storage → invoices → Policies. Deben aparecer las 3 nuevas.
+
+**Step 4:** Commit.
+
+```bash
+git add supabase/migrations/20260517_invoices_storage_policies.sql
+git commit -m "feat(invoices): RLS policies para upload cliente en bucket invoices"
+```
+
+### Task 1.2: Columnas auxiliares para analytics + corrección `file_url`
+
+**Files:**
+- Create: `supabase/migrations/20260517_invoices_extraction_metadata.sql`
+
+**Step 1:** Detectar nombre actual de la columna del path:
+
+```bash
+supabase db dump --schema public --data-only=false | grep -A 20 "CREATE TABLE.*invoices"
+```
+
+Ver si la columna es `image_url` o `file_url`.
+
+**Step 2:** Crear migración condicional:
+
+```sql
+-- 1) Renombrar image_url → file_url si aún no se ha hecho.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'invoices' AND column_name = 'image_url'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'invoices' AND column_name = 'file_url'
+  ) THEN
+    ALTER TABLE invoices RENAME COLUMN image_url TO file_url;
+  END IF;
+END $$;
+
+-- 2) Columnas para auditoría/analytics del OCR (indexables, no escondidas en JSONB).
+ALTER TABLE invoices
+  ADD COLUMN IF NOT EXISTS extraction_source TEXT
+    CHECK (extraction_source IN (
+      'pdf-native', 'pdf-tesseract', 'image-tesseract', 'image-vision', 'local-regex'
+    )),
+  ADD COLUMN IF NOT EXISTS extraction_confidence NUMERIC(3,2),
+  ADD COLUMN IF NOT EXISTS used_ai BOOLEAN DEFAULT false;
+
+-- 3) Índice para queries "qué % entra por cada path"
+CREATE INDEX IF NOT EXISTS idx_invoices_extraction_source
+  ON invoices(restaurant_id, extraction_source);
+```
+
+**Step 3:** Aplicar:
+
+```bash
+supabase db push
+```
+
+**Step 4:** Regenerar tipos TypeScript:
+
+```bash
+supabase gen types typescript --linked > src/types/supabase.ts
+```
+
+**Step 5:** Commit.
+
+```bash
+git add supabase/migrations/20260517_invoices_extraction_metadata.sql src/types/supabase.ts
+git commit -m "feat(invoices): file_url canónico + columnas analytics OCR"
+```
+
+---
+
+## Fase 2 — Dependencias del cliente
+
+### Task 2.1: Instalar `pdfjs-dist` y `tesseract.js`
+
+**Step 1:**
 
 ```bash
 npm install pdfjs-dist@^5.4.530 tesseract.js@^7.0.0
 ```
 
-**Step 2:** Verificar que se han añadido a `dependencies` (no a `devDependencies`).
+**Step 2:** Verificar `package.json`. Deben quedar en `dependencies`.
 
 **Step 3:** Commit.
 
 ```bash
 git add package.json package-lock.json
-git commit -m "feat(ocr): add pdfjs-dist and tesseract.js dependencies"
+git commit -m "feat(ocr): añadir pdfjs-dist y tesseract.js"
 ```
 
-### Task 0.2: Servir worker de pdfjs desde `public/`
-
-Next.js no permite importar el worker `.mjs` directamente desde `node_modules` sin gymnastics. Copia el worker a `public/` con un script de postinstall.
+### Task 2.2: Worker de pdfjs en `public/`
 
 **Files:**
 - Create: `scripts/copy-pdfjs-worker.mjs`
-- Modify: `package.json` (añadir `postinstall`)
+- Modify: `package.json` (postinstall)
+- Modify: `.gitignore`
 
 **Step 1:** Crear `scripts/copy-pdfjs-worker.mjs`:
 
@@ -143,22 +367,20 @@ main().catch((err) => {
 })
 ```
 
-**Step 2:** Añadir a `package.json` en `scripts`:
+**Step 2:** Añadir a `package.json`:
 
 ```json
 "postinstall": "node scripts/copy-pdfjs-worker.mjs"
 ```
 
-**Step 3:** Ejecutar:
+**Step 3:** Ejecutar y verificar:
 
 ```bash
 npm run postinstall
 ls public/pdf.worker.min.mjs
 ```
 
-Debe existir el archivo.
-
-**Step 4:** Añadir `public/pdf.worker.min.mjs` al `.gitignore` (generado en cada install, no se commitea):
+**Step 4:** Añadir a `.gitignore`:
 
 ```
 public/pdf.worker.min.mjs
@@ -168,20 +390,20 @@ public/pdf.worker.min.mjs
 
 ```bash
 git add scripts/copy-pdfjs-worker.mjs package.json .gitignore
-git commit -m "feat(ocr): copy pdfjs worker to public on postinstall"
+git commit -m "build: copiar pdfjs worker a public/ en postinstall"
 ```
 
 ---
 
-## Fase 1 — Librería compartida `similarity`
+## Fase 3 — Librería `similarity` reutilizable
 
-### Task 1.1: Extraer `src/lib/similarity.ts`
+### Task 3.1: `src/lib/similarity.ts` + tests
 
-Factyra tiene esta utilidad y la usa para matching de clientes/compañías. La app de restaurantes la necesita para `master_ingredients` y `suppliers`. Hoy hay lógica fuzzy enterrada en `InvoiceIngestionService`; centralizarla.
+Factyra usa esta utilidad y la app de restaurantes la necesita para mapeo de proveedores/ingredientes. Hoy hay lógica fuzzy enterrada en `InvoiceIngestionService` — la centralizamos.
 
 **Files:**
 - Create: `src/lib/similarity.ts`
-- Test: `src/lib/similarity.test.ts`
+- Create: `src/lib/similarity.test.ts`
 
 **Step 1:** Crear `src/lib/similarity.ts`:
 
@@ -197,7 +419,7 @@ export function normalizeName(input: string): string {
   if (!input) return ''
   return input
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // acentos
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/\b(s\.?l\.?u?|s\.?a\.?|s\.?coop|c\.?b\.?|ltd|inc|corp)\b/g, '')
     .replace(/[.,;:'"()]/g, ' ')
@@ -205,27 +427,22 @@ export function normalizeName(input: string): string {
     .trim()
 }
 
-/**
- * Distancia de Levenshtein.
- */
 export function levenshteinDistance(a: string, b: string): number {
   if (a === b) return 0
   if (!a.length) return b.length
   if (!b.length) return a.length
-
   const matrix: number[][] = []
   for (let i = 0; i <= b.length; i++) matrix[i] = [i]
   for (let j = 0; j <= a.length; j++) matrix[0][j] = j
-
   for (let i = 1; i <= b.length; i++) {
     for (let j = 1; j <= a.length; j++) {
       if (b.charAt(i - 1) === a.charAt(j - 1)) {
         matrix[i][j] = matrix[i - 1][j - 1]
       } else {
         matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1, // sustitución
-          matrix[i][j - 1] + 1,     // inserción
-          matrix[i - 1][j] + 1      // borrado
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
         )
       }
     }
@@ -233,9 +450,6 @@ export function levenshteinDistance(a: string, b: string): number {
   return matrix[b.length][a.length]
 }
 
-/**
- * Score 0..1 (1 = idéntico tras normalizar).
- */
 export function similarityScore(a: string, b: string): number {
   const na = normalizeName(a)
   const nb = normalizeName(b)
@@ -254,17 +468,11 @@ export interface SimilarMatch<T> {
   score: number
 }
 
-/**
- * Encuentra candidatos similares ordenados por score descendente.
- * Solo devuelve los que superan el threshold.
- *
- * Orden de búsqueda: matches por nombre largo primero (más específicos).
- */
-export function findSimilarNames<T extends { name?: string | null }>(
+export function findSimilarNames<T>(
   query: string,
   candidates: T[],
   threshold = 0.55,
-  getName: (c: T) => string = (c) => c.name ?? ''
+  getName: (c: T) => string = (c) => (c as unknown as { name?: string }).name ?? ''
 ): SimilarMatch<T>[] {
   if (!query) return []
   const sorted = [...candidates].sort(
@@ -320,11 +528,7 @@ describe('similarityScore', () => {
 })
 
 describe('findSimilarNames', () => {
-  const items = [
-    { name: 'Tomate Pera' },
-    { name: 'Tomate Rama' },
-    { name: 'Patata' },
-  ]
+  const items = [{ name: 'Tomate Pera' }, { name: 'Tomate Rama' }, { name: 'Patata' }]
   it('devuelve matches sobre threshold ordenados', () => {
     const matches = findSimilarNames('Tomate', items, 0.5)
     expect(matches.length).toBe(2)
@@ -337,41 +541,32 @@ describe('findSimilarNames', () => {
 })
 ```
 
-**Step 3:** Ejecutar tests.
+**Step 3:** Ejecutar:
 
 ```bash
 npm test -- src/lib/similarity.test.ts
 ```
 
-Expected: PASS.
-
 **Step 4:** Commit.
 
 ```bash
 git add src/lib/similarity.ts src/lib/similarity.test.ts
-git commit -m "feat(ocr): añadir lib/similarity reutilizable para fuzzy matching"
+git commit -m "feat(ocr): librería similarity reutilizable"
 ```
 
 ---
 
-## Fase 2 — Extracción nativa de PDF (cliente)
+## Fase 4 — Extracción de texto en cliente
 
-### Task 2.1: Crear `src/lib/ocr/pdf-extractor.ts`
-
-Lee texto nativo del PDF usando pdfjs-dist. Mide la "calidad" del texto y decide si vale o si hay que caer a Tesseract.
-
-**Files:**
-- Create: `src/lib/ocr/pdf-extractor.ts`
-- Create: `src/lib/ocr/types.ts`
-
-**Step 1:** Crear `src/lib/ocr/types.ts`:
+### Task 4.1: `src/lib/ocr/types.ts`
 
 ```ts
 export type ExtractionSource =
-  | 'pdf-native'      // texto leído del PDF directamente
-  | 'pdf-tesseract'   // PDF renderizado a imagen y OCR
-  | 'image-tesseract' // imagen pasada directamente a tesseract
-  | 'image-vision'    // último recurso: enviar imagen al LLM (no extrajimos texto local)
+  | 'pdf-native'
+  | 'pdf-tesseract'
+  | 'image-tesseract'
+  | 'image-vision'   // sin texto local; la Edge Function usará vision
+  | 'local-regex'    // marcador para casos donde la IA cayó y se usó parser local
 
 export interface ExtractionResult {
   text: string
@@ -379,25 +574,19 @@ export interface ExtractionResult {
   pageCount: number
   qualityScore: number // 0..1
 }
-
-export interface QualityHeuristic {
-  totalChars: number
-  alphanumChars: number
-  isSuspicious: boolean
-}
 ```
 
-**Step 2:** Crear `src/lib/ocr/pdf-extractor.ts`:
+### Task 4.2: `src/lib/ocr/pdf-extractor.ts`
 
 ```ts
 'use client'
 
-import type { ExtractionResult, QualityHeuristic } from './types'
+import type { ExtractionResult } from './types'
 
 const MAX_PAGES = 3
 const MIN_TOTAL_CHARS = 100
 const MIN_ALPHANUM_CHARS = 20
-const RENDER_SCALE = 2.5 // crítico para OCR de escaneados
+const RENDER_SCALE = 2.5
 
 let pdfjsLibPromise: Promise<typeof import('pdfjs-dist')> | null = null
 
@@ -405,7 +594,6 @@ async function getPdfjsLib() {
   if (!pdfjsLibPromise) {
     pdfjsLibPromise = (async () => {
       const lib = await import('pdfjs-dist')
-      // Worker servido desde public/ (ver scripts/copy-pdfjs-worker.mjs).
       lib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
       return lib
     })()
@@ -413,23 +601,20 @@ async function getPdfjsLib() {
   return pdfjsLibPromise
 }
 
-function assessQuality(text: string): QualityHeuristic {
+function assessQuality(text: string) {
   const totalChars = text.length
   const alphanumChars = (text.match(/[a-zA-Z0-9]/g) || []).length
   const isSuspicious = totalChars < MIN_TOTAL_CHARS || alphanumChars < MIN_ALPHANUM_CHARS
   return { totalChars, alphanumChars, isSuspicious }
 }
 
-function qualityToScore(q: QualityHeuristic): number {
+function qualityToScore(text: string): number {
+  const q = assessQuality(text)
   if (q.isSuspicious) return 0.2
   if (q.totalChars > 500 && q.alphanumChars > 200) return 1
   return 0.6
 }
 
-/**
- * Extrae texto nativo del PDF (sin OCR). Devuelve el texto y un score de calidad.
- * Si el score es <= 0.3, el caller debe caer a OCR con Tesseract.
- */
 export async function extractPdfNativeText(file: File): Promise<ExtractionResult> {
   const pdfjsLib = await getPdfjsLib()
   const arrayBuffer = await file.arrayBuffer()
@@ -449,23 +634,15 @@ export async function extractPdfNativeText(file: File): Promise<ExtractionResult
   }
 
   const text = parts.join('\n').trim()
-  const quality = assessQuality(text)
-
   return {
     text,
     source: 'pdf-native',
     pageCount,
-    qualityScore: qualityToScore(quality),
+    qualityScore: qualityToScore(text),
   }
 }
 
-/**
- * Renderiza una página del PDF a dataURL PNG con scale 2.5× para OCR posterior.
- */
-export async function renderPdfPageToImage(
-  file: File,
-  pageNumber: number = 1
-): Promise<string> {
+export async function renderPdfPageToImage(file: File, pageNumber = 1): Promise<string> {
   const pdfjsLib = await getPdfjsLib()
   const arrayBuffer = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
@@ -477,56 +654,25 @@ export async function renderPdfPageToImage(
   canvas.height = viewport.height
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('No se pudo crear canvas 2D')
-
   await page.render({ canvasContext: ctx, viewport }).promise
   return canvas.toDataURL('image/png')
 }
 ```
 
-**Step 3:** Sanidad — verificar tipos:
-
-```bash
-npm run typecheck
-```
-
-Expected: limpio (los `as` y any se han evitado intencionalmente).
-
-**Step 4:** Commit.
-
-```bash
-git add src/lib/ocr/pdf-extractor.ts src/lib/ocr/types.ts
-git commit -m "feat(ocr): extracción nativa de PDF con pdfjs-dist (cliente)"
-```
-
----
-
-## Fase 3 — OCR con Tesseract (fallback)
-
-### Task 3.1: Crear `src/lib/ocr/tesseract-extractor.ts`
-
-**Files:**
-- Create: `src/lib/ocr/tesseract-extractor.ts`
-
-**Step 1:** Crear el archivo:
+### Task 4.3: `src/lib/ocr/tesseract-extractor.ts`
 
 ```ts
 'use client'
 
 import type { ExtractionResult } from './types'
 
-/**
- * Ejecuta Tesseract sobre una imagen (File o dataURL) en español.
- * Crea worker, recognise, termina.
- */
 export async function ocrImage(input: File | string): Promise<ExtractionResult> {
-  // Dynamic import: no inflar bundle si nunca se llama.
   const { createWorker } = await import('tesseract.js')
   const worker = await createWorker('spa')
   try {
     const { data } = await worker.recognize(input)
     const text = data.text.trim()
     const source = typeof input === 'string' ? 'pdf-tesseract' : 'image-tesseract'
-    // confidence de tesseract es 0..100 → normalizamos
     const qualityScore = Math.min(1, Math.max(0, data.confidence / 100))
     return { text, source, pageCount: 1, qualityScore }
   } finally {
@@ -535,26 +681,7 @@ export async function ocrImage(input: File | string): Promise<ExtractionResult> 
 }
 ```
 
-**Step 2:** Commit.
-
-```bash
-git add src/lib/ocr/tesseract-extractor.ts
-git commit -m "feat(ocr): wrapper tesseract.js (español, single-page)"
-```
-
----
-
-## Fase 4 — Orquestador de extracción
-
-### Task 4.1: Crear `src/lib/ocr/extract-document-text.ts`
-
-Punto de entrada único. Decide qué motor usar según tipo y calidad.
-
-**Files:**
-- Create: `src/lib/ocr/extract-document-text.ts`
-- Create: `src/lib/ocr/index.ts`
-
-**Step 1:** Crear `src/lib/ocr/extract-document-text.ts`:
+### Task 4.4: `src/lib/ocr/extract-document-text.ts`
 
 ```ts
 'use client'
@@ -565,15 +692,6 @@ import type { ExtractionResult } from './types'
 
 const QUALITY_THRESHOLD = 0.3
 
-/**
- * Extrae texto de un documento usando la cascada:
- *  1) Si es PDF: pdfjs nativo. Si la calidad supera el umbral, devuelve eso.
- *  2) Si la calidad es pobre, renderiza página 1 a imagen y aplica Tesseract.
- *  3) Si es imagen, directamente Tesseract.
- *
- * NUNCA lanza: en el peor caso devuelve { text: '', qualityScore: 0 } y
- * el caller decide qué hacer (probablemente caer a image-vision en server).
- */
 export async function extractDocumentText(file: File): Promise<ExtractionResult> {
   const mime = file.type || ''
   const isPdf = mime === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
@@ -582,70 +700,62 @@ export async function extractDocumentText(file: File): Promise<ExtractionResult>
     if (isPdf) {
       const native = await extractPdfNativeText(file)
       if (native.qualityScore >= QUALITY_THRESHOLD) return native
-
-      // PDF escaneado: render + tesseract.
       const dataUrl = await renderPdfPageToImage(file, 1)
       const ocr = await ocrImage(dataUrl)
       return { ...ocr, pageCount: native.pageCount }
     }
-
-    // Imagen pura.
-    if (mime.startsWith('image/')) {
-      return await ocrImage(file)
-    }
-
-    // Tipo no soportado.
-    return {
-      text: '',
-      source: 'image-vision',
-      pageCount: 0,
-      qualityScore: 0,
-    }
+    if (mime.startsWith('image/')) return await ocrImage(file)
+    return { text: '', source: 'image-vision', pageCount: 0, qualityScore: 0 }
   } catch (err) {
     console.error('[extractDocumentText] fallo:', err)
-    return {
-      text: '',
-      source: 'image-vision',
-      pageCount: 0,
-      qualityScore: 0,
-    }
+    return { text: '', source: 'image-vision', pageCount: 0, qualityScore: 0 }
   }
 }
 ```
 
-**Step 2:** Crear `src/lib/ocr/index.ts`:
+### Task 4.5: Barrel `src/lib/ocr/index.ts`
 
 ```ts
 export { extractDocumentText } from './extract-document-text'
-export { extractPdfNativeText, renderPdfPageToImage } from './pdf-extractor'
-export { ocrImage } from './tesseract-extractor'
 export type { ExtractionResult, ExtractionSource } from './types'
 ```
 
-**Step 3:** Commit.
+### Task 4.6: Commit
 
 ```bash
-git add src/lib/ocr/extract-document-text.ts src/lib/ocr/index.ts
-git commit -m "feat(ocr): orquestador cascada pdf-nativo → tesseract → fallback"
+git add src/lib/ocr/
+git commit -m "feat(ocr): pipeline cliente pdfjs → tesseract con cascada de calidad"
 ```
 
 ---
 
-## Fase 5 — Nuevo servicio OpenAI (texto-first, con line items)
+## Fase 5 — Edge Function `analyze-invoice`
 
-### Task 5.1: Crear `src/services/openai-invoice.ts`
-
-Reemplaza `openai-vision.ts`. Acepta **texto** o **dataURL imagen** según lo que la extracción cliente haya conseguido. Prompt enriquecido para extraer cabecera + ítems de tabla.
+### Task 5.1: Crear la Edge Function
 
 **Files:**
-- Create: `src/services/openai-invoice.ts`
-- Reference (no modify yet): `src/services/openai-vision.ts`
+- Create: `supabase/functions/analyze-invoice/index.ts`
+- Create: `supabase/functions/analyze-invoice/deno.json` (opcional)
 
-**Step 1:** Crear `src/services/openai-invoice.ts`:
+**Step 1:** Crear la función con scaffold:
+
+```bash
+supabase functions new analyze-invoice
+```
+
+Esto crea `supabase/functions/analyze-invoice/index.ts`.
+
+**Step 2:** Reemplazar el contenido por:
 
 ```ts
-import 'server-only'
-import { z } from 'zod'
+// supabase/functions/analyze-invoice/index.ts
+// Edge Function (Deno): análisis OCR de factura vía GPT-4o.
+// Recibe texto extraído por el cliente (si está disponible) o un filePath para
+// firmar y mandar la imagen al modelo. Devuelve ScannedInvoice JSON.
+
+import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.94.0'
+import { z } from 'https://esm.sh/zod@4.3.6'
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions'
 const MODEL = 'gpt-4o'
@@ -658,14 +768,17 @@ const ItemSchema = z.object({
   unit_price: z.number().nullable().optional(),
   total: z.number().nullable().optional(),
   tax_rate: z.number().nullable().optional(),
-  category: z.enum(['Food', 'Beverage', 'Alcohol', 'Cleaning', 'Packaging', 'Equipment', 'Other']).nullable().optional(),
+  category: z
+    .enum(['Food', 'Beverage', 'Alcohol', 'Cleaning', 'Packaging', 'Equipment', 'Other'])
+    .nullable()
+    .optional(),
 })
 
-export const ScannedInvoiceSchema = z.object({
+const ScannedInvoiceSchema = z.object({
   supplier_name: z.string().nullable().optional(),
   supplier_tax_id: z.string().nullable().optional(),
   invoice_number: z.string().nullable().optional(),
-  date: z.string().nullable().optional(), // ISO
+  date: z.string().nullable().optional(),
   total_amount: z.number().nullable().optional(),
   tax_amount: z.number().nullable().optional(),
   base_amount: z.number().nullable().optional(),
@@ -674,7 +787,14 @@ export const ScannedInvoiceSchema = z.object({
   confidence: z.number().min(0).max(1).optional(),
 })
 
-export type ScannedInvoice = z.infer<typeof ScannedInvoiceSchema>
+type ScannedInvoice = z.infer<typeof ScannedInvoiceSchema>
+
+const RequestSchema = z.object({
+  extractedText: z.string().default(''),
+  filePath: z.string(),
+  fileMime: z.string(),
+  source: z.enum(['pdf-native', 'pdf-tesseract', 'image-tesseract', 'image-vision']),
+})
 
 const SYSTEM_PROMPT = `Eres un extractor de datos de facturas de proveedores de hostelería en España.
 Recibes texto extraído de una factura (PDF/imagen ya OCR'd) o una imagen directa.
@@ -704,104 +824,10 @@ Líneas de la tabla (items):
 Reglas:
 - Formato decimal: usa punto (1234.56), nunca coma.
 - Si el texto está en español, mantén los nombres en español.
-- Si no detectas la tabla de items con suficiente claridad, devuelve items: [].
+- Si no detectas la tabla de items con claridad, devuelve items: [].
 - confidence: número 0..1 con tu confianza global en la extracción.
 
 Devuelve únicamente JSON puro.`
-
-interface AnalyzeArgs {
-  apiKey: string
-  textContent?: string
-  imageUrl?: string
-}
-
-export async function analyzeInvoice(args: AnalyzeArgs): Promise<ScannedInvoice> {
-  const { apiKey, textContent, imageUrl } = args
-  if (!textContent && !imageUrl) {
-    throw new Error('analyzeInvoice: se requiere textContent o imageUrl')
-  }
-
-  const userContent: Array<{ type: string; text?: string; image_url?: { url: string; detail: string } }> = [
-    { type: 'text', text: USER_INSTRUCTIONS },
-  ]
-
-  if (textContent) {
-    userContent.push({
-      type: 'text',
-      text: `--- TEXTO DE LA FACTURA ---\n${textContent}\n--- FIN ---`,
-    })
-  }
-
-  if (imageUrl) {
-    userContent.push({
-      type: 'image_url',
-      image_url: { url: imageUrl, detail: 'high' },
-    })
-  }
-
-  const body = {
-    model: MODEL,
-    temperature: 0,
-    response_format: { type: 'json_object' as const },
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: userContent },
-    ],
-  }
-
-  const res = await fetch(OPENAI_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-  })
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '')
-    throw new Error(`OpenAI ${res.status}: ${errText.slice(0, 200)}`)
-  }
-
-  const json = await res.json()
-  const raw = json.choices?.[0]?.message?.content
-  if (!raw) throw new Error('OpenAI: respuesta sin content')
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    throw new Error('OpenAI: JSON inválido')
-  }
-
-  // Validar y retornar; si algún campo no encaja, Zod lanzará.
-  return ScannedInvoiceSchema.parse(parsed)
-}
-```
-
-**Step 2:** Commit.
-
-```bash
-git add src/services/openai-invoice.ts
-git commit -m "feat(ocr): servicio openai-invoice con extracción texto-first y line items"
-```
-
----
-
-## Fase 6 — Fallback regex local
-
-### Task 6.1: Crear `src/lib/ocr/local-fallback-parser.ts`
-
-Cuando OpenAI falla. Saca al menos los 4 campos críticos del texto plano: total, fecha, CIF, número de factura. Items se dejan vacíos — el usuario los introduce a mano.
-
-**Files:**
-- Create: `src/lib/ocr/local-fallback-parser.ts`
-- Test: `src/lib/ocr/local-fallback-parser.test.ts`
-
-**Step 1:** Crear el parser:
-
-```ts
-import type { ScannedInvoice } from '@/services/openai-invoice'
 
 const CIF_REGEX = /\b([A-HJ-NP-SUVW]\d{7}[0-9A-J])\b|\b(\d{8}[A-Z])\b/i
 const DATE_REGEX = /\b(\d{1,2})\s?[\/\-.]\s?(\d{1,2})\s?[\/\-.]\s?(\d{4})\b/
@@ -811,7 +837,6 @@ function parseAmount(raw: string): number | null {
   if (!raw) return null
   let clean = raw.trim()
   if (clean.includes(',') && clean.includes('.')) {
-    // Formato europeo "1.234,56" → "1234.56"
     clean = clean.replace(/\./g, '').replace(',', '.')
   } else if (clean.includes(',')) {
     clean = clean.replace(',', '.')
@@ -820,148 +845,222 @@ function parseAmount(raw: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-function extractTotal(text: string): number | null {
-  // Estrategia: línea con "total" + número europeo, o el número grande más cercano a "TOTAL".
-  const lines = text.split('\n')
-  let best: number | null = null
-  for (const line of lines) {
+function localFallback(text: string): ScannedInvoice {
+  let total: number | null = null
+  for (const line of text.split('\n')) {
     if (/total|importe/i.test(line)) {
       const m = line.match(/(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2}))/)
       if (m) {
         const n = parseAmount(m[1])
-        if (n != null && n > 0 && n < 100000) {
-          if (best == null || n > best) best = n
-        }
+        if (n != null && n > 0 && n < 100000 && (total == null || n > total)) total = n
       }
     }
   }
-  return best
-}
 
-function extractDate(text: string): string | null {
-  const m = text.match(DATE_REGEX)
-  if (!m) return null
-  const day = parseInt(m[1], 10)
-  const month = parseInt(m[2], 10)
-  const year = parseInt(m[3], 10)
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null
-  const mm = month.toString().padStart(2, '0')
-  const dd = day.toString().padStart(2, '0')
-  return `${year}-${mm}-${dd}`
-}
+  let date: string | null = null
+  const dm = text.match(DATE_REGEX)
+  if (dm) {
+    const day = parseInt(dm[1], 10)
+    const month = parseInt(dm[2], 10)
+    const year = parseInt(dm[3], 10)
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    }
+  }
 
-function extractTaxId(text: string): string | null {
-  const m = text.match(CIF_REGEX)
-  return m ? (m[1] || m[2] || null) : null
-}
+  const cm = text.match(CIF_REGEX)
+  const taxId = cm ? cm[1] || cm[2] || null : null
+  const im = text.match(INVOICE_NUM_REGEX)
+  const number = im ? im[1] : null
 
-function extractInvoiceNumber(text: string): string | null {
-  const m = text.match(INVOICE_NUM_REGEX)
-  return m ? m[1] : null
-}
-
-/**
- * Extracción local mínima. items siempre vacío — el usuario los rellena a mano.
- * Pensado solo como red de seguridad cuando OpenAI falla.
- */
-export function parseInvoiceLocally(text: string): ScannedInvoice {
   return {
     supplier_name: null,
-    supplier_tax_id: extractTaxId(text),
-    invoice_number: extractInvoiceNumber(text),
-    date: extractDate(text),
-    total_amount: extractTotal(text),
+    supplier_tax_id: taxId,
+    invoice_number: number,
+    date,
+    total_amount: total,
     tax_amount: null,
     base_amount: null,
     currency: 'EUR',
     items: [],
-    confidence: 0.3, // marcamos baja para que el usuario sepa que tiene que revisar todo
+    confidence: 0.3,
   }
 }
-```
 
-**Step 2:** Tests:
+async function callOpenAI(args: {
+  apiKey: string
+  textContent?: string
+  imageUrl?: string
+}): Promise<ScannedInvoice> {
+  const { apiKey, textContent, imageUrl } = args
+  const userContent: Array<Record<string, unknown>> = [{ type: 'text', text: USER_INSTRUCTIONS }]
+  if (textContent) {
+    userContent.push({
+      type: 'text',
+      text: `--- TEXTO DE LA FACTURA ---\n${textContent}\n--- FIN ---`,
+    })
+  }
+  if (imageUrl) {
+    userContent.push({ type: 'image_url', image_url: { url: imageUrl, detail: 'high' } })
+  }
 
-```ts
-import { describe, expect, it } from 'vitest'
-import { parseInvoiceLocally } from './local-fallback-parser'
-
-describe('parseInvoiceLocally', () => {
-  it('extrae total con formato europeo', () => {
-    const text = `Factura Nº FA-2025-0042
-Fecha 15/01/2025
-Frutas Garcia S.L. B12345678
-... líneas ...
-Total: 1.234,56 €`
-    const r = parseInvoiceLocally(text)
-    expect(r.total_amount).toBe(1234.56)
+  const res = await fetch(OPENAI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: MODEL,
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userContent },
+      ],
+    }),
   })
 
-  it('extrae fecha en formato dd/mm/yyyy', () => {
-    const r = parseInvoiceLocally('Fecha: 05/03/2025')
-    expect(r.date).toBe('2025-03-05')
-  })
+  if (!res.ok) {
+    const err = await res.text().catch(() => '')
+    throw new Error(`OpenAI ${res.status}: ${err.slice(0, 200)}`)
+  }
 
-  it('extrae CIF español', () => {
-    const r = parseInvoiceLocally('Proveedor: Frutas García SL B12345678')
-    expect(r.supplier_tax_id).toBe('B12345678')
-  })
+  const json = await res.json()
+  const raw = json.choices?.[0]?.message?.content
+  if (!raw) throw new Error('OpenAI: respuesta sin content')
+  const parsed = JSON.parse(raw)
+  return ScannedInvoiceSchema.parse(parsed)
+}
 
-  it('items siempre vacío', () => {
-    const r = parseInvoiceLocally('cualquier texto con muchos items 12 kg 3,40')
-    expect(r.items).toEqual([])
-  })
+serve(async (req) => {
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 })
+  }
 
-  it('confidence bajo', () => {
-    const r = parseInvoiceLocally('')
-    expect(r.confidence).toBeLessThan(0.5)
+  // 1) Auth: validar JWT del usuario.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  if (!authHeader.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+  }
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: authHeader } } }
+  )
+  const { data: { user }, error: userErr } = await supabase.auth.getUser()
+  if (userErr || !user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+  }
+
+  // 2) Parsear body.
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 })
+  }
+  const parseRes = RequestSchema.safeParse(body)
+  if (!parseRes.success) {
+    return new Response(JSON.stringify({ error: 'Body inválido', details: parseRes.error.flatten() }), { status: 400 })
+  }
+  const input = parseRes.data
+
+  // 3) Decidir path: texto si hay calidad suficiente, si no imagen firmada.
+  const apiKey = Deno.env.get('OPENAI_API_KEY')
+  if (!apiKey) {
+    // Sin API key, fallback inmediato.
+    return new Response(JSON.stringify({
+      scanned: localFallback(input.extractedText),
+      used_ai: false,
+      effective_source: 'local-regex',
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+
+  let scanned: ScannedInvoice | null = null
+  let used_ai = false
+  let effective_source: string = input.source
+
+  try {
+    if (input.extractedText && input.extractedText.length > 50) {
+      scanned = await callOpenAI({ apiKey, textContent: input.extractedText })
+    } else {
+      const { data: signed } = await supabase.storage
+        .from('invoices')
+        .createSignedUrl(input.filePath, 120)
+      if (!signed?.signedUrl) throw new Error('No signed URL')
+      scanned = await callOpenAI({ apiKey, imageUrl: signed.signedUrl })
+      effective_source = 'image-vision'
+    }
+    used_ai = true
+  } catch (err) {
+    console.error('[analyze-invoice] OpenAI fallo:', err)
+    scanned = localFallback(input.extractedText)
+    used_ai = false
+    effective_source = 'local-regex'
+  }
+
+  return new Response(JSON.stringify({ scanned, used_ai, effective_source }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
   })
 })
 ```
 
-**Step 3:** Ejecutar:
+**Step 3:** Configurar el secret de OpenAI:
 
 ```bash
-npm test -- src/lib/ocr/local-fallback-parser.test.ts
+supabase secrets set OPENAI_API_KEY=<tu-clave>
 ```
 
-**Step 4:** Commit.
+Verificar:
 
 ```bash
-git add src/lib/ocr/local-fallback-parser.ts src/lib/ocr/local-fallback-parser.test.ts
-git commit -m "feat(ocr): parser local regex como fallback si openai falla"
+supabase secrets list
+```
+
+**Step 4:** Probar localmente:
+
+```bash
+supabase functions serve analyze-invoice --env-file .env.local
+```
+
+En otra terminal, simular invocación:
+
+```bash
+curl -X POST http://localhost:54321/functions/v1/analyze-invoice \
+  -H "Authorization: Bearer <JWT_de_un_usuario>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "extractedText": "Factura Nº FA-2025-0042\nFecha 15/01/2025\nFrutas Garcia S.L. B12345678\nTomate 5 kg 1.50€ 7.50€\nTotal: 7.50 €",
+    "filePath": "test/sample.pdf",
+    "fileMime": "application/pdf",
+    "source": "pdf-native"
+  }'
+```
+
+Debe devolver un JSON con `scanned.supplier_name`, `items`, `used_ai: true`.
+
+**Step 5:** Deploy a producción:
+
+```bash
+supabase functions deploy analyze-invoice
+```
+
+**Step 6:** Commit.
+
+```bash
+git add supabase/functions/analyze-invoice/
+git commit -m "feat(ocr): Edge Function analyze-invoice (Deno, GPT-4o, fallback regex)"
 ```
 
 ---
 
-## Fase 7 — Refactor de server actions
+## Fase 6 — Server Action delgada de persistencia
 
-### Task 7.1: Reemplazar `processInvoice` con flujo texto-first
-
-Hoy `processInvoice` (en `src/app/actions/invoices.ts`) sube el archivo y manda la URL a `scanInvoiceWithGPT4o`. Lo cambiamos para aceptar **texto extraído por el cliente** y opcionalmente la `imageDataUrl` como último recurso.
+### Task 6.1: Reemplazar `processInvoice` por `processInvoiceFromExtraction`
 
 **Files:**
 - Modify: `src/app/actions/invoices.ts`
-- Modify: `src/app/actions/billing.ts` (mover deduct de crédito a sitio nuevo)
 
-**Step 1:** Leer estado actual:
-
-```bash
-cat src/app/actions/invoices.ts
-cat src/app/actions/billing.ts
-```
-
-Anotar:
-- Función `processInvoice(formData)` ~líneas 22-129.
-- Función `createInvoiceRecord(filePath)` ~líneas 131-212.
-- Llamada a `scanInvoiceWithGPT4o(signedUrl, apiKey)`.
-- `deductCredit(1)` tras éxito.
-
-**Step 2:** Crear nueva action `processInvoiceFromExtraction`:
-
-Reemplaza el cuerpo de `processInvoice` y `createInvoiceRecord` por la nueva firma. Toda la lógica antigua se borra; se reusa solo el wrapper de upload a Storage + el INSERT de `invoices`.
-
-Nueva firma (en `src/app/actions/invoices.ts`):
+**Step 1:** Reemplazar el cuerpo (mantener `getInvoices` y otras lecturas existentes):
 
 ```ts
 'use server'
@@ -970,45 +1069,74 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabaseServer'
 import { revalidatePath } from 'next/cache'
 import { getUserRestaurant } from './utils'
-import { checkCreditsAvailable, deductCredit } from './billing'
-import { analyzeInvoice, ScannedInvoiceSchema } from '@/services/openai-invoice'
-import { parseInvoiceLocally } from '@/lib/ocr/local-fallback-parser'
+import { deductCredit } from './billing'
 
-const ExtractionInputSchema = z.object({
+const ItemSchema = z.object({
+  line_text: z.string().optional(),
+  description: z.string(),
+  qty: z.number().nullable().optional(),
+  unit: z.string().nullable().optional(),
+  unit_price: z.number().nullable().optional(),
+  total: z.number().nullable().optional(),
+  tax_rate: z.number().nullable().optional(),
+  category: z
+    .enum(['Food', 'Beverage', 'Alcohol', 'Cleaning', 'Packaging', 'Equipment', 'Other'])
+    .nullable()
+    .optional(),
+})
+
+const ScannedSchema = z.object({
+  supplier_name: z.string().nullable().optional(),
+  supplier_tax_id: z.string().nullable().optional(),
+  invoice_number: z.string().nullable().optional(),
+  date: z.string().nullable().optional(),
+  total_amount: z.number().nullable().optional(),
+  tax_amount: z.number().nullable().optional(),
+  base_amount: z.number().nullable().optional(),
+  currency: z.string().nullable().optional(),
+  items: z.array(ItemSchema).default([]),
+  confidence: z.number().min(0).max(1).optional(),
+})
+
+const InputSchema = z.object({
   filePath: z.string().min(1),
   fileMime: z.string().min(1),
   fileName: z.string().min(1),
-  extractedText: z.string().default(''),
-  source: z.enum(['pdf-native', 'pdf-tesseract', 'image-tesseract', 'image-vision']),
-  qualityScore: z.number().min(0).max(1),
+  scanned: ScannedSchema,
+  used_ai: z.boolean(),
+  effective_source: z.enum([
+    'pdf-native', 'pdf-tesseract', 'image-tesseract', 'image-vision', 'local-regex',
+  ]),
 })
 
-type ExtractionInput = z.infer<typeof ExtractionInputSchema>
-
-interface ProcessResult {
-  success: boolean
-  invoiceId?: string
-  error?: string
-  usedFallback?: boolean
-}
+const ACCEPTED_MIMES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp']
 
 export async function processInvoiceFromExtraction(
-  input: ExtractionInput
-): Promise<ProcessResult> {
+  input: z.infer<typeof InputSchema>
+): Promise<{ success: boolean; invoiceId?: string; error?: string }> {
   const restaurant = await getUserRestaurant()
   if (!restaurant) return { success: false, error: 'No restaurant' }
 
-  const parsed = ExtractionInputSchema.parse(input)
+  const parsed = InputSchema.parse(input)
+  if (!ACCEPTED_MIMES.includes(parsed.fileMime)) {
+    return { success: false, error: 'Tipo de archivo no soportado' }
+  }
+
   const supabase = await createClient()
 
-  // 1) Crear fila inicial en invoices (status processing).
   const { data: invoice, error: insertErr } = await supabase
     .from('invoices')
     .insert({
       restaurant_id: restaurant.id,
-      file_url: parsed.filePath, // canonizado: file_url (no image_url)
-      status: 'processing',
-      scanned_data: null,
+      file_url: parsed.filePath,
+      status: 'review_required',
+      scanned_data: parsed.scanned,
+      total_amount: parsed.scanned.total_amount ?? null,
+      invoice_number: parsed.scanned.invoice_number ?? null,
+      date: parsed.scanned.date ?? null,
+      extraction_source: parsed.effective_source,
+      extraction_confidence: parsed.scanned.confidence ?? null,
+      used_ai: parsed.used_ai,
     })
     .select('id')
     .single()
@@ -1017,143 +1145,55 @@ export async function processInvoiceFromExtraction(
     return { success: false, error: insertErr?.message ?? 'No se pudo crear invoice' }
   }
 
-  // 2) Intentar análisis IA. Si falla, caer a regex local.
-  const apiKey = process.env.OPENAI_API_KEY
-  let scanned: z.infer<typeof ScannedInvoiceSchema> | null = null
-  let usedFallback = false
-
-  // ¿Tenemos crédito y API key?
-  const hasCredits = await checkCreditsAvailable()
-  const canUseAI = !!apiKey && hasCredits
-
-  if (canUseAI) {
+  if (parsed.used_ai) {
     try {
-      // Si hay texto suficiente, mandar TEXTO (más barato/rápido).
-      // Si la calidad es nula y es imagen/escaneado sin texto, mandar la URL firmada.
-      if (parsed.extractedText && parsed.qualityScore > 0.2) {
-        scanned = await analyzeInvoice({
-          apiKey: apiKey!,
-          textContent: parsed.extractedText,
-        })
-      } else {
-        // Generar signed URL para que GPT-4o vea la imagen.
-        const { data: signed } = await supabase.storage
-          .from('invoices')
-          .createSignedUrl(parsed.filePath, 120)
-        if (!signed?.signedUrl) throw new Error('No signed URL')
-        scanned = await analyzeInvoice({
-          apiKey: apiKey!,
-          imageUrl: signed.signedUrl,
-        })
-      }
       await deductCredit(1)
-    } catch (err) {
-      console.error('[processInvoice] AI fallo, usando regex local:', err)
-      usedFallback = true
+    } catch (e) {
+      // No bloquear el flujo si el decremento falla; loguear.
+      console.error('[processInvoiceFromExtraction] deductCredit fallo:', e)
     }
-  } else {
-    usedFallback = true
-  }
-
-  if (!scanned) {
-    // Fallback regex local sobre el texto que el cliente extrajo (puede estar vacío).
-    scanned = parseInvoiceLocally(parsed.extractedText)
-  }
-
-  // 3) Persistir scanned_data + cambiar status.
-  const { error: updateErr } = await supabase
-    .from('invoices')
-    .update({
-      status: 'review_required',
-      scanned_data: {
-        ...scanned,
-        _meta: {
-          source: parsed.source,
-          quality: parsed.qualityScore,
-          used_fallback: usedFallback,
-        },
-      },
-      total_amount: scanned.total_amount ?? null,
-      invoice_number: scanned.invoice_number ?? null,
-      date: scanned.date ?? null,
-    })
-    .eq('id', invoice.id)
-
-  if (updateErr) {
-    return { success: false, error: updateErr.message, invoiceId: invoice.id }
   }
 
   revalidatePath('/invoices')
   revalidatePath(`/invoices/${invoice.id}/review`)
-
-  return { success: true, invoiceId: invoice.id, usedFallback }
+  return { success: true, invoiceId: invoice.id }
 }
-
-// LEGADO: mantener export de getInvoices y otros queries existentes intactos.
-// Sólo se reemplaza processInvoice y createInvoiceRecord.
 ```
 
-**Step 3:** Eliminar funciones antiguas:
+**Step 2:** Eliminar `processInvoice` antigua y `createInvoiceRecord` antigua. Mantener `getInvoices` y demás lecturas.
 
-- Quitar `processInvoice(formData)` antigua (la del FormData).
-- Quitar `createInvoiceRecord(filePath)` antigua.
-- Mantener `getInvoices()` y queries de lectura.
-
-**Step 4:** Confirmar que `getInvoices` y demás siguen funcionando:
+**Step 3:** Verificar:
 
 ```bash
 npm run typecheck
 ```
 
-Expected: errores donde antes se llamaba `processInvoice` (en componentes de UI). Esos se corrigen en Fase 8.
+Habrá errores en componentes que llamaban a `processInvoice(formData)` — se corrigen en Fase 7.
 
-**Step 5:** Commit.
+**Step 4:** Commit.
 
 ```bash
 git add src/app/actions/invoices.ts
-git commit -m "feat(ocr): processInvoiceFromExtraction recibe texto del cliente; regex local fallback"
+git commit -m "feat(invoices): server action delgada — solo persiste extracción"
 ```
 
-### Task 7.2: Eliminar `openai-vision.ts`
-
-Una vez ya no se importa de ninguna parte:
-
-**Step 1:** Verificar que nadie lo importa:
+### Task 6.2: Eliminar `openai-vision.ts` legacy
 
 ```bash
-grep -r "openai-vision" src/ || echo "limpio"
-```
-
-Esperado: "limpio". Si hay referencias, corregirlas primero.
-
-**Step 2:** Borrar el archivo:
-
-```bash
-git rm src/services/openai-vision.ts
-```
-
-**Step 3:** Commit.
-
-```bash
+grep -r "openai-vision" src/ && echo "FAIL — quedan referencias" || git rm src/services/openai-vision.ts
 git commit -m "chore(ocr): eliminar openai-vision.ts legacy"
 ```
 
 ---
 
-## Fase 8 — UI: nuevo flujo de subida
+## Fase 7 — UI: dropzone con pipeline cliente completo
 
-### Task 8.1: Refactor de `InvoiceDropzone.tsx`
-
-Hoy `InvoiceDropzone` envía un `FormData` con el archivo y la action server hace todo. Ahora:
-
-1. Cliente extrae texto con `extractDocumentText`.
-2. Cliente sube archivo a Supabase Storage.
-3. Cliente llama `processInvoiceFromExtraction({ filePath, fileMime, fileName, extractedText, source, qualityScore })`.
+### Task 7.1: Reescribir `InvoiceDropzone.tsx`
 
 **Files:**
 - Modify: `src/components/invoices/InvoiceDropzone.tsx`
 
-**Step 1:** Reescribir el componente (skeleton — adaptar al markup existente):
+**Step 1:** Reemplazar:
 
 ```tsx
 'use client'
@@ -1163,8 +1203,9 @@ import { createBrowserClient } from '@supabase/ssr'
 import { extractDocumentText } from '@/lib/ocr'
 import { processInvoiceFromExtraction } from '@/app/actions/invoices'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
-type Stage = 'idle' | 'extracting' | 'uploading' | 'analyzing' | 'done' | 'error'
+type Stage = 'idle' | 'extracting' | 'uploading' | 'analyzing' | 'saving' | 'done' | 'error'
 
 interface FileState {
   file: File
@@ -1174,53 +1215,68 @@ interface FileState {
 }
 
 const ACCEPTED = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp']
-const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
+const MAX_SIZE_BYTES = 10 * 1024 * 1024
 
 export function InvoiceDropzone({ userId }: { userId: string }) {
+  const router = useRouter()
   const [files, setFiles] = useState<FileState[]>([])
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  async function processOne(initial: File): Promise<FileState> {
-    const state: FileState = { file: initial, stage: 'extracting' }
-    setFiles((prev) => prev.map((f) => (f.file === initial ? state : f)))
+  function updateOne(file: File, patch: Partial<FileState>) {
+    setFiles((prev) => prev.map((f) => (f.file === file ? { ...f, ...patch } : f)))
+  }
 
-    // 1) Extracción cliente.
+  async function processOne(initial: File) {
+    updateOne(initial, { stage: 'extracting' })
     const extraction = await extractDocumentText(initial)
 
-    // 2) Subir a Storage.
-    state.stage = 'uploading'
-    setFiles((prev) => prev.map((f) => (f.file === initial ? { ...state } : f)))
+    updateOne(initial, { stage: 'uploading' })
     const ext = initial.name.split('.').pop() ?? 'bin'
     const filePath = `${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`
     const { error: upErr } = await supabase.storage
       .from('invoices')
       .upload(filePath, initial, { contentType: initial.type, upsert: false })
     if (upErr) {
-      return { ...state, stage: 'error', message: upErr.message }
+      updateOne(initial, { stage: 'error', message: upErr.message })
+      return
     }
 
-    // 3) Server action.
-    state.stage = 'analyzing'
-    setFiles((prev) => prev.map((f) => (f.file === initial ? { ...state } : f)))
+    updateOne(initial, { stage: 'analyzing' })
+    const { data, error } = await supabase.functions.invoke('analyze-invoice', {
+      body: {
+        extractedText: extraction.text,
+        filePath,
+        fileMime: initial.type,
+        source: extraction.source,
+      },
+    })
+    if (error) {
+      updateOne(initial, { stage: 'error', message: error.message })
+      return
+    }
+
+    updateOne(initial, { stage: 'saving' })
     const result = await processInvoiceFromExtraction({
       filePath,
       fileMime: initial.type,
       fileName: initial.name,
-      extractedText: extraction.text,
-      source: extraction.source,
-      qualityScore: extraction.qualityScore,
+      scanned: data.scanned,
+      used_ai: data.used_ai,
+      effective_source: data.effective_source,
     })
 
     if (!result.success) {
-      return { ...state, stage: 'error', message: result.error }
+      updateOne(initial, { stage: 'error', message: result.error })
+      return
     }
-    if (result.usedFallback) {
-      toast.warning(`${initial.name}: IA no disponible, usado análisis local. Revisa todos los campos.`)
+    if (!data.used_ai) {
+      toast.warning(`${initial.name}: IA no disponible, análisis local. Revisa todos los campos.`)
     }
-    return { ...state, stage: 'done', invoiceId: result.invoiceId }
+    updateOne(initial, { stage: 'done', invoiceId: result.invoiceId })
+    router.push(`/invoices/${result.invoiceId}/review`)
   }
 
   async function handleFiles(list: FileList | null) {
@@ -1238,10 +1294,8 @@ export function InvoiceDropzone({ userId }: { userId: string }) {
       incoming.push({ file: f, stage: 'idle' })
     }
     setFiles((prev) => [...prev, ...incoming])
-    // Procesar en serie para no saturar (Tesseract es pesado).
     for (const f of incoming) {
-      const final = await processOne(f.file)
-      setFiles((prev) => prev.map((x) => (x.file === f.file ? final : x)))
+      await processOne(f.file)
     }
   }
 
@@ -1261,6 +1315,7 @@ export function InvoiceDropzone({ userId }: { userId: string }) {
               {f.stage === 'extracting' && 'Extrayendo texto…'}
               {f.stage === 'uploading' && 'Subiendo…'}
               {f.stage === 'analyzing' && 'Analizando (IA)…'}
+              {f.stage === 'saving' && 'Guardando…'}
               {f.stage === 'done' && '✓ Listo'}
               {f.stage === 'error' && `✗ ${f.message ?? 'Error'}`}
             </span>
@@ -1272,62 +1327,62 @@ export function InvoiceDropzone({ userId }: { userId: string }) {
 }
 ```
 
-(Adaptar markup/clases al estilo del componente original, manteniendo el espíritu.)
+(Adaptar markup/clases al estilo del componente original que tengas.)
 
-**Step 2:** Verificar que el caller pasa `userId`:
-
-```bash
-grep -r "InvoiceDropzone" src/
-```
-
-Ajustar `InvoicesPage` o el padre para pasar `user.id`.
-
-**Step 3:** Commit.
+**Step 2:** Verificar que el padre pasa `userId`. Si no:
 
 ```bash
-git add src/components/invoices/InvoiceDropzone.tsx
-git commit -m "feat(ocr): dropzone con pipeline cliente (extract → upload → analyze)"
+grep -rn "<InvoiceDropzone" src/
 ```
 
-### Task 8.2: Limpiar `UploadInvoice.tsx`
+Pasar `user.id` desde el server component padre.
 
-Si existe y duplicaba el flujo, reemplazar por una llamada a `InvoiceDropzone` o eliminar. (Comprobar antes uso real.)
+**Step 3:** Limpiar `UploadInvoice.tsx` si está duplicando flujo:
 
 ```bash
 grep -r "UploadInvoice" src/
 ```
 
-Si está sin uso, borrar:
+Si está sin uso → borrar.
+
+**Step 4:** Commit.
 
 ```bash
-git rm src/components/invoices/UploadInvoice.tsx
-git commit -m "chore(ocr): eliminar UploadInvoice legacy"
+git add src/components/invoices/InvoiceDropzone.tsx
+git commit -m "feat(ocr): dropzone con pipeline cliente — extract → upload → Edge Function → save"
 ```
 
 ---
 
-## Fase 9 — UI: confidence card en review
+## Fase 8 — UI: confidence card en review
 
-### Task 9.1: Componente `OcrConfidenceCard.tsx`
-
-Replicar el "Resumen OCR" de Factyra. Muestra ✓/✗ por campo + % completitud + warning si bajo.
+### Task 8.1: `OcrConfidenceCard.tsx`
 
 **Files:**
 - Create: `src/components/invoices/OcrConfidenceCard.tsx`
-
-**Step 1:**
 
 ```tsx
 'use client'
 
 import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
-import type { ScannedInvoice } from '@/services/openai-invoice'
 
-interface Props {
-  scanned: ScannedInvoice & { _meta?: { source?: string; used_fallback?: boolean } }
+interface ScannedShape {
+  supplier_name?: string | null
+  supplier_tax_id?: string | null
+  invoice_number?: string | null
+  date?: string | null
+  total_amount?: number | null
+  tax_amount?: number | null
+  items?: unknown[]
 }
 
-const FIELDS: Array<{ key: keyof ScannedInvoice; label: string }> = [
+interface Props {
+  scanned: ScannedShape
+  usedAi: boolean
+  effectiveSource: string
+}
+
+const FIELDS: Array<{ key: keyof ScannedShape; label: string }> = [
   { key: 'supplier_name', label: 'Proveedor' },
   { key: 'supplier_tax_id', label: 'CIF' },
   { key: 'invoice_number', label: 'Nº factura' },
@@ -1336,13 +1391,13 @@ const FIELDS: Array<{ key: keyof ScannedInvoice; label: string }> = [
   { key: 'tax_amount', label: 'IVA' },
 ]
 
-export function OcrConfidenceCard({ scanned }: Props) {
+export function OcrConfidenceCard({ scanned, usedAi, effectiveSource }: Props) {
+  const itemCount = scanned.items?.length ?? 0
   const present = FIELDS.filter((f) => {
     const v = scanned[f.key]
     return v != null && v !== ''
   })
-  const itemCount = scanned.items?.length ?? 0
-  const totalSlots = FIELDS.length + 1 // +1 por items
+  const totalSlots = FIELDS.length + 1
   const filledSlots = present.length + (itemCount > 0 ? 1 : 0)
   const pct = Math.round((filledSlots / totalSlots) * 100)
 
@@ -1354,10 +1409,13 @@ export function OcrConfidenceCard({ scanned }: Props) {
   return (
     <div className="rounded-lg border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-medium">Resumen OCR</h3>
-        <span className={`rounded-full px-2 py-0.5 text-xs ${badgeColor}`}>
-          {pct}% completado
-        </span>
+        <div>
+          <h3 className="font-medium">Resumen OCR</h3>
+          <p className="text-xs text-muted-foreground">
+            Path: <code>{effectiveSource}</code>
+          </p>
+        </div>
+        <span className={`rounded-full px-2 py-0.5 text-xs ${badgeColor}`}>{pct}%</span>
       </div>
       <ul className="space-y-1.5 text-sm">
         {FIELDS.map((f) => {
@@ -1385,16 +1443,10 @@ export function OcrConfidenceCard({ scanned }: Props) {
           <span className="font-mono">{itemCount}</span>
         </li>
       </ul>
-      {scanned._meta?.used_fallback && (
+      {!usedAi && (
         <div className="mt-3 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
           <AlertTriangle className="h-4 w-4 shrink-0" />
-          <span>IA no disponible. Datos extraídos por análisis local — revisa todos los campos.</span>
-        </div>
-      )}
-      {pct < 50 && !scanned._meta?.used_fallback && (
-        <div className="mt-3 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <span>Pocos campos detectados. Revisa manualmente.</span>
+          <span>IA no disponible. Datos por análisis local — revisa todos los campos.</span>
         </div>
       )}
     </div>
@@ -1402,171 +1454,134 @@ export function OcrConfidenceCard({ scanned }: Props) {
 }
 ```
 
-**Step 2:** Insertarlo en `src/app/invoices/[id]/review/page.tsx` (o en `InvoiceReviewForm`), pasándole `invoice.scanned_data`:
+### Task 8.2: Insertar en la página de review
+
+**Files:**
+- Modify: `src/app/invoices/[id]/review/page.tsx`
+
+Buscar el lugar donde se renderiza el formulario de review e insertar:
 
 ```tsx
-<OcrConfidenceCard scanned={invoice.scanned_data} />
+<OcrConfidenceCard
+  scanned={invoice.scanned_data}
+  usedAi={invoice.used_ai}
+  effectiveSource={invoice.extraction_source}
+/>
 ```
 
-**Step 3:** Commit.
+**Si el bucket es privado**, firmar el PDF para el iframe:
+
+```ts
+const { data: signed } = await supabase.storage
+  .from('invoices')
+  .createSignedUrl(invoice.file_url, 600) // 10 min
+const pdfUrl = signed?.signedUrl
+```
+
+Y usar `pdfUrl` en el `<iframe src={pdfUrl} />`.
+
+**Step:** Commit.
 
 ```bash
 git add src/components/invoices/OcrConfidenceCard.tsx src/app/invoices/[id]/review/page.tsx
-git commit -m "feat(ocr): confidence card por campo en review"
+git commit -m "feat(ocr): OcrConfidenceCard + signed URL para preview en review"
 ```
 
 ---
 
-## Fase 10 — Migración + limpieza
+## Fase 9 — Verificación end-to-end
 
-### Task 10.1: Resolver inconsistencia `file_url` vs `image_url`
+### Task 9.1: Tests manuales obligatorios
 
-`docs/ai/05-invoices.md` documenta que algunos sitios usan `file_url` y otros `image_url`. Canonizar a **`file_url`**.
+Antes de mergear, probar y anotar resultado de cada caso:
 
-**Step 1:** Buscar usos:
+| # | Caso | Esperado | `extraction_source` | `used_ai` |
+|---|------|----------|---------------------|-----------|
+| 1 | PDF digital de Makro | review en <10s, items completos | `pdf-native` | `true` |
+| 2 | PDF escaneado | review en <30s, items parciales | `pdf-tesseract` o `image-vision` | `true` |
+| 3 | Foto JPG (móvil) | review en <30s | `image-tesseract` o `image-vision` | `true` |
+| 4 | Apagar `OPENAI_API_KEY` y reintentar #1 | review con regex local, items vacíos | `local-regex` | `false` |
+| 5 | Apagar `OPENAI_API_KEY` y subir factura del usuario | flujo no se rompe, badge "IA no disponible" visible | `local-regex` | `false` |
+| 6 | Doble subida del mismo archivo | dos invoices distintas (el filePath tiene UUID) — comportamiento aceptable | — | — |
+| 7 | PDF de 5 páginas | solo se leen 3 (limitación documentada en `05-invoices.md`) | `pdf-native` | `true` |
+| 8 | Archivo .txt (no soportado) | error claro en toast, no se sube | — | — |
 
-```bash
-grep -rn "image_url" src/ migrations/ supabase/
-grep -rn "file_url" src/
-```
+Restaurar `OPENAI_API_KEY` tras los tests negativos.
 
-**Step 2:** Si la columna real en DB es `image_url`, crear migración para renombrar:
-
-```sql
--- migrations/2026XXXX_rename_image_url.sql
-ALTER TABLE invoices RENAME COLUMN image_url TO file_url;
-```
-
-Si ya es `file_url`, actualizar los lugares que usan `image_url` para usar `file_url`.
-
-**Step 3:** Regenerar tipos Supabase:
+### Task 9.2: Verificación final
 
 ```bash
-npx supabase gen types typescript --project-id <PROJECT_ID> > src/types/supabase.ts
+npm run typecheck
+npm run lint
+npm test
+npm run build
+ls public/pdf.worker.min.mjs
+grep -r "openai-vision" src/ && echo "FAIL" || echo "OK"
 ```
 
-(O método equivalente al que ya uses.)
-
-**Step 4:** Commit.
-
-```bash
-git add migrations/ src/ supabase/
-git commit -m "fix(invoices): canonizar file_url en lugar de image_url"
-```
-
-### Task 10.2: Validación server-side de tamaño y MIME
-
-Añadir guard en `processInvoiceFromExtraction` (validar `fileMime` y opcionalmente verificar el archivo en Storage). Aunque el cliente valida, no es suficiente — un atacante puede llamar la action saltándose la UI.
-
-**Step 1:** En `processInvoiceFromExtraction`, después de validar el schema:
-
-```ts
-const ACCEPTED_MIMES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp']
-if (!ACCEPTED_MIMES.includes(parsed.fileMime)) {
-  return { success: false, error: 'Tipo de archivo no soportado' }
-}
-```
-
-**Step 2:** Opcionalmente, leer metadata del objeto en Storage para verificar tamaño real:
-
-```ts
-const { data: meta } = await supabase.storage.from('invoices').list(
-  parsed.filePath.split('/').slice(0, -1).join('/'),
-  { search: parsed.filePath.split('/').pop() }
-)
-const size = meta?.[0]?.metadata?.size
-if (size && size > 10 * 1024 * 1024) {
-  await supabase.storage.from('invoices').remove([parsed.filePath])
-  return { success: false, error: 'Archivo demasiado grande' }
-}
-```
-
-**Step 3:** Commit.
-
-```bash
-git add src/app/actions/invoices.ts
-git commit -m "fix(ocr): validación server-side de MIME y tamaño"
-```
-
-### Task 10.3: Test E2E ligero
-
-**Files:**
-- Create: `e2e/ocr-invoice-flow.spec.ts`
-
-**Step 1:** Test playwright simple — subir 3 archivos sample, confirmar que llegan a `/invoices/[id]/review`.
-
-Coloca samples en `e2e/fixtures/`:
-- `sample-digital.pdf` (PDF con texto nativo).
-- `sample-scanned.pdf` (PDF escaneado).
-- `sample-image.jpg` (foto de factura).
-
-```ts
-import { test, expect } from '@playwright/test'
-
-test.describe('OCR invoice flow', () => {
-  test('PDF digital → review con items', async ({ page }) => {
-    // login y navegar a /invoices ...
-    await page.setInputFiles('input[type="file"]', 'e2e/fixtures/sample-digital.pdf')
-    await expect(page.getByText('Analizando')).toBeVisible()
-    await expect(page.getByText('Listo', { exact: false })).toBeVisible({ timeout: 60000 })
-  })
-})
-```
-
-**Step 2:** Commit.
-
-```bash
-git add e2e/ocr-invoice-flow.spec.ts e2e/fixtures/
-git commit -m "test(ocr): e2e ligero del flujo de subida"
-```
+Todos OK antes de mergear.
 
 ---
 
-## Fase 11 — Actualización de `docs/ai/`
+## Fase 10 — Sincronizar `docs/ai/`
 
-### Task 11.1: Actualizar `docs/ai/05-invoices.md`
+### Task 10.1: Actualizar `docs/ai/05-invoices.md`
 
-Per la regla en `CLAUDE.md`, **obligatorio** actualizar el archivo de la página tras tocar el módulo.
+Por protocolo de `CLAUDE.md`, obligatorio.
 
-**Files:**
-- Modify: `docs/ai/05-invoices.md`
+**Cambios:**
 
-**Step 1:** Cambios concretos:
+1. **§3 Flujo técnico:**
+   - Sustituir el flujo viejo por el nuevo pipeline cliente → Edge Function → server action.
+   - Listar los `extraction_source` posibles.
+   - Mencionar columnas nuevas: `extraction_source`, `extraction_confidence`, `used_ai`.
 
-1. **Sección 3 (Flujo técnico de datos):**
-   - Reemplazar el flujo `processInvoice` viejo por el nuevo `processInvoiceFromExtraction`.
-   - Añadir el pipeline cliente: `extractDocumentText` cascada.
-   - Reflejar que `scanned_data` ahora incluye `_meta.source` y `_meta.used_fallback`.
+2. **§4 Reglas:**
+   - Crédito se decrementa solo si `used_ai=true`.
+   - Bucket es privado, file_url guarda solo `path`, signed URL bajo demanda.
 
-2. **Sección 5 (Dependencias):**
-   - Añadir `src/lib/ocr/*` (nuevo paquete).
-   - Añadir `src/lib/similarity.ts`.
-   - Reemplazar referencia a `src/services/openai-vision.ts` por `src/services/openai-invoice.ts`.
-   - Mencionar dependencias `pdfjs-dist` y `tesseract.js`.
+3. **§5 Dependencias:**
+   - Añadir `src/lib/ocr/*` y `src/lib/similarity.ts`.
+   - Añadir `supabase/functions/analyze-invoice/`.
+   - Quitar referencia a `src/services/openai-vision.ts`.
+   - Mencionar `pdfjs-dist` y `tesseract.js`.
 
-3. **Sección 6 (Casos límite):**
-   - Quitar la mención a `file_url` vs `image_url` (resuelto).
-   - Añadir: "Cuando OpenAI cae, se usa parser local — items quedan vacíos, el usuario los introduce a mano."
-   - Añadir: "PDF escaneado mal renderizado: scale 2.5 mitiga, pero documentos con resolución muy baja pueden seguir fallando."
+4. **§6 Casos límite:**
+   - Quitar la inconsistencia `file_url`/`image_url`.
+   - Añadir: "Si OpenAI cae, `extraction_source='local-regex'` y los items quedan vacíos."
+   - Añadir: "PDF >3 páginas: solo se leen las 3 primeras."
+   - Añadir: "Bucket privado — al mostrar PDF en review se firma con TTL 10 min."
 
-4. **Sección 7 (Al añadir/modificar):**
-   - Añadir bullet sobre actualizar el prompt de extracción si cambia el formato de `master_ingredients`.
-   - Añadir mención de tests requeridos.
-
-**Step 2:** Commit.
+5. **§7 Al añadir/modificar:**
+   - Si tocas el prompt: editar `supabase/functions/analyze-invoice/index.ts` y redeploy con `supabase functions deploy analyze-invoice`.
+   - Si tocas el schema de `scanned`: sincronizar en Edge Function + en `src/app/actions/invoices.ts`.
 
 ```bash
 git add docs/ai/05-invoices.md
-git commit -m "docs(ai): actualizar 05-invoices.md con flujo OCR híbrido"
+git commit -m "docs(ai): actualizar 05-invoices.md con arquitectura Edge Function"
 ```
 
-### Task 11.2: Actualizar `docs/ai/T01-arquitectura.md`
+### Task 10.2: Actualizar `docs/ai/T01-arquitectura.md`
 
-Añadir `pdfjs-dist` y `tesseract.js` al stack.
+Añadir al stack:
+- `pdfjs-dist` y `tesseract.js`.
+- Supabase Edge Functions (Deno) para el call a OpenAI.
 
 ```bash
 git add docs/ai/T01-arquitectura.md
-git commit -m "docs(ai): añadir pdfjs y tesseract al stack en T01"
+git commit -m "docs(ai): incluir Edge Functions y pdfjs/tesseract en T01"
+```
+
+### Task 10.3: Actualizar `docs/ai/T02-base-de-datos.md`
+
+Añadir a la sección de `invoices`:
+- `file_url` (canónico).
+- `extraction_source`, `extraction_confidence`, `used_ai`.
+- Mencionar nuevas políticas RLS del bucket `invoices`.
+
+```bash
+git add docs/ai/T02-base-de-datos.md
+git commit -m "docs(ai): nuevas columnas y RLS de invoices en T02"
 ```
 
 ---
@@ -1575,52 +1590,36 @@ git commit -m "docs(ai): añadir pdfjs y tesseract al stack en T01"
 
 | Riesgo | Probabilidad | Mitigación |
 |--------|--------------|------------|
-| Bundle size del cliente crece mucho (Tesseract es ~1MB) | Alta | Dynamic import: tesseract solo carga si hace falta. PDFs digitales no lo invocan. |
-| pdfjs worker no se encuentra en producción | Media | Postinstall lo copia a `public/`. Verificar en build de Vercel que `public/pdf.worker.min.mjs` existe. |
-| GPT-4o devuelve JSON inválido con items raros | Media | `ScannedInvoiceSchema.parse()` valida. Si falla, caer a parser local. |
-| El usuario sube facturas en formato no probado | Media | Aceptar PDF + JPG/PNG/WebP. Otros tipos → error con mensaje claro. |
-| Tesseract en móvil: lento | Alta | Aviso explícito al usuario ("Analizando…"). Procesado en serie, no en paralelo. |
-| Texto extraído pero el modelo no encuentra items | Media | `items: []` es válido en el schema. El usuario los introduce a mano en la review. |
-| Coste OpenAI mayor de lo esperado | Baja | Texto-first reduce ~70%. Monitorizar `_meta.source` en `scanned_data` para ver % de cada path. |
-
----
-
-## Plan de testing manual antes de mergear
-
-1. **PDF digital típico** (ej. factura Makro): tiene texto nativo, debería entrar por `pdf-native`. Comprobar que no consume crédito si OpenAI vía texto es gratis (o si consume, que es coste de tokens texto, no vision).
-2. **PDF escaneado** (factura del proveedor del pueblo): debería caer en `pdf-tesseract`.
-3. **Foto JPG de un albarán**: directamente `image-tesseract`.
-4. **Archivo con OpenAI caído** (apagar API key temporalmente): debe usar `parseInvoiceLocally`, status llega a `review_required`, badge "IA no disponible" visible.
-5. **PDF de 5 páginas**: solo se leen las 3 primeras (limitación documentada).
-6. **PDF cifrado / con contraseña**: debe fallar con mensaje claro (no bloqueo en blanco).
-7. **Líneas con IVA mixto** (10% y 21%): comprobar que `items[].tax_rate` aparece correctamente.
-8. **Doble click en "Procesar"**: idempotency_key debería evitar duplicados — verificar.
+| Bundle cliente crece (tesseract ~1MB) | Alta | Dynamic import — solo se carga si hace falta. |
+| pdfjs worker no se encuentra en producción | Media | Postinstall copia a `public/`. Verificar en deploy Vercel. |
+| Edge Function timeout en escaneados muy largos | Baja | 150s margen. Si pasa, considerar mover a un job async (no en este plan). |
+| `supabase.functions.invoke` lanza por CORS en preview deployments | Media | Configurar CORS headers en la función. La plantilla del CLI ya viene con `cors.ts` opcional — usarlo si aparecen errores. |
+| Crédito se decrementa pero la persistencia falla | Baja | Decremento dentro de la server action, después del INSERT. Si INSERT falla, no se cobra. |
+| Free tier Edge Functions alcanza límite | Muy baja | A 10K facturas/mes está al 2% del límite Free. |
+| El usuario sube factura grande (10MB+) | Media | Validación cliente + RLS. Si pasa, Storage la rechaza por policy de tamaño. |
 
 ---
 
 ## Comandos de verificación final
 
 ```bash
-# Types limpio
 npm run typecheck
-
-# Lint limpio
 npm run lint
-
-# Tests pasan
 npm test
-
-# Build OK
 npm run build
-
-# Worker existe en public/
 ls public/pdf.worker.min.mjs
-
-# Sin referencias a openai-vision
+supabase functions list   # debe listar analyze-invoice
+supabase secrets list     # debe contener OPENAI_API_KEY
 grep -r "openai-vision" src/ && echo "FAIL" || echo "OK"
-
-# Sin referencias a image_url (si canonizamos a file_url)
-grep -rn "image_url" src/ migrations/
+grep -rn "image_url" src/ migrations/ supabase/ && echo "REVISAR" || echo "OK"
 ```
 
-Todos deben pasar antes de mergear.
+---
+
+## Notas operativas para el implementador
+
+- **Deploy de Edge Function** es independiente del deploy de Next. Cambiar el prompt no requiere redeploy de Vercel.
+- **Logs de Edge Function:** `supabase functions logs analyze-invoice` o dashboard → Functions → analyze-invoice → Logs.
+- **Coste OpenAI** lo paga la API key configurada en Supabase secrets — no es coste de Supabase ni de Vercel.
+- **Rotar API key** se hace con `supabase secrets set OPENAI_API_KEY=<nueva>`. No requiere redeploy de función.
+- **Si añades superficie OCR nueva** (ticket de gasto, albarán…), la Edge Function se reutiliza tal cual cambiando el prompt o creando una variante (`analyze-receipt`, `analyze-delivery-note`).
