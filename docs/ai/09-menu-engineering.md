@@ -1,0 +1,124 @@
+# 09 — Menu Engineering (Ingeniería de Menú)
+
+**Ruta:** `/menu-engineering` (+ `/menu-engineering/new`, `/menu-engineering/[id]`)
+**Archivos clave:** `src/app/menu-engineering/page.tsx`, `src/app/menu-engineering/[id]/page.tsx`, `src/app/menu-engineering/new/page.tsx`, `src/app/actions/menu-engineering.ts`, `src/lib/menu-engineering.ts`, `src/components/menu-engineering/`
+**Transversales relacionados:** [T02](./T02-base-de-datos.md), [T04](./T04-financial-math.md)
+
+## 1. Propósito y rol en el negocio
+
+Analizar la rentabilidad y popularidad de los platos del menú para tomar decisiones estratégicas: qué mantener, qué subir de precio, qué reformular y qué eliminar. Clasifica cada plato en una matriz 2×2 (BCG) según popularidad y margen de contribución: **STAR**, **PLOWHORSE**, **PUZZLE**, **DOG**.
+
+## 2. Viaje del usuario
+
+1. Entra a `/menu-engineering`. Ve lista de reportes (DRAFT y ANALYZED).
+2. **Crear** → `/menu-engineering/new`. Indica nombre y opcionalmente rango de fechas.
+   - Si das fechas: el sistema lee `daily_recipe_sales` y precarga cantidades vendidas por receta.
+   - Si no: tienes que rellenar las cantidades a mano.
+   - Snapshots: para cada receta activa, guarda `cost_per_unit` y `price_per_unit` del momento.
+3. Navega a `/menu-engineering/[id]`. Ve `SalesInputGrid` con las recetas y sus cantidades editables.
+4. **Calcular Matriz** → `calculateMatrix(reportId)`:
+   - Calcula `avgQuantity` (aritmético) y `avgMargin` (ponderado).
+   - Clasifica cada item: STAR / PLOWHORSE / PUZZLE / DOG.
+   - Status del reporte pasa a `ANALYZED`.
+5. Ve resultado:
+   - `EngineeringMatrix` — scatter plot 2×2 (lazy-loaded).
+   - `StrategyCards` — recomendaciones por cuadrante.
+   - `InsightStrip` — insights generados.
+   - `AIChefLab` (lazy) — chat con sugerencias IA.
+6. **Simulación en vivo:** puede cambiar precios/cantidades sin guardar para ver cómo cambia la clasificación (`MenuEngineeringContext`).
+7. **Borrar** → `deleteReport`.
+
+## 3. Flujo técnico de datos
+
+**Server actions** (`actions/menu-engineering.ts`):
+
+- `createMenuReport({ name, dateFrom?, dateTo? })` — crea `menu_reports` en DRAFT y rellena `menu_report_items` con snapshots de todas las recetas activas. Si hay fechas, popula `quantity_sold` desde `daily_recipe_sales`.
+- `getMenuReports()` — lista.
+- `getMenuReport(id)` — detalle con items.
+- `updateReportItem(id, { quantity_sold })` — edita cantidad en grid.
+- `calculateMatrix(reportId)` — clasifica e inserta resultados en `menu_report_items.classification` + `avg_popularity` y `avg_margin` en el reporte.
+- `deleteReport(id)` — cascade.
+
+**Cálculo (vive en `src/lib/menu-engineering.ts`):**
+
+```
+Para cada item: contribution_margin = price_per_unit - cost_per_unit
+                total_sales         = price_per_unit * quantity_sold
+                total_cost          = cost_per_unit * quantity_sold
+                total_profit        = contribution_margin * quantity_sold
+                popularity_pct      = quantity_sold / Σ quantity_sold
+
+Promedios del reporte:
+  avgQuantity = Σ quantity_sold / N items
+  avgMargin   = Σ (margin * qty) / Σ qty   (ponderado por volumen)
+
+Clasificación:
+  qty >= avgQty && margin >= avgMargin → STAR
+  qty >= avgQty && margin <  avgMargin → PLOWHORSE
+  qty <  avgQty && margin >= avgMargin → PUZZLE
+  qty <  avgQty && margin <  avgMargin → DOG
+```
+
+## 4. Reglas de negocio y restricciones
+
+- **Snapshots inmutables:** `cost_per_unit` y `price_per_unit` se congelan al crear el reporte. Si después cambias el precio en `/recipes`, el reporte NO se actualiza — refleja el momento del análisis. Útil para auditoría.
+- **No se puede calcular si `totalSold = 0`:** los promedios serían indefinidos. La action debe rehusarlo (validar).
+- **Clasificación es relativa al propio reporte:** un plato puede ser STAR en un análisis y PLOWHORSE en otro solo por cambiar el mix de items considerados.
+- **Bulk update de items** se hace con `Promise.all` (no RPC, por compatibilidad). Si una falla, las otras siguen y queda inconsistente.
+- **`avg_popularity` y `avg_margin`** se persisten en `menu_reports` al calcular. Si re-calculas, se sobreescriben.
+- Visible en sidebar solo si `active_addons.includes('operativa')`.
+
+## 5. Dependencias e implicaciones cruzadas
+
+- **Tablas:** `menu_reports`, `menu_report_items`, `recipes` (lectura snapshot), `daily_recipe_sales` (lectura opcional).
+- **Otras páginas afectadas:**
+  - `/recipes` — cambios de coste/precio NO afectan reportes ya creados (snapshots).
+  - `/stock` — `daily_recipe_sales` se rellena allí cuando el usuario registra ventas por receta.
+  - `/financial-control` — `total_sales` del reporte debería cuadrar con `revenue_total` del mismo rango (no se cruza automáticamente).
+- **Transversales:**
+  - [T04](./T04-financial-math.md) — fórmula completa de clasificación.
+  - [T02](./T02-base-de-datos.md) — esquema `MenuReportItemSchema`.
+
+## 6. Casos límite y errores conocidos
+
+- **Receta sin precio:** `price_per_unit=0` → `contribution_margin` negativo o cero. Distorsiona la matriz. Filtrar antes de crear el reporte.
+- **Reporte con un solo item:** los promedios son ese mismo item → siempre quedará en la frontera. Sin sentido analítico.
+- **Cantidades cero pero no todas cero:** items con qty=0 contarán como "no vendidos" y casi siempre acabarán en DOG.
+- **Recetas activas vs inactivas:** el reporte se crea desde recetas activas. Si una se desactiva después, sigue en el reporte (snapshot).
+- **Daily recipe sales sin datos:** la pre-carga retorna 0 para esas recetas.
+- **Simulación en vivo no persiste:** si el usuario simula y se va sin guardar, el reporte queda con cantidades originales.
+- **Concurrencia:** dos usuarios calculando matriz al mismo tiempo pueden sobreescribirse mutuamente.
+
+## 7. Al añadir/modificar una función aquí
+
+**Antes de tocar:**
+- Leer la sección de Menu Engineering en [T04](./T04-financial-math.md).
+- Entender la diferencia entre umbral fijo y promedio relativo. Cambiar a umbrales fijos sería una decisión de producto.
+
+**Archivos que suelen cambiar a la vez:**
+- `src/app/actions/menu-engineering.ts` — actions.
+- `src/lib/menu-engineering.ts` — cálculo (con tests en `.test.ts`).
+- `src/components/menu-engineering/EngineeringMatrix.tsx`, `SalesInputGrid.tsx`, `StrategyCards.tsx`, `InsightStrip.tsx`, `AIChefLab.tsx`.
+- `src/types/schema.ts` — `MenuReportSchema`, `MenuReportItemSchema`.
+
+**Qué probar manualmente:**
+- Crear reporte sin fechas → cantidades en 0, error al calcular.
+- Crear reporte con rango de fechas que tenga ventas → pre-carga cantidades.
+- Editar cantidad manualmente → ver actualización.
+- Calcular matriz con datos → verificar clasificación visual en `EngineeringMatrix`.
+- Recalcular después de cambiar cantidades → ver re-clasificación.
+- Simular subir precio de un PUZZLE → ver si pasa a STAR.
+- Borrar reporte → ver que se quitan tanto cabecera como items.
+
+**Si añades un nuevo cuadrante o cambias la fórmula:**
+1. Actualizar `MenuEngineeringCalculator.analyze`.
+2. Actualizar el enum en `MenuReportItemSchema.classification`.
+3. Migración SQL si cambias enum DB.
+4. Actualizar tests en `menu-engineering.test.ts`.
+5. Actualizar `StrategyCards` con recomendaciones para el nuevo cuadrante.
+6. Actualizar [T04](./T04-financial-math.md).
+
+**Si añades soporte para múltiples sub-menús (familias):**
+1. Filtro en `createMenuReport` por categoría.
+2. Considerar UI para ver matrices anidadas.
+3. Reglas de cálculo pueden complicarse — los promedios deberían ser por familia, no globales.
