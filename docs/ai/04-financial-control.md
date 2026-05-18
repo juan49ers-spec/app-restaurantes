@@ -45,7 +45,7 @@ getMonthlyTarget(restaurantId, monthYear)
 - `upsertOperatingExpense(payload)` — UPSERT en `operating_expenses`. Soporta `idempotency_key`.
 - `deleteOperatingExpense(id)`.
 - `upsertMonthlyTarget(payload)` — `monthly_targets`.
-- `closeMonthlyResults(monthYear)` — congela el mes en `monthly_results` con `is_closed=true, closed_by, closed_at`.
+- `closeMonth(monthYear)` — congela el mes en `monthly_results` con `is_closed=true, closed_by, closed_at`.
 
 **Componente cliente principal:** `FinancialControlClient` (en `client.tsx`). Mantiene tab activo, modales, fecha local. Tabs se cargan con `Suspense + lazy`.
 

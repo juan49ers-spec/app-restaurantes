@@ -21,7 +21,7 @@ Cuando vayas a tocar una funcionalidad:
 - **Mutaciones por server actions** con validación Zod y `revalidatePath()` tras escritura.
 - **Soft delete solo donde está definido** (ingredientes principalmente).
 - **Snapshots inmutables** en facturas, reportes BCG y desperdicios — los datos históricos no se reescriben.
-- **Lista de admins hardcoded en 3 sitios** (`middleware.ts`, `app/page.tsx`, `admin-queries.ts`) — mantener sincronizada.
+- **Lista de admins centralizada** en `src/lib/admin.ts` vía `process.env.ADMIN_EMAILS` — un solo punto de verdad.
 
 ## Índice maestro
 
@@ -50,6 +50,7 @@ Cuando vayas a tocar una funcionalidad:
 | 15 | [Operational](./15-operational.md) | `/operational` | Salud operativa: alertas + tareas pendientes. |
 | 16 | [Notifications](./16-notifications.md) | `/notifications` | Centro de notificaciones + reglas de alerta. |
 | 17 | [Admin](./17-admin.md) | `/admin/*` | Panel super-admin: restaurantes, usuarios, billing, audit, impersonación. |
+| 18 | [Inventory](./18-inventory.md) | `/operations/inventory` | Conteo físico de inventario + informe de consumo real. |
 
 ### Transversales (lo que no es una página pero atraviesa todo)
 
@@ -61,6 +62,10 @@ Cuando vayas a tocar una funcionalidad:
 | T04 | [Financial math](./T04-financial-math.md) | Cálculos de coste, margen, prime cost, proyección, Menu Engineering BCG, gotchas. |
 | T05 | [Hooks y providers](./T05-hooks-y-providers.md) | Hooks compartidos, providers, cached queries, logger, after(), design tokens. |
 | T06 | [Server actions](./T06-server-actions-comunes.md) | Patrón estándar, `safe-action`, resolución de `restaurant_id`, revalidación, RPCs. |
+| T07 | [OCR Pipeline](./T07-ocr-pipeline.md) | Extractores V1/V2, Chandra, ingesta inteligente, persistencia atómica. |
+| T08 | [Drive Ingestion](./T08-drive-ingestion.md) | Google Drive → cron → OCR → DB. Reports API. |
+| T09 | [Services Layer](./T09-services-layer.md) | BusinessRules, FinancialAlerts, InvoiceAtomic, InvoiceIngestion. |
+| T10 | [AI Insights](./T10-ai-insights.md) | Informes narrativos por módulo y período con contexto del usuario. |
 
 ## Plantilla de archivo de página (para futuras adiciones)
 

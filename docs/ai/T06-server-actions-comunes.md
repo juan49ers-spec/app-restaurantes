@@ -37,6 +37,8 @@ Todas en `src/app/actions/`, una carpeta plana (sin subcarpetas) con archivos po
 | `contracts.ts` | Contratos con proveedores. |
 | `billing.ts`, `billing-config.ts` | Billing usuario. |
 | `seed-financial-data.ts`, `seed-sales.ts`, `seed-sales-robust.ts`, `seed-shifts-robust.ts` | Datos de prueba/demo. |
+| `inventory.ts` | Sesiones de conteo físico, guardado de conteos, informe de consumo. |
+| `ai-insights.ts` | Persistencia de informes narrativos IA por módulo y período. |
 
 ## Patrón estándar de una action
 
