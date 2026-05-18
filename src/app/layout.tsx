@@ -1,10 +1,8 @@
-
 import { createClient } from "@/lib/supabaseServer"
+import { isSuperAdmin } from "@/lib/admin"
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-// import "./driver-theme.css";
-// import "./performance.css";
 import { Toaster } from "@/components/ui/sonner"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { MotionProvider } from "@/components/providers/MotionProvider"
@@ -39,19 +37,14 @@ export default async function RootLayout({
   let activeAddons: string[] = []
   let restaurantId = ''
   let restaurantName = ''
+  let isAdmin = false
   if (user) {
     const { getCurrentRestaurant } = await import('@/app/actions/user')
     const restaurant = await getCurrentRestaurant()
     activeAddons = restaurant?.active_addons || []
     restaurantId = restaurant?.id || ''
     restaurantName = restaurant?.name || ''
-
-    // DEBUG: Server-side logs
-    console.log('--- MODULE SYNC DEBUG ---')
-    console.log(`Restaurant: ${restaurantName} (${restaurantId})`)
-    console.log(`Impersonating: ${!!impersonatedRestaurantName}`)
-    console.log(`Active Addons:`, activeAddons)
-    console.log('-------------------------')
+    isAdmin = await isSuperAdmin()
   }
 
   const broadcasts = await getActiveBroadcasts()
@@ -68,6 +61,7 @@ export default async function RootLayout({
             restaurantId={restaurantId}
             restaurantName={restaurantName}
             isImpersonating={isImpersonating}
+            isAdmin={isAdmin}
           >
             {children}
           </AppLayout>

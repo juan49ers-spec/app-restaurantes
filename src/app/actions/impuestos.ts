@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
+import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { revalidatePath } from "next/cache"
 
 // ==================== TAX PERIOD MANAGEMENT ====================
@@ -39,6 +40,7 @@ export async function createTaxPeriod(restaurantId: string, year: number, quarte
     success: boolean
     error?: string
 }> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     // Calculate dates
@@ -64,7 +66,7 @@ export async function createTaxPeriod(restaurantId: string, year: number, quarte
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     return { success: true }
 }
 
@@ -95,6 +97,6 @@ export async function addTaxPayment(payment: {
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     return { success: true }
 }

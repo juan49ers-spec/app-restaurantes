@@ -14,6 +14,7 @@ import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { exportMetricToPDF } from "@/lib/export-utils"
+import { useRouter } from "next/navigation"
 
 interface MetricDetailDialogProps {
     title: string
@@ -27,6 +28,7 @@ interface MetricDetailDialogProps {
 }
 
 export function MetricDetailDialog({ title, value, subValue, trend, data, color, restaurantName, children }: MetricDetailDialogProps) {
+    const router = useRouter()
     const chartData = data.map((val, i) => ({ i: `Día ${i + 1}`, val }))
 
     // Calculate some simple insights
@@ -43,7 +45,7 @@ export function MetricDetailDialog({ title, value, subValue, trend, data, color,
     }[color]
 
     const handleViewFullBreakdown = () => {
-        window.location.href = '/finance'
+        router.push('/finance')
     }
 
     const handleDownloadReport = () => {

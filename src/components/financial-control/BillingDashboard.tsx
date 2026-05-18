@@ -161,7 +161,7 @@ export function BillingDashboard({ restaurantId, onOpenDrillDown, onOpenTargetMo
                             )}>Trimestre</button>
                     </div>
 
-                    <div className="flex items-center gap-1 bg-white/60 backdrop-blur-md rounded-full border border-neutral-200/80 shadow-sm p-1">
+                    <div id="date-range-picker" className="flex items-center gap-1 bg-white/60 backdrop-blur-md rounded-full border border-neutral-200/80 shadow-sm p-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-500 hover:text-neutral-900 hover:bg-white rounded-full transition-all" onClick={() => handlePeriodChange('prev')}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
@@ -243,7 +243,7 @@ function DashboardContent({ data, viewMode, periodLabel, onOpenTargetModal, onOp
 
     return (
         <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+            <div id="kpi-sales" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                 <MinimalKPI label="Facturación Bruta" value={stats.totalGross} subtext="IVA Incl." delay={0.1} />
                 <PrimaryKPI label="Total Neto" value={stats.totalNet} subtext={`Retiene: ${formatCurrency(stats.totalIVA)}`} data={chartData} delay={0.2} />
                 <StatusKPI label="Media Diaria" value={stats.avgDaily} variation={prevAvgVar} delay={0.3} />
@@ -252,7 +252,8 @@ function DashboardContent({ data, viewMode, periodLabel, onOpenTargetModal, onOp
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                <m.div 
+                <m.div
+                    id="revenue-chart"
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.5 }}
                     className="lg:col-span-2 flex flex-col justify-between glass-card rounded-3xl p-6 md:p-8 border border-white/40"
                 >
@@ -299,7 +300,8 @@ function DashboardContent({ data, viewMode, periodLabel, onOpenTargetModal, onOp
 
                 <div className="lg:col-span-1 space-y-6 flex flex-col">
                     
-                    <m.div 
+                    <m.div
+                        id="target-card"
                         initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6, duration: 0.5 }}
                         className="bg-white rounded-3xl p-6 sm:p-8 relative overflow-hidden flex-1 min-h-[240px] flex flex-col justify-between border border-neutral-200/60 shadow-sm"
                     >
@@ -341,7 +343,8 @@ function DashboardContent({ data, viewMode, periodLabel, onOpenTargetModal, onOp
                         </div>
                     </m.div>
 
-                    <m.div 
+                    <m.div
+                        id="payment-distribution"
                         initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7, duration: 0.5 }}
                         className="rounded-3xl border border-neutral-200/60 p-6 sm:p-8 bg-white shadow-sm flex-1 hover-scale"
                     >

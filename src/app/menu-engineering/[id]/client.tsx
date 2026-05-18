@@ -225,7 +225,7 @@ function DashboardContent({ report }: { report: MenuEngineeringReport }) {
                 </div>
             ) : (
                 <Tabs defaultValue="matrix" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
+                    <TabsList id="engineering-tabs" className="grid w-full grid-cols-3 lg:w-[600px]">
                         <TabsTrigger value="matrix">Dashboard de Ingeniería</TabsTrigger>
                         <TabsTrigger value="chef" className="gap-2">
                             <ChefHat className="w-4 h-4" />
@@ -241,7 +241,7 @@ function DashboardContent({ report }: { report: MenuEngineeringReport }) {
                             items={itemsToRender}
                         />
 
-                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div id="engineering-kpis" className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <Card>
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm font-medium text-slate-500">Popularidad Media</CardTitle>

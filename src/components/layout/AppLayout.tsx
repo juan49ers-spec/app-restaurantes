@@ -4,9 +4,11 @@ import { usePathname } from "next/navigation"
 import React, { useState, useEffect, useTransition } from "react"
 import { User } from "@supabase/supabase-js"
 import { Sidebar } from "./Sidebar"
+import { Breadcrumbs } from "./Breadcrumbs"
+import { CommandPalette } from "./CommandPalette"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Wand2 } from "lucide-react"
+import { Wand2, Search } from "lucide-react"
 import { TourGuide } from "@/components/ui/tour-guide"
 import { GuideSelector } from "@/components/ui/guide-selector"
 
@@ -17,13 +19,15 @@ interface AppLayoutProps {
     restaurantId?: string
     restaurantName?: string
     isImpersonating?: boolean
+    isAdmin?: boolean
 }
 
-export function AppLayout({ children, user, activeAddons = [], restaurantId, restaurantName, isImpersonating = false }: AppLayoutProps) {
+export function AppLayout({ children, user, activeAddons = [], restaurantId, restaurantName, isImpersonating = false, isAdmin = false }: AppLayoutProps) {
     const [collapsed, setCollapsed] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [scenarioId, setScenarioId] = useState<string | null>(null)
     const [isGuideOpen, setIsGuideOpen] = useState(false)
+    const [cmdOpen, setCmdOpen] = useState(false)
     const [, startTransition] = useTransition()
 
     useEffect(() => {
@@ -81,6 +85,7 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
                 restaurantId={restaurantId}
                 restaurantName={restaurantName}
                 isImpersonating={isImpersonating}
+                isAdmin={isAdmin}
             />
             <main
                 className={cn(
@@ -88,17 +93,34 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
                     !isMobile && (collapsed ? "ml-24" : "ml-72")
                 )}
             >
-                <div className="flex justify-between items-center mb-6 md:mb-0">
+                <div className="flex justify-between items-center mb-4 md:mb-0">
+                    <div className="hidden md:block">
+                        <Breadcrumbs />
+                    </div>
                     <div className="h-12 md:hidden" />
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsGuideOpen(true)}
-                        className="hidden md:flex gap-2 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
-                    >
-                        <Wand2 className="w-4 h-4" />
-                        <span className="text-xs font-medium">Guía Interactiva</span>
-                    </Button>
+                    <div className="hidden md:flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCmdOpen(true)}
+                            className="gap-2 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
+                        >
+                            <Search className="w-3.5 h-3.5" />
+                            <span className="text-xs font-medium">Buscar</span>
+                            <kbd className="ml-1 hidden lg:inline-flex h-5 items-center gap-0.5 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-1.5 font-mono text-[10px] font-medium text-slate-400">
+                                ⌘K
+                            </kbd>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsGuideOpen(true)}
+                            className="gap-2 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
+                        >
+                            <Wand2 className="w-4 h-4" />
+                            <span className="text-xs font-medium">Guía</span>
+                        </Button>
+                    </div>
                 </div>
 
                 <GuideSelector
@@ -112,6 +134,7 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
                 />
 
                 <TourGuide scenarioId={scenarioId} onClose={() => setScenarioId(null)} />
+                <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
                 {children}
             </main>
         </div>

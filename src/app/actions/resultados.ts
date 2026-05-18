@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabaseServer"
+import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { revalidatePath } from "next/cache"
 import { MonthlyResult } from "@/types/resultados"
 
@@ -7,6 +8,7 @@ export async function insertMonthlyTestData(
     data: Partial<MonthlyResult> & { year: number; month: number }
 ): Promise<{ success: boolean; error: string | null }> {
     try {
+        await verifyRestaurantAccess(restaurantId)
         const supabase = await createClient()
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
@@ -56,7 +58,7 @@ export async function insertMonthlyTestData(
 
         if (error) throw error
 
-        revalidatePath("/financial-control")
+        revalidatePath("/finance")
         return { success: true, error: null }
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Error al insertar los datos"
@@ -81,6 +83,7 @@ export async function getResultsDashboardData(
     month: number
 ): Promise<{ data: DashboardData | null; error: string | null }> {
     try {
+        await verifyRestaurantAccess(restaurantId)
         const supabase = await createClient()
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
@@ -133,6 +136,7 @@ export async function closeMonth(
     monthYear: string
 ): Promise<{ success: boolean; error: string | null }> {
     try {
+        await verifyRestaurantAccess(restaurantId)
         const supabase = await createClient()
 
         const { data: { user } } = await supabase.auth.getUser()
@@ -152,7 +156,7 @@ export async function closeMonth(
 
         if (error) throw error
 
-        revalidatePath("/financial-control")
+        revalidatePath("/finance")
         return { success: true, error: null }
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Error al cerrar el mes"

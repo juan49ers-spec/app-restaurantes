@@ -3,21 +3,24 @@ import { createClient } from '@supabase/supabase-js';
 import { listFilesInFolder, downloadFile, moveFile, getOrCreateDateFolder } from '@/lib/google-drive';
 import { extractInvoiceData } from '@/lib/invoice-extractor';
 import { extractMonthlyReport, reportToOperatingExpenses, reportToDailySalesSummary } from '@/lib/report-extractor';
+import { timingSafeEqual } from 'crypto';
 
-// Usar el cliente admin porque esto corre en background (cron) sin usuario autenticado
 const getSupabaseAdmin = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-export const maxDuration = 300; // 5 minutos máximo para Vercel Functions
-// export const dynamic = 'force-dynamic'; // Asegura que siempre se ejecute si es llamado
+export const maxDuration = 300;
+
+function verifyCronSecret(header: string | null): boolean {
+    const secret = process.env.CRON_SECRET
+    if (!secret) return false
+    if (!header) return false
+    const expected = `Bearer ${secret}`
+    if (expected.length !== header.length) return false
+    return timingSafeEqual(Buffer.from(expected), Buffer.from(header))
+}
 
 export async function GET(request: Request) {
-    // 1. Verificación de seguridad del Cron
-    const authHeader = request.headers.get('authorization');
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        // Permitir ejecución manual en local si no hay secreto configurado, pero bloquear en prod
-        if (process.env.NODE_ENV === 'production') {
-            return new NextResponse('Unauthorized', { status: 401 });
-        }
+    if (!verifyCronSecret(request.headers.get('authorization'))) {
+        return new NextResponse('Unauthorized', { status: 401 });
     }
 
     try {
@@ -72,7 +75,7 @@ export async function GET(request: Request) {
                                 const expenses = reportToOperatingExpenses(report, config.restaurant_id);
                                 const salesSummary = reportToDailySalesSummary(report, config.restaurant_id);
 
-                                let reportErrors: string[] = [];
+                                const reportErrors: string[] = [];
 
                                 if (expenses.length > 0) {
                                     const { error: expErr } = await getSupabaseAdmin()

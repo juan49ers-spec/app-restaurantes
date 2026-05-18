@@ -3,12 +3,14 @@
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { EmployeeSchema, type Employee, ShiftSchema, type Shift } from "@/types/schema"
+import { verifyRestaurantAccess } from "@/lib/verify-access"
 
 /**
  * EMPLOYEES
  */
 
 export async function getEmployees(restaurantId: string): Promise<Employee[]> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('employees')
@@ -64,6 +66,7 @@ export async function deleteEmployee(id: string) {
  */
 
 export async function getShifts(restaurantId: string, startDate: string, endDate: string): Promise<Pick<Shift, 'id' | 'employee_id' | 'date' | 'start_time' | 'end_time' | 'estimated_cost' | 'actual_cost'>[]> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('shifts')
@@ -122,6 +125,7 @@ export interface DailyForecast {
 }
 
 export async function getStaffingForecast(restaurantId: string, startDate: string, endDate: string): Promise<DailyForecast[]> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     // 1. Fetch Scheduled Shifts for the period

@@ -50,8 +50,7 @@ export async function middleware(request: NextRequest) {
         // Protected Routes Logic
         if (!user &&
             !request.nextUrl.pathname.startsWith('/login') &&
-            !request.nextUrl.pathname.startsWith('/auth') &&
-            !request.nextUrl.pathname.startsWith('/api/debug') /* Explicitly allow debug */
+            !request.nextUrl.pathname.startsWith('/auth')
         ) {
             const url = request.nextUrl.clone()
             url.pathname = '/login'
@@ -59,8 +58,8 @@ export async function middleware(request: NextRequest) {
         }
 
         // Redirección centralizada para base de roles
-        const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-        const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase())
+        const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+        const isAdmin = user?.email && adminEmails.includes(user.email.trim().toLowerCase())
 
         // Si intenta ir a /login ya estando logueado
         if (user && request.nextUrl.pathname.startsWith('/login')) {
@@ -81,10 +80,9 @@ export async function middleware(request: NextRequest) {
         return response
 
     } catch (e: unknown) {
-        const error = e as Error
-        console.error("Middleware Crash:", error)
+        console.error("Middleware error:", e instanceof Error ? e.message : "Unknown")
         return NextResponse.json(
-            { error: "Middleware Crash", details: error.message || "Unknown error" },
+            { error: "Internal server error" },
             { status: 500 }
         )
     }

@@ -4,20 +4,9 @@
  * que se invocan desde Server Components (pages/layouts).
  */
 import { createClient } from "@/lib/supabaseServer"
+import { requireAdmin, getAdminEmailList } from "@/lib/admin"
 
-const DEFAULT_ADMINS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-const ENV_ADMINS = process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',').map(e => e.trim().toLowerCase()) : []
-const ADMIN_EMAILS = Array.from(new Set([...DEFAULT_ADMINS, ...ENV_ADMINS]))
-
-export async function requireAdmin() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
-        throw new Error("Unauthorized: Super Admin access required")
-    }
-    return user
-}
+export { requireAdmin }
 
 // ==========================================
 // TYPES
@@ -288,6 +277,6 @@ export async function getAdminUsers(): Promise<AdminUserRow[]> {
         last_sign_in_at: u.last_sign_in_at || null,
         restaurant_id: u.restaurant_id || null,
         restaurant_name: u.restaurant_id ? (restaurantMap.get(u.restaurant_id) || 'Desconocido') : null,
-        is_admin: ADMIN_EMAILS.includes((u.email || '').trim().toLowerCase()),
+        is_admin: getAdminEmailList().includes((u.email || '').trim().toLowerCase()),
     }))
 }

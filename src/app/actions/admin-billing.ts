@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
-import { requireSuperAdmin } from "./broadcasts"
+import { requireAdmin } from "@/lib/admin"
 import { AddonId, PlanModuleAccess, calculateEffectiveAccess } from "@/lib/plan-definitions"
 import { getBillingModulesConfig } from "./billing-config"
 
@@ -40,7 +40,7 @@ export interface RestaurantBillingInfo {
 }
 
 export async function getBillingOverview(): Promise<BillingOverview> {
-    await requireSuperAdmin()
+    await requireAdmin()
     const supabase = await createClient()
     const billingConfigs = await getBillingModulesConfig()
 
@@ -88,7 +88,7 @@ export async function getBillingOverview(): Promise<BillingOverview> {
 }
 
 export async function getRestaurantsBillingList(): Promise<RestaurantBillingInfo[]> {
-    await requireSuperAdmin()
+    await requireAdmin()
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -109,7 +109,7 @@ export async function getRestaurantsBillingList(): Promise<RestaurantBillingInfo
 }
 
 export async function changeRestaurantPlan(restaurantId: string, newAddons: AddonId[], reason?: string) {
-    const { user: adminUser } = await requireSuperAdmin()
+    const adminUser = await requireAdmin()
     const supabase = await createClient()
     const billingConfigs = await getBillingModulesConfig()
 
@@ -174,7 +174,7 @@ export async function changeRestaurantPlan(restaurantId: string, newAddons: Addo
 }
 
 export async function adjustCredits(restaurantId: string, creditChange: number, reason: string) {
-    const { user: adminUser } = await requireSuperAdmin()
+    const adminUser = await requireAdmin()
     const supabase = await createClient()
 
     if (!reason) throw new Error("A reason must be provided")
@@ -216,7 +216,7 @@ export async function adjustCredits(restaurantId: string, creditChange: number, 
 }
 
 export async function registerPayment(restaurantId: string, amount: number, concept: string) {
-    const { user: adminUser } = await requireSuperAdmin()
+    const adminUser = await requireAdmin()
     const supabase = await createClient()
 
     if (!amount || amount <= 0) throw new Error("Amount must be positive")
@@ -239,7 +239,7 @@ export async function registerPayment(restaurantId: string, amount: number, conc
 }
 
 export async function getBillingHistory(restaurantId: string): Promise<BillingEvent[]> {
-    await requireSuperAdmin()
+    await requireAdmin()
     const supabase = await createClient()
 
     const { data, error } = await supabase

@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { Employee, Shift } from "@/types/schema"
+import { verifyRestaurantAccess } from "@/lib/verify-access"
 
 // ==========================================
 // EMPLOYEES
@@ -10,6 +11,7 @@ import { Employee, Shift } from "@/types/schema"
 
 export async function getEmployees(restaurantId: string): Promise<{ data: Employee[] | null; error: string | null }> {
     try {
+        await verifyRestaurantAccess(restaurantId)
         const supabase = await createClient()
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
@@ -73,6 +75,7 @@ export async function upsertEmployee(employee: Partial<Employee>): Promise<{ suc
 
 export async function toggleEmployeeStatus(employeeId: string, currentStatus: string, restaurantId: string): Promise<{ success: boolean; error: string | null }> {
     try {
+        await verifyRestaurantAccess(restaurantId)
         const supabase = await createClient()
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
@@ -104,6 +107,7 @@ export async function toggleEmployeeStatus(employeeId: string, currentStatus: st
 
 export async function deleteEmployee(employeeId: string, restaurantId: string): Promise<{ success: boolean; error: string | null }> {
     try {
+        await verifyRestaurantAccess(restaurantId)
         const supabase = await createClient()
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
@@ -150,6 +154,7 @@ export interface DailyForecast {
 
 export async function getStaffingForecast(restaurantId: string, startDate: string, endDate: string): Promise<DailyForecast[]> {
     try {
+        await verifyRestaurantAccess(restaurantId)
         const supabase = await createClient()
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -252,6 +257,7 @@ export async function getStaffingForecast(restaurantId: string, startDate: strin
 
 export async function getShifts(restaurantId: string, startDate: string, endDate: string): Promise<{ data: Shift[] | null; error: string | null }> {
     try {
+        await verifyRestaurantAccess(restaurantId)
         const supabase = await createClient()
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -310,6 +316,7 @@ export async function upsertShift(shift: Partial<Shift>): Promise<{ success: boo
 
 export async function deleteShift(shiftId: string, restaurantId: string): Promise<{ success: boolean; error: string | null }> {
     try {
+        await verifyRestaurantAccess(restaurantId)
         const supabase = await createClient()
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()

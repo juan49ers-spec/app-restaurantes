@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabaseServer";
+import { verifyRestaurantAccess } from "@/lib/verify-access";
 import { PeriodReport } from "@/types/schema";
 
 export async function getPeriodReport(
@@ -8,6 +9,7 @@ export async function getPeriodReport(
     moduleName: string,
     periodKey: string
 ): Promise<PeriodReport | null> {
+    await verifyRestaurantAccess(restaurantId);
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -32,6 +34,7 @@ export async function saveContextNotes(
     periodKey: string,
     notes: string
 ): Promise<{ success: boolean; error?: string }> {
+    await verifyRestaurantAccess(restaurantId);
     const supabase = await createClient();
 
     const { error } = await supabase
@@ -60,6 +63,7 @@ export async function saveAiDraft(
     periodKey: string,
     draft: string
 ): Promise<{ success: boolean; error?: string }> {
+    await verifyRestaurantAccess(restaurantId);
     const supabase = await createClient();
 
     const { error } = await supabase

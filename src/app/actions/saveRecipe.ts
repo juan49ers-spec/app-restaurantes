@@ -14,39 +14,21 @@ type SaveRecipeInput = {
     prep_time_minutes: number
     yields: number
     ingredients: RecipeIngredientInput[]
-    idempotency_key?: string
 }
 
 export async function saveRecipe(input: SaveRecipeInput) {
     const supabase = await createClient()
 
-    // 1. Get Dynamic Restaurant ID
     const restaurant = await getRestaurant()
     if (!restaurant) throw new Error("No restaurant context found. Please reload or create a restaurant.")
 
     const restaurant_id = restaurant.id
+    const isNew = !input.id || input.id === 'new'
+    const recipeId = isNew ? crypto.randomUUID() : input.id
+    const currentCost = input.ingredients.reduce((sum, item) => sum + (item.quantity_gross * item.price_per_unit), 0)
 
-    // 2. Prepare Recipe Data
-    const recipeData = {
-        restaurant_id,
-        name: input.name,
-        selling_price: input.selling_price,
-        target_margin_pct: input.target_margin_pct,
-        hourly_rate: input.hourly_rate,
-        prep_time_minutes: input.prep_time_minutes,
-        yields: input.yields,
-        // Calculate current cost from ingredients
-        current_cost: input.ingredients.reduce((sum, item) => sum + (item.quantity_gross * item.price_per_unit), 0),
-        updated_at: new Date().toISOString()
-    }
-
-    let recipeId = input.id === 'new' ? undefined : input.id
-
-    // 3. Prepare RPC Payload & Fetch old cost if updating
-    let oldCost = 0;
-    const newRecipeId = recipeId || crypto.randomUUID()
-
-    if (recipeId) {
+    let oldCost = 0
+    if (!isNew) {
         const { data: oldRecipe } = await supabase
             .from('recipes')
             .select('current_cost')
@@ -55,57 +37,55 @@ export async function saveRecipe(input: SaveRecipeInput) {
         oldCost = oldRecipe?.current_cost || 0
     }
 
-    // El payload asume que enviamos los ingredientes en un Array JSON 
-    const rpcIngredients = input.ingredients.map(ing => ({
-        ingredient_id: ing.type === 'RECIPE' ? ing.sub_recipe_id : ing.master_ingredient_id,
-        quantity_used: ing.quantity_gross,
-        cost_contribution: ing.quantity_gross * ing.price_per_unit // o cost_at_time
+    const ingredientsJson = input.ingredients.map(ing => ({
+        master_ingredient_id: ing.type === 'RECIPE' ? ing.sub_recipe_id : ing.master_ingredient_id,
+        quantity_gross: ing.quantity_gross,
+        quantity_net: ing.quantity_gross,
+        yield_factor: 1.0,
+        cost_at_time: ing.price_per_unit,
     }))
 
-    const rpcPayload = {
-        p_recipe_id: newRecipeId,
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('upsert_recipe_with_ingredients', {
+        p_recipe_id: recipeId,
         p_restaurant_id: restaurant_id,
         p_name: input.name,
-        p_category: 'General', // TODO: Add category to input later if needed
         p_prep_time_minutes: input.prep_time_minutes,
-        p_cost: recipeData.current_cost,
-        p_price: input.selling_price,
-        p_margin_percentage: input.target_margin_pct,
-        p_ingredients: rpcIngredients,
-        p_idempotency_key: input.idempotency_key || null
+        p_current_cost: currentCost,
+        p_selling_price: input.selling_price,
+        p_target_margin_pct: input.target_margin_pct,
+        p_hourly_rate: input.hourly_rate,
+        p_yields: input.yields,
+        p_ingredients: ingredientsJson,
+    })
+
+    if (rpcError) throw new Error("Failed to save recipe: " + rpcError.message)
+
+    const result = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult
+    if (result && !result.success) {
+        throw new Error("Failed to save recipe: " + (result.error_message || 'Unknown error'))
     }
 
-    // 4. Exec RPC
-    const { data: rpcData, error: rpcError } = await supabase.rpc('upsert_recipe_with_ingredients', rpcPayload)
-    if (rpcError) throw new Error("Failed to save recipe atomically: " + rpcError.message)
-    recipeId = newRecipeId
-
-    // 5. Handle Price History Logging
-    if (input.id === 'new') {
-        // Initial History Log
+    if (isNew) {
         await supabase.from('price_history').insert({
             restaurant_id,
             entity_id: recipeId,
             entity_type: 'RECIPE',
-            price: recipeData.current_cost,
+            price: currentCost,
             previous_price: 0,
-            change_pct: 100
+            change_pct: 100,
         })
     } else {
-        const newCost = recipeData.current_cost
-
-        // Log History if cost changed by > 1% (to avoid noise)
-        const diff = Math.abs(newCost - oldCost)
+        const diff = Math.abs(currentCost - oldCost)
         const pctDiff = oldCost > 0 ? (diff / oldCost) * 100 : 100
 
-        if (pctDiff > 1) { // 1% threshold
+        if (pctDiff > 1) {
             await supabase.from('price_history').insert({
                 restaurant_id,
                 entity_id: recipeId,
                 entity_type: 'RECIPE',
-                price: newCost,
+                price: currentCost,
                 previous_price: oldCost,
-                change_pct: parseFloat(((newCost - oldCost) / oldCost * 100).toFixed(2))
+                change_pct: parseFloat(((currentCost - oldCost) / oldCost * 100).toFixed(2)),
             })
         }
     }

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
+import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { startOfMonth, differenceInDays } from "date-fns"
 import { FINANCIAL_THEME } from "@/lib/financial-theme"
 import { PROJECTION_FACTORS, INFLATION_ESTIMATES } from "@/lib/financial-constants"
@@ -25,6 +26,7 @@ export async function getFinancialMetrics(
     startDate?: string,
     endDate?: string
 ): Promise<DashboardMetrics> {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const now = new Date()
 

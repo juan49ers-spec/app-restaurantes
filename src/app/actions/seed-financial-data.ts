@@ -1,11 +1,13 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
+import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { addDays, format, subDays, startOfMonth } from "date-fns"
 import { revalidatePath } from "next/cache"
 import { OperatingExpenseCategory } from "@/types/schema"
 
 export async function seedFinancialData(restaurantId: string) {
+    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const today = new Date()
     const startDate = subDays(today, 60) // Last 60 days
@@ -213,6 +215,6 @@ export async function seedFinancialData(restaurantId: string) {
         return { success: false, error: expError.message }
     }
 
-    revalidatePath('/financial-control')
+    revalidatePath('/finance')
     return { success: true, message: `Seeded ${salesPayloads.length} sales and ${expensesPayloads.length} expenses.` }
 }
