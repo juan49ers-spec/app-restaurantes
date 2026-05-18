@@ -2,6 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ Protocolo obligatorio antes de tocar código (`docs/ai/`)
+
+Este repo tiene una carpeta de documentación interna en **`docs/ai/`** pensada específicamente para ser leída por agentes de IA. Su propósito es que entiendas la lógica, el viaje del usuario, las reglas de negocio, las implicaciones cruzadas y los casos límite de cada módulo **antes** de modificarlo.
+
+**Reglas duras (no opcionales):**
+
+1. **Antes de editar cualquier módulo, lee su archivo correspondiente en `docs/ai/`.**
+   - El índice maestro está en [`docs/ai/README.md`](./docs/ai/README.md).
+   - Cada ruta top-level tiene su archivo numerado (`01-login.md` … `17-admin.md`).
+   - Hay 6 archivos transversales con prefijo `T` (arquitectura, base de datos, autenticación, financial-math, hooks/providers, server actions).
+   - Si tu cambio toca cálculos numéricos, lee `T04-financial-math.md`.
+   - Si tu cambio toca el esquema de BD, lee `T02-base-de-datos.md`.
+   - Si tu cambio toca auth/permisos, lee `T03-autenticacion.md`.
+   - Si tu cambio es una mutación nueva, lee `T06-server-actions-comunes.md`.
+
+2. **Si encuentras una contradicción entre lo que dice `docs/ai/` y lo que está en el código, gana el código** — pero **debes proponer al usuario actualizar la documentación** antes de continuar. No la actualices silenciosamente: díselo explícitamente para que decida qué versión es la correcta.
+
+3. **Después de modificar un módulo, actualiza su archivo en `docs/ai/`.** Mantenerlo sincronizado es parte del cambio, no un extra. En particular revisa estas secciones del archivo afectado:
+   - **3. Flujo técnico de datos** — si cambian las tablas tocadas, las actions usadas o los componentes principales.
+   - **4. Reglas de negocio y restricciones** — si cambian validaciones, permisos, estados.
+   - **5. Dependencias e implicaciones cruzadas** — si añades/quitas dependencias entre páginas.
+   - **6. Casos límite y errores conocidos** — si resuelves un caso conocido o descubres uno nuevo.
+
+4. **Si añades una página/ruta top-level nueva**, crea su archivo en `docs/ai/` con las 7 secciones de la plantilla canónica (ver `04-financial-control.md` como ejemplo) y añádela al índice del `README.md`.
+
+5. **No modifiques los docs antiguos en `docs/`** (`ARCHITECTURE.md`, `FEATURES.md`, `HOOKS.md`, `SERVICES.md`, etc.). Son legacy. La fuente de verdad para agentes IA es `docs/ai/`.
+
+**Cómo aplicar esto en la práctica:** al recibir una tarea, antes de leer el código con Grep/Read, abre primero el archivo de `docs/ai/` correspondiente al módulo afectado. Es ahí donde están las reglas no obvias (snapshots inmutables, triggers automáticos, mapeos aprendidos, idempotency, casos donde el cliente no debe enviar `restaurant_id`, etc.). Saltarse este paso es la forma más rápida de introducir bugs sutiles.
+
 ## Project Overview
 
 This is a JavaScript/TypeScript project optimized for modern web development. The project uses industry-standard tools and follows best practices for scalable application development.

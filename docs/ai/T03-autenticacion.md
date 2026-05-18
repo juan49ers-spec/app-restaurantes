@@ -1,0 +1,146 @@
+# T03 — Autenticación, roles e impersonación
+
+> Transversal. Todo flujo de página depende de quién es el usuario y a qué restaurante pertenece.
+
+## Mecanismo de auth
+
+- **Proveedor:** Supabase Auth.
+- **Método único:** email + password (`supabase.auth.signInWithPassword`). No hay OAuth ni magic links implementados, aunque hay un botón "¿Olvidaste tu contraseña?" sin handler.
+- **Registro:** `supabase.auth.signUp` desde el mismo `/login`. Sin verificación de email habilitada por defecto.
+- **Sesión:** cookies gestionadas por `@supabase/ssr`. El middleware refresca cookies en cada request.
+
+## Decisión de rol
+
+- **No hay tabla `user_roles`.** El rol se decide por email contra una whitelist hardcoded.
+- **Lista de admins:** `ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']`.
+- Esta lista aparece **en tres sitios** y debe mantenerse sincronizada:
+  - `src/middleware.ts:62`
+  - `src/app/page.tsx:23`
+  - `src/app/actions/admin-queries.ts` (y derivados de admin actions)
+
+Implicación: añadir/quitar un admin = editar las 3 referencias.
+
+## Middleware (`src/middleware.ts`)
+
+Responsabilidades:
+
+1. Inyectar cliente Supabase server con cookies del request.
+2. `supabase.auth.getUser()` → user actual.
+3. Si **no hay user** y la ruta no es `/login`, `/auth` o `/api/debug` → redirige a `/login`.
+4. Si **hay user y va a `/login`** → redirige a `/admin` (si admin) o `/` (si no).
+5. Si **hay user admin y va a `/`** → redirige a `/admin`.
+
+Matcher excluye estáticos (`_next/static`, `_next/image`, `favicon.ico`, imágenes públicas).
+
+## Root layout (`src/app/layout.tsx`)
+
+En cada render:
+
+1. `createClient()` server → `supabase.auth.getUser()`.
+2. Si hay user, importa dinámicamente `getCurrentRestaurant()` y obtiene:
+   - `activeAddons` (array de strings)
+   - `restaurantId`
+   - `restaurantName`
+3. Lee cookies para detectar impersonación: `impersonated_restaurant_name`.
+4. Carga broadcasts activos vía `getActiveBroadcasts()`.
+5. Renderiza `<AppLayout>` con esos datos.
+
+## Resolución del `restaurant_id` en server actions
+
+Centralizada en `src/app/actions/utils.ts::getUserRestaurant()` con orden de prioridad:
+
+1. **Si es admin con impersonación activa** (cookie `impersonated_restaurant_id` + email en `ADMIN_EMAILS`): usa ese `restaurant_id`.
+2. Restaurante donde `owner_id = user.id`.
+3. Fallback: `user.user_metadata.restaurant_id`.
+4. Si nada → retorna `null` (la action debe responder con error/redirect).
+
+Hay también `getCurrentRestaurant()` en `src/app/actions/user.ts` que retorna el objeto restaurante completo y usa `React.cache()` para deduplicar lecturas dentro del mismo render.
+
+**Regla dura:** el cliente **jamás** envía `restaurant_id`. Cualquier action que lo acepte como parámetro del cliente es vulnerable a IDOR — corregirlo.
+
+## Onboarding (`/onboarding`)
+
+- Se accede cuando el usuario está autenticado pero no tiene restaurante (`getCurrentRestaurant()` retorna null).
+- Algunos puntos del código usan `requireRestaurant()` (en `src/lib/auth-helpers.ts`) que hace el redirect.
+- El formulario pide un único campo: nombre del restaurante.
+- Inserta en `restaurants` con `owner_id = user.id`. Active addons quedan vacíos / módulos en defaults.
+- Después navega con `window.location.href = '/financial-control'` (navegación dura) para forzar re-ejecución del middleware y refresco del layout.
+
+## Sistema de permisos por módulo
+
+Cada restaurante tiene:
+
+- `modules` (JSON): `{ financial_control: 'none'|'basic'|'premium', operativa, proveedores, personal }`.
+- `active_addons` (text[]): lista sincronizada con `modules`.
+
+Filtro de sidebar (`Sidebar.tsx`):
+
+| Grupo | Condición |
+|-------|-----------|
+| CORE (Control Financiero, Facturas) | Siempre visible |
+| OPERATIVA (Escandallos, Menu Engineering, Stock, Desperdicios) | `active_addons.includes('operativa')` |
+| ESTRUCTURA (Equipo, Turnos, Políticas) | `active_addons.includes('personal')` |
+| PROVEEDORES | `active_addons.includes('proveedores')` |
+| Admins | Ven todo |
+
+**Cambio de plan:** `toggleRestaurantModule()` en `src/app/actions/admin.ts` actualiza `modules` y sincroniza `active_addons`, luego `revalidatePath('/', 'layout')`.
+
+## Helpers de autorización
+
+En `src/lib/auth-helpers.ts` y en `src/app/actions/`:
+
+- `requireAuth()` — redirige a `/login` si no hay usuario.
+- `requireRestaurant()` — redirige a `/onboarding` si no hay restaurante.
+- `requireAdmin()` — checa email contra `ADMIN_EMAILS`. Si no, `redirect('/')` o error.
+- `requireSuperAdmin()` — más restrictivo (usado en billing actions). Actualmente equivalente a `requireAdmin` salvo confirmar.
+
+Patrón de uso en una page server:
+
+```ts
+export default async function Page() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+  const restaurant = await getCurrentRestaurant()
+  if (!restaurant) redirect('/onboarding')
+  // ... fetch data
+}
+```
+
+## Impersonación
+
+- **Quién:** solo super-admins.
+- **Cómo se activa:** `startImpersonation(restaurantId, restaurantName)` en `src/app/actions/impersonate.ts` setea cookies `httpOnly` `impersonated_restaurant_id` + `impersonated_restaurant_name`. Redirige a `/`.
+- **Efecto:** todas las llamadas a `getUserRestaurant()` retornan el restaurante impersonado, por lo que el admin ve toda la app **como si fuera** ese usuario (incluyendo facturas, stock, staff, etc.).
+- **UI:** `<ImpersonationBanner>` aparece fijo abajo mientras la cookie exista.
+- **Salida:** `stopImpersonation()` borra las cookies y redirige a `/admin/restaurants`.
+
+## Rutas y sus permisos
+
+| Ruta | Acceso |
+|------|--------|
+| `/login`, `/api/debug` | Público |
+| `/onboarding` | Usuario autenticado sin restaurante |
+| `/` (dashboard) | Usuario autenticado con restaurante (admin redirige a `/admin`) |
+| `/financial-control`, `/invoices`, `/escandallos`, `/recipes`, `/ingredients`, `/menu-engineering`, `/stock`, `/desperdicios`, `/operational`, `/notifications` | Auth + restaurante. Algunas se ocultan en sidebar según `active_addons` pero la URL sigue siendo accesible si la pegas directamente (revisar caso por caso). |
+| `/suppliers`, `/purchasing` | Auth + restaurante + `active_addons.includes('proveedores')` (filtrado en sidebar). |
+| `/staff/employees`, `/staff/schedule`, `/staff/policies` | Auth + restaurante + `active_addons.includes('personal')`. |
+| `/admin/*` | `requireAdmin()` en `AdminLayout`. Si email no está en lista → `redirect('/')`. |
+| `/admin/billing`, mutaciones de billing | `requireSuperAdmin()`. |
+
+## Reglas duras
+
+1. Cualquier mutación que toque datos de un restaurante debe resolver el `restaurant_id` server-side.
+2. Cualquier ruta admin debe llamar `requireAdmin()` antes de cualquier query.
+3. Si añades un nuevo email admin, edítalo en los 3 sitios donde está hardcoded.
+4. Si añades un nuevo módulo de plan, debes: (a) añadirlo al enum de `modules`, (b) actualizar el filtro de sidebar, (c) actualizar `toggleRestaurantModule()` para sincronizar `active_addons`.
+5. **No** confíes en el cliente para decidir si el usuario es admin. Re-validar siempre en server.
+6. Si una página debe ocultarse del sidebar pero requerir acceso directo controlado, comprobar `active_addons` también en el server de la página, no solo en el sidebar.
+
+## Cosas no obvias
+
+- El layout root **siempre** consulta `getActiveBroadcasts()` sin caché. Cada render del layout = una consulta a `broadcasts`.
+- El email se compara con `email.trim().toLowerCase()`. Asegúrate de meter los emails en `ADMIN_EMAILS` ya en minúsculas.
+- La impersonación NO cambia el `auth.uid()`. Sigue siendo el admin. Los `audit_logs` van a registrar al admin como `changed_by`, pero los datos modificados van al `restaurant_id` impersonado. Útil para auditoría.
+- `requireRestaurant()` está en `lib/auth-helpers.ts` pero no se usa universalmente — algunas páginas validan manualmente con `getCurrentRestaurant()` + `redirect`.
+- El onboarding hace `window.location.href` (no `router.push`) a propósito: necesita re-ejecutar middleware con la nueva sesión/cookies.
