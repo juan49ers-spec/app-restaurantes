@@ -4,6 +4,7 @@ import { BriefcaseBusiness, FileCheck2, FileText, Send } from 'lucide-react'
 import { getConsultantWorkspace } from '@/app/actions/consultant'
 import { ConsultantBrandingForm } from '@/components/consultant/ConsultantBrandingForm'
 import { MeetingRequestsPanel } from '@/components/consultant/MeetingRequestsPanel'
+import { PreparationChecklist } from '@/components/consultant/PreparationChecklist'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,7 +25,7 @@ export default async function ConsultantWorkspacePage() {
     )
   }
 
-  const { restaurant, publishedReports, meetingRequests, warnings } = response.data
+  const { restaurant, publishedReports, meetingRequests, preparation, warnings } = response.data
   const openRequests = meetingRequests.filter(request => request.status !== 'COMPLETED').length
   const latestReport = publishedReports[0]
 
@@ -100,6 +101,8 @@ export default async function ConsultantWorkspacePage() {
           </p>
         </div>
       </section>
+
+      <PreparationChecklist checklist={preparation} />
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <MeetingRequestsPanel initialRequests={meetingRequests} />

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type QueryError = { message: string; code?: string }
-type QueryResult = { data: unknown; error: QueryError | null }
-type Filter = ['eq' | 'not', string, unknown, unknown?]
+type QueryResult = { data: unknown; error: QueryError | null; count?: number | null }
+type Filter = ['eq' | 'not' | 'gte' | 'lte', string, unknown, unknown?]
 
 const RESTAURANT_ID = '550e8400-e29b-41d4-a716-446655440000'
 const REQUEST_ID = '33333333-3333-4333-8333-333333333333'
@@ -16,6 +16,8 @@ let calls: Array<{
   select?: string
   updateValue?: Record<string, unknown>
   orders: Array<{ column: string; ascending?: boolean }>
+  countMode?: string
+  head?: boolean
 }> = []
 
 class MockQuery {
@@ -29,10 +31,15 @@ class MockQuery {
     private readonly mutationValue?: Record<string, unknown>,
   ) {}
 
-  select(value?: string) {
+  select(value?: string, options?: { count?: string; head?: boolean }) {
     this.selectValue = value
+    this.countMode = options?.count
+    this.head = options?.head
     return this
   }
+
+  private countMode?: string
+  private head?: boolean
 
   update(value: Record<string, unknown>) {
     return new MockQuery(this.table, 'update', value)
@@ -40,6 +47,16 @@ class MockQuery {
 
   eq(column: string, value: unknown) {
     this.filters.push(['eq', column, value])
+    return this
+  }
+
+  gte(column: string, value: unknown) {
+    this.filters.push(['gte', column, value])
+    return this
+  }
+
+  lte(column: string, value: unknown) {
+    this.filters.push(['lte', column, value])
     return this
   }
 
@@ -72,6 +89,8 @@ class MockQuery {
       select: this.selectValue,
       updateValue: this.operation === 'update' ? this.mutationValue : undefined,
       orders: this.orders,
+      countMode: this.countMode,
+      head: this.head,
     })
 
     if (this.operation === 'update' && this.table === 'restaurants') {
@@ -101,7 +120,15 @@ class MockQuery {
       }
     }
 
-    return tableResults[this.table] ?? { data: [], error: null }
+    const result = tableResults[this.table] ?? { data: [], error: null }
+    if (this.head) {
+      return {
+        data: null,
+        error: result.error,
+        count: result.count ?? (Array.isArray(result.data) ? result.data.length : result.data ? 1 : 0),
+      }
+    }
+    return result
   }
 }
 
@@ -159,6 +186,14 @@ describe('consultant server actions', () => {
         }],
         error: null,
       },
+      daily_sales: { data: Array.from({ length: 10 }, (_, index) => ({ id: `sale-${index}` })), error: null },
+      operating_expenses: { data: Array.from({ length: 5 }, (_, index) => ({ id: `expense-${index}` })), error: null },
+      invoices: { data: [{ id: 'invoice-1' }], error: null },
+      employees: { data: [{ id: 'employee-1' }], error: null },
+      shifts: { data: [{ id: 'shift-1' }], error: null },
+      recipes: { data: [{ id: 'recipe-1' }], error: null },
+      daily_recipe_sales: { data: [{ id: 'recipe-sale-1' }], error: null },
+      menu_reports: { data: [], error: null },
     }
   })
 
@@ -169,6 +204,11 @@ describe('consultant server actions', () => {
 
     expect(result.success).toBe(true)
     expect(result.data?.warnings).toEqual([])
+    expect(result.data?.preparation.completionPct).toBeGreaterThan(0)
+    expect(result.data?.preparation.items.find(item => item.id === 'sales')).toEqual(expect.objectContaining({
+      status: 'complete',
+      count: 10,
+    }))
     expect(result.data?.restaurant).toEqual(expect.objectContaining({
       id: RESTAURANT_ID,
       consultantName: 'Zinergia',
@@ -180,6 +220,11 @@ describe('consultant server actions', () => {
       ['not', 'published_at', 'is', null],
     ]))
     expect(calls.find(call => call.table === 'portal_meeting_requests')?.filters).toContainEqual(['eq', 'restaurant_id', RESTAURANT_ID])
+    expect(calls.find(call => call.table === 'daily_sales' && call.head)?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['gte', 'date', expect.any(String)],
+      ['lte', 'date', expect.any(String)],
+    ]))
   })
 
   it('returns a clean error when there is no active restaurant', async () => {
@@ -206,7 +251,22 @@ describe('consultant server actions', () => {
     expect(result.data?.warnings).toEqual([
       'No se pudieron cargar los informes publicados.',
       'No se pudieron cargar las solicitudes de reunión.',
+      'No se pudo completar toda la checklist de preparación.',
     ])
+  })
+
+  it('adds a warning when the preparation checklist cannot be fully counted', async () => {
+    tableResults.daily_sales = { data: null, error: { message: 'sales unavailable' } }
+    const { getConsultantWorkspace } = await import('@/app/actions/consultant')
+
+    const result = await getConsultantWorkspace()
+
+    expect(result.success).toBe(true)
+    expect(result.data?.warnings).toContain('No se pudo completar toda la checklist de preparación.')
+    expect(result.data?.preparation.items.find(item => item.id === 'sales')).toEqual(expect.objectContaining({
+      status: 'missing',
+      count: 0,
+    }))
   })
 
   it('updates consultant branding for the active restaurant only', async () => {

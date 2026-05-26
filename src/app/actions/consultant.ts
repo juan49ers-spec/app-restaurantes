@@ -50,10 +50,34 @@ export interface ConsultantMeetingRequest {
   report: ConsultantPublishedReport | null
 }
 
+export type ConsultantChecklistStatus = 'complete' | 'partial' | 'missing'
+
+export interface ConsultantPreparationChecklistItem {
+  id: string
+  label: string
+  description: string
+  status: ConsultantChecklistStatus
+  count: number
+  href: string
+}
+
+export interface ConsultantPreparationChecklist {
+  period: {
+    from: string
+    to: string
+    month: string
+  }
+  completionPct: number
+  readyCount: number
+  totalCount: number
+  items: ConsultantPreparationChecklistItem[]
+}
+
 export interface ConsultantWorkspace {
   restaurant: ConsultantWorkspaceRestaurant
   publishedReports: ConsultantPublishedReport[]
   meetingRequests: ConsultantMeetingRequest[]
+  preparation: ConsultantPreparationChecklist
   warnings: string[]
 }
 
@@ -82,6 +106,11 @@ type MeetingRequestRow = {
   created_at: string
 }
 
+type CountResult = {
+  count: number | null
+  error: { message: string } | null
+}
+
 function mapRestaurant(row: RestaurantRow): ConsultantWorkspaceRestaurant {
   return {
     id: row.id,
@@ -103,11 +132,129 @@ function mapPublishedReport(row: PublishedReportRow): ConsultantPublishedReport 
   }
 }
 
+function currentMonthPeriod(now = new Date()) {
+  const month = now.toISOString().slice(0, 7)
+  const [year, monthNumber] = month.split('-').map(Number)
+  const to = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10)
+  return { month, from: `${month}-01`, to }
+}
+
+function countValue(result: CountResult) {
+  return result.error ? 0 : result.count ?? 0
+}
+
+function statusFromCount(count: number, partialThreshold = 1): ConsultantChecklistStatus {
+  if (count <= 0) return 'missing'
+  if (count < partialThreshold) return 'partial'
+  return 'complete'
+}
+
+function buildPreparationChecklist(input: {
+  period: ReturnType<typeof currentMonthPeriod>
+  salesCount: number
+  expensesCount: number
+  invoiceCount: number
+  employeeCount: number
+  shiftCount: number
+  recipeCount: number
+  recipeSalesCount: number
+  menuEngineeringCount: number
+  readyDraftCount: number
+  publishedCount: number
+  openRequestCount: number
+}): ConsultantPreparationChecklist {
+  const { period } = input
+  const items: ConsultantPreparationChecklistItem[] = [
+    {
+      id: 'sales',
+      label: 'Ventas cargadas',
+      description: 'Días de venta registrados en el periodo.',
+      status: statusFromCount(input.salesCount, 7),
+      count: input.salesCount,
+      href: `/financial-control?from=${period.from}&to=${period.to}`,
+    },
+    {
+      id: 'expenses',
+      label: 'Gastos cargados',
+      description: 'Movimientos de gasto disponibles para leer costes.',
+      status: statusFromCount(input.expensesCount, 3),
+      count: input.expensesCount,
+      href: `/financial-control?from=${period.from}&to=${period.to}`,
+    },
+    {
+      id: 'invoices',
+      label: 'Facturas/proveedores revisados',
+      description: 'Facturas completadas dentro del periodo.',
+      status: statusFromCount(input.invoiceCount),
+      count: input.invoiceCount,
+      href: '/invoices',
+    },
+    {
+      id: 'staff',
+      label: 'Equipo y turnos revisados',
+      description: 'Plantilla activa y turnos disponibles para coste laboral.',
+      status: input.employeeCount > 0 && input.shiftCount > 0 ? 'complete' : input.employeeCount > 0 || input.shiftCount > 0 ? 'partial' : 'missing',
+      count: input.employeeCount + input.shiftCount,
+      href: '/staff/employees',
+    },
+    {
+      id: 'menu',
+      label: 'Carta y ventas por receta',
+      description: 'Recetas y ventas por receta para analizar mix y margen.',
+      status: input.recipeCount > 0 && input.recipeSalesCount > 0 ? 'complete' : input.recipeCount > 0 || input.recipeSalesCount > 0 ? 'partial' : 'missing',
+      count: input.recipeCount + input.recipeSalesCount,
+      href: '/escandallos',
+    },
+    {
+      id: 'menu_engineering',
+      label: 'Menu Engineering calculado',
+      description: 'Snapshot BCG ANALYZED disponible para el periodo.',
+      status: statusFromCount(input.menuEngineeringCount),
+      count: input.menuEngineeringCount,
+      href: '/menu-engineering',
+    },
+    {
+      id: 'ready_report',
+      label: 'Informe listo para publicar',
+      description: 'Versión READY guardada desde la mesa de informes.',
+      status: statusFromCount(input.readyDraftCount),
+      count: input.readyDraftCount,
+      href: `/reports?from=${period.from}&to=${period.to}`,
+    },
+    {
+      id: 'published_report',
+      label: 'Informe publicado en portal',
+      description: 'Versión visible para el cliente restaurante.',
+      status: statusFromCount(input.publishedCount),
+      count: input.publishedCount,
+      href: '/portal',
+    },
+    {
+      id: 'meeting_requests',
+      label: 'Solicitudes pendientes atendidas',
+      description: 'No quedan solicitudes abiertas del cliente.',
+      status: input.openRequestCount === 0 ? 'complete' : 'partial',
+      count: input.openRequestCount,
+      href: '/consultant',
+    },
+  ]
+  const readyCount = items.filter(item => item.status === 'complete').length
+
+  return {
+    period,
+    completionPct: Math.round((readyCount / items.length) * 100),
+    readyCount,
+    totalCount: items.length,
+    items,
+  }
+}
+
 export async function getConsultantWorkspace(): Promise<ActionResponse<ConsultantWorkspace>> {
   const restaurantId = await getUserRestaurant()
   if (!restaurantId) return { success: false, error: 'No hay restaurante activo.' }
 
   const supabase = await createClient()
+  const period = currentMonthPeriod()
   const [restaurantRes, reportsRes, requestsRes] = await Promise.all([
     supabase
       .from('restaurants')
@@ -153,13 +300,46 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
         }
       })
 
+  const checklistRes = await Promise.all([
+    supabase.from('daily_sales').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('date', period.from).lte('date', period.to),
+    supabase.from('operating_expenses').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('expense_date', period.from).lte('expense_date', period.to),
+    supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('status', 'completed').gte('date', period.from).lte('date', period.to),
+    supabase.from('employees').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('status', 'ACTIVE'),
+    supabase.from('shifts').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('date', period.from).lte('date', period.to),
+    supabase.from('recipes').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
+    supabase.from('daily_recipe_sales').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('date', period.from).lte('date', period.to),
+    supabase.from('menu_reports').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('status', 'ANALYZED').gte('date_from', period.from).lte('date_to', period.to),
+    supabase.from('professional_report_drafts').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('period_from', period.from).eq('period_to', period.to).eq('status', 'READY'),
+    supabase.from('professional_report_drafts').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('period_from', period.from).eq('period_to', period.to).not('published_at', 'is', null),
+  ]) as CountResult[]
+
+  const checklistWarnings = checklistRes.some(result => result.error)
+    ? ['No se pudo completar toda la checklist de preparación.']
+    : []
+  const openRequestCount = meetingRequests.filter(request => request.status !== 'COMPLETED').length
+  const preparation = buildPreparationChecklist({
+    period,
+    salesCount: countValue(checklistRes[0]),
+    expensesCount: countValue(checklistRes[1]),
+    invoiceCount: countValue(checklistRes[2]),
+    employeeCount: countValue(checklistRes[3]),
+    shiftCount: countValue(checklistRes[4]),
+    recipeCount: countValue(checklistRes[5]),
+    recipeSalesCount: countValue(checklistRes[6]),
+    menuEngineeringCount: countValue(checklistRes[7]),
+    readyDraftCount: countValue(checklistRes[8]),
+    publishedCount: countValue(checklistRes[9]),
+    openRequestCount,
+  })
+
   return {
     success: true,
     data: {
       restaurant: mapRestaurant(restaurantRes.data as RestaurantRow),
       publishedReports,
       meetingRequests,
-      warnings,
+      preparation,
+      warnings: [...warnings, ...checklistWarnings],
     },
   }
 }
