@@ -53,6 +53,7 @@ Cuando vayas a tocar una funcionalidad:
 | 18 | [Inventory](./18-inventory.md) | `/operations/inventory` | Conteo físico de inventario + informe de consumo real. |
 | 19 | [Reports](./19-reports.md) | `/reports` | Mesa de revision de informes profesionales. |
 | 20 | [Portal Cliente](./20-portal-cliente.md) | `/portal` | Área cliente para informes profesionales publicados. |
+| 21 | [Consultant Workspace](./21-consultant-workspace.md) | `/consultant` | Mesa interna del consultor para entregas, solicitudes y marca. |
 
 ### Transversales (lo que no es una página pero atraviesa todo)
 

@@ -39,6 +39,7 @@ src/
 │   ├── actions/                 ← Server Actions agrupadas por dominio (ver T06)
 │   ├── financial-control/       ← Hub financiero con 4 tabs lazy-loaded
 │   ├── reports/                 ← Mesa de revision de informes profesionales
+│   ├── consultant/              ← Mesa interna del consultor para entregas y solicitudes
 │   ├── portal/                  ← Area cliente para informes publicados
 │   ├── invoices/                ← Ingesta de facturas + OCR + review
 │   ├── escandallos/             ← Hub UI (tabs: Recetas + Ingredientes)
@@ -87,7 +88,7 @@ src/
 ## Convenciones de routing
 
 - Una carpeta bajo `src/app/X/` = una ruta `/X`.
-- Subrutas reales (con `page.tsx` propio): `/reports`, `/reports/print/[draftId]`, `/portal`, `/portal/reports/[id]`, `/staff/employees`, `/staff/schedule`, `/staff/policies`, `/invoices/[id]/review`, `/menu-engineering/new`, `/menu-engineering/[id]`, `/recipes/[id]/edit`, `/recipes/new/edit`, `/suppliers/[id]`, `/purchasing/analytics`, y `/admin/*` (dashboard, restaurants, users, billing, audit, invoice-validation).
+- Subrutas reales (con `page.tsx` propio): `/consultant`, `/reports`, `/reports/print/[draftId]`, `/portal`, `/portal/reports/[id]`, `/staff/employees`, `/staff/schedule`, `/staff/policies`, `/invoices/[id]/review`, `/menu-engineering/new`, `/menu-engineering/[id]`, `/recipes/[id]/edit`, `/recipes/new/edit`, `/suppliers/[id]`, `/purchasing/analytics`, y `/admin/*` (dashboard, restaurants, users, billing, audit, invoice-validation).
 - Algunas "rutas" del sidebar son tabs internos (no URL): los 4 tabs de `/financial-control`, los 2 tabs de `/escandallos`, los 3 tabs de `/invoices`, los 2 tabs de `/notifications`.
 
 ## Multi-tenancy

@@ -6,6 +6,7 @@ import {
     BrainCircuit,
     Users,
     CalendarClock,
+    BriefcaseBusiness,
     Truck,
     Package,
     Trash2,
@@ -31,6 +32,7 @@ export const navigationConfig: MenuGroup[] = [
         items: [
             { title: "Control Financiero", href: "/financial-control", icon: Wallet, description: "Gestión y KPIs" },
             { title: "Informes", href: "/reports", icon: ClipboardList, description: "Reporting profesional" },
+            { title: "Consultoría", href: "/consultant", icon: BriefcaseBusiness, description: "Entrega al cliente" },
             { title: "Facturas", href: "/invoices", icon: FileText, description: "Input de Datos" }
         ]
     },

@@ -113,6 +113,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - **Suppliers/Invoices:** proveedores y facturas completadas alimentan compras y fiabilidad.
 - **Recipes/Stock:** `daily_recipe_sales` y `recipes` alimentan la lectura de carta.
 - **Navigation:** aparece en `src/config/navigation.ts` dentro de CORE.
+- **Consultant Workspace:** `/consultant` muestra las versiones publicadas y las solicitudes asociadas a informes.
 - **Base de datos:** depende de `professional_report_drafts` y sus politicas RLS.
 - **Exportacion:** la salida imprimible consume el snapshot guardado, no el estado actual del formulario.
 - **Referencias externas:** el formato se inspira en informes ControlHub tipo Chamaca y documentos Txiquita, pero la app debe generar contenido desde datos propios.

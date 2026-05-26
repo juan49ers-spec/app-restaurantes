@@ -8,7 +8,7 @@
 
 Área cliente profesional para consultar informes publicados por el consultor. Convierte el informe guardado en una experiencia web ejecutiva, con PDF como salida secundaria.
 
-No sustituye la mesa interna de `/reports`; solo muestra versiones ya publicadas.
+No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consultant`; solo muestra versiones ya publicadas y permite solicitar reunión.
 
 ## 2. Viaje del usuario
 
@@ -57,12 +57,14 @@ No sustituye la mesa interna de `/reports`; solo muestra versiones ya publicadas
 - Si no hay objetivo mensual, no se muestra la card de dato vivo.
 - Si falla la carga del dato vivo, no debe romper ni vaciar el portal.
 - La solicitud de reunión no envía email en esta fase; solo crea registro interno.
+- La solicitud aparece en `/consultant` para seguimiento del consultor.
 - Los enlaces PDF desde el portal abren la vista imprimible en una pestaña nueva para no sacar al cliente del área limpia.
 - `restaurant_id` nunca viaja desde cliente.
 
 ## 5. Dependencias e implicaciones cruzadas
 
 - **Reports:** `/reports` publica o despublica versiones.
+- **Consultant Workspace:** `/consultant` gestiona solicitudes de reunión e identidad del consultor.
 - **Reporting profesional:** el portal usa `ProfessionalRestaurantReport` y `buildProfessionalReportPresentation()`.
 - **Financial Control:** aporta ventas diarias y objetivos mensuales para el dato vivo.
 - **Base de datos:** depende de `professional_report_drafts`, `restaurants` y `portal_meeting_requests`.
