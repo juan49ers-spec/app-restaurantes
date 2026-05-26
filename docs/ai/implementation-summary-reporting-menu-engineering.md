@@ -149,6 +149,19 @@ Se corrigió:
 - Se añadieron tests de seguridad para estas actions.
 - Se añadieron tests a `saveProfessionalReportDraft` para snapshot regenerado, sanitización, pertenencia y retry por versión duplicada.
 
+## Fase 7.2 — Limpieza analítica y QA menor
+
+Se cerraron reservas no bloqueantes antes de avanzar a nuevas funcionalidades.
+
+Logros principales:
+
+- `getStats().avgMargin` queda alineado con la matriz BCG: margen de contribución unitario ponderado por unidades vendidas.
+- Casos límite de Menu Engineering cubiertos con tests: un solo item, PVP cero y margen negativo.
+- `weekday_spread_pct` pasa a ser una brecha acotada sobre el día fuerte; la narrativa explica que el día débil queda X% por debajo.
+- Evidencias de turnos usadas como proxy laboral marcadas como `estimated`.
+- Endpoint demo de reporting con autenticación HTTP y límite por usuario/IP.
+- `safe-action.ts` migra el catch general a logger estructurado.
+
 ## Cambios de infraestructura y robustez
 
 - `tsconfig.typecheck.json` para typecheck estable.
@@ -170,6 +183,7 @@ Se corrigió:
 Verificación posterior a la revisión externa:
 
 - Tests focales de Menu Engineering y reporting actions correctos.
+- Fase 7.2 verificada con `npx eslint --max-warnings=0`, `npm run typecheck`, `npm test` (30 archivos, 314 tests) y `npm run build`.
 
 Nota sobre un timeout:
 
@@ -185,13 +199,15 @@ La aplicación ya tiene:
 - Sección de carta descriptiva dentro del informe.
 - Dataset demo para verificar informes completos.
 - Menu Engineering con fórmula única y testeada.
+- Reservas menores principales cerradas antes de incorporar BCG al informe profesional.
 
 ## Decisiones pendientes
 
 1. Decidir si los cuadrantes BCG entran en el informe profesional.
 2. Diseñar cómo explicar BCG al cliente sin sobreprometer precisión.
-3. Mejorar experiencia visual del informe final si se quiere acercar más al ejemplo externo de consultoría.
-4. Valorar exportación PDF server-side si el HTML imprimible no cubre el estándar final esperado.
+3. Migrar `saveScenario` a server action si se quiere eliminar por completo la lectura client-side residual de `restaurant_id`.
+4. Mejorar experiencia visual del informe final si se quiere acercar más al ejemplo externo de consultoría.
+5. Valorar exportación PDF server-side si el HTML imprimible no cubre el estándar final esperado.
 
 ## Archivos de referencia
 
@@ -207,3 +223,5 @@ La aplicación ya tiene:
 - `docs/ai/phase-6-reporting-cierre.md`
 - `docs/ai/phase-6-5-reporting-consolidacion.md`
 - `docs/ai/phase-7-menu-engineering-cierre.md`
+- `docs/ai/phase-7-1-security-review-remediation.md`
+- `docs/ai/phase-7-2-analytical-cleanup.md`

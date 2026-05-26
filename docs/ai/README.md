@@ -80,6 +80,7 @@ Cuando vayas a tocar una funcionalidad:
 - [Cierre Fase 6.5 — Consolidacion reporting](./phase-6-5-reporting-consolidacion.md) — seed demo completa, tests server action y exportacion pulida.
 - [Cierre Fase 7 — Menu Engineering](./phase-7-menu-engineering-cierre.md) — unificacion de formula BCG entre libreria, action y simulador.
 - [Cierre Fase 7.1 — Remediacion de revision externa](./phase-7-1-security-review-remediation.md) — cierre de IDOR/RLS en Menu Engineering y tests de guardado de informes.
+- [Cierre Fase 7.2 — Limpieza analitica y QA menor](./phase-7-2-analytical-cleanup.md) — coherencia de margen ponderado, brecha semanal acotada y endpoint demo protegido.
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 

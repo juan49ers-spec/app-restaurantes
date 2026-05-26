@@ -67,7 +67,7 @@ Clasificación:
 `contribution_margin = selling_price - cost_per_unit` (unitario).
 `avgPopularityPct = 1 / N_items` es matematicamente equivalente a comparar `quantity_sold >= totalSold / N_items`, pero encaja con la UI, que dibuja el eje X como porcentaje de mix.
 
-`getStats()` retorna: ingreso total, conteo por cuadrante, margen promedio ponderado, popularidad promedio.
+`getStats()` retorna: ingreso total, conteo por cuadrante, margen de contribución unitario ponderado (`Σ total_profit / Σ quantity_sold`) y popularidad promedio. `avgMargin` y `averages.margin` deben representar ese mismo umbral ponderado de la matriz; no deben volver a media aritmética de porcentajes.
 
 **Implicación:** el sistema NO usa umbrales fijos ni el descuento historico del 70%. Usa **promedios del propio reporte**. Una receta puede pasar de STAR a PLOWHORSE solo porque cambió la composición del reporte.
 
@@ -104,7 +104,9 @@ Clasificación:
 5. **`menuEngineeringDelta`:** se suma a revenue **antes** de aplicar el multiplicador de volumen en algunos contextos. Revisa el código antes de cambiar la fórmula.
 6. **Prime cost:** se calcula como `laborCost + costOfGoods`. Si alguno viene de gastos con `amount` negativo (correcciones), el resultado puede ser engañoso.
 7. **BCG con cero ventas:** si `totalSold = 0`, el promedio es indefinido. `calculateMatrix` debe rehusarse a clasificar (validar antes).
-8. **Labor cost en recetas:** existe `hourly_rate` y `prep_time_minutes` en la tabla, pero no toda la UI lo suma al coste mostrado. Confirmar antes de afirmar márgenes.
+8. **BCG con un solo item:** el item queda en la frontera (`avgPopularityPct=1`, `cm=avgCM`) y se clasifica como STAR por igualdad. No usar ese resultado como diagnóstico profesional.
+9. **PVP cero o margen negativo:** el motor conserva valores negativos y evita `NaN`; el problema es de calidad de ficha/precio, no de cálculo.
+10. **Labor cost en recetas:** existe `hourly_rate` y `prep_time_minutes` en la tabla, pero no toda la UI lo suma al coste mostrado. Confirmar antes de afirmar márgenes.
 
 ## Reglas duras al modificar cálculos
 

@@ -149,7 +149,6 @@ export class MenuEngineeringCalculator {
             return {
                 id: recipe.id!,
                 name: recipe.name,
-                // category: recipe.category, // TODO: add category to recipe schema
                 quantity_sold: sale.quantity_sold,
                 revenue_total: sale.revenue_total,
                 cost_per_unit: cost,
@@ -188,9 +187,8 @@ export class MenuEngineeringCalculator {
         const totalProducts = analyzed.length
         const totalRevenue = analyzed.reduce((acc, p) => acc + p.revenue_total, 0)
         const totalQuantity = analyzed.reduce((acc, p) => acc + p.quantity_sold, 0)
-        const avgMargin = totalRevenue > 0
-            ? analyzed.reduce((acc, p) => acc + (p.margin_pct / 100), 0) / totalProducts
-            : 0
+        const totalProfit = analyzed.reduce((acc, p) => acc + p.total_profit, 0)
+        const avgMargin = totalQuantity > 0 ? totalProfit / totalQuantity : 0
 
         const stars = analyzed.filter(p => p.quadrant === 'STAR')
 
@@ -205,7 +203,7 @@ export class MenuEngineeringCalculator {
             dogs: analyzed.filter(p => p.quadrant === 'DOG'),
             averages: {
                 quantity: totalProducts > 0 ? totalQuantity / totalProducts : 0,
-                margin: totalQuantity > 0 ? analyzed.reduce((acc, p) => acc + p.total_profit, 0) / totalQuantity : 0
+                margin: avgMargin
             }
         }
     }

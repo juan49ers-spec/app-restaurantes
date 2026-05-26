@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createActionLogger } from '@/lib/logger';
 import { getUserRestaurant } from './utils';
 
 export type ActionResponse<T> = {
@@ -40,7 +41,7 @@ export async function executeSafeAction<TInput, TOutput>(
         return { success: true, data };
 
     } catch (error: unknown) {
-        console.error("Action Error:", error);
+        createActionLogger('executeSafeAction').error({ err: error, msg: 'Action failed' });
 
         const message = error instanceof Error ? error.message : "An unexpected error occurred";
 

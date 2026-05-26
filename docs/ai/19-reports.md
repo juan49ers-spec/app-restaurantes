@@ -64,6 +64,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 **Datos demo de verificacion:** `src/app/actions/seed-professional-report-demo.ts` + `src/app/api/seed-reporting-demo/route.ts`
 
 - Solo habilitado fuera de produccion, salvo `ALLOW_REPORTING_DEMO_SEED=true`.
+- La ruta HTTP valida usuario autenticado antes de ejecutar la seed y aplica un limite simple por usuario/IP para evitar ejecuciones repetidas accidentales.
 - Resuelve el restaurante activo en servidor.
 - Crea datos deterministas para febrero 2026: ventas, gastos, objetivo mensual si no existe, empleados, turnos, proveedores, facturas, recetas y ventas por receta.
 - Marca filas demo con `source`, `idempotency_key`, emails o nombres `[Demo Informe]` para poder limpiar/resembrar sin tocar datos no demo. Las ventas por receta solo se limpian si pertenecen a recetas demo.
@@ -75,7 +76,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - No consulta Supabase.
 - No modifica metricas fuente.
 - Cuando hay `monthly_targets`, muestra cumplimiento de objetivo como KPI ejecutivo.
-- Cuando hay ventas diarias, incluye lectura de dia fuerte, dia debil y brecha semanal.
+- Cuando hay ventas diarias, incluye lectura de dia fuerte, dia debil y brecha semanal acotada: `weekday_spread_pct = (dia_fuerte - dia_debil) / dia_fuerte`. El texto debe leerse como "el dia debil queda X% por debajo del fuerte", no como crecimiento sobre el dia debil.
 - Cuando hay `daily_recipe_sales`, incorpora una seccion de carta con unidades vendidas, venta estimada, coste estimado, margen bruto estimado, producto lider por margen y producto con menor margen porcentual.
 
 ## 4. Reglas de negocio y restricciones
@@ -94,7 +95,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - `saveProfessionalReportDraft` debe estar cubierto por tests de snapshot regenerado, bloqueo por restaurante no coincidente y retry por choque de version.
 - Si hay bloqueos criticos, la version se guarda como `DRAFT`; si no, como `REVIEWED`.
 - La exportacion actual es HTML imprimible/PDF de navegador, no generacion binaria server-side.
-- La seed demo de informes no debe exponerse como funcionalidad normal de cliente. Es herramienta de verificacion/dev.
+- La seed demo de informes no debe exponerse como funcionalidad normal de cliente. Es herramienta de verificacion/dev. El endpoint devuelve `401` si no hay usuario autenticado, `403` si la seed no esta habilitada en el entorno y `429` si se excede el limite por usuario/IP.
 
 ## 5. Dependencias e implicaciones cruzadas
 

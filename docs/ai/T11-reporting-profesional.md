@@ -14,7 +14,7 @@ El contrato `ProfessionalRestaurantReport` incluye identidad del restaurante, pe
 
 Cada sección tiene `quality.status` (`OK`, `PARTIAL`, `MISSING`, `CONFLICT`), confianza 0-100, incidencias, evidencia y métricas tipadas con unidad, fuente y tipo (`actual`, `derived`, `estimated`, `not_available`).
 
-Desde Fase 5, la seccion de ventas incluye diagnostico por dia de semana cuando hay ventas registradas. La seccion de rentabilidad compara ingresos, materia prima y personal contra `monthly_targets` si existen objetivos configurados.
+Desde Fase 5, la seccion de ventas incluye diagnostico por dia de semana cuando hay ventas registradas. La brecha semanal se expresa como porcentaje acotado sobre el dia fuerte: `(dia_fuerte - dia_debil) / dia_fuerte`, por lo que debe narrarse como "el dia debil queda X% por debajo". La seccion de rentabilidad compara ingresos, materia prima y personal contra `monthly_targets` si existen objetivos configurados.
 
 Desde Fase 6, el informe incluye una seccion de carta (`menu_performance`) alimentada por `daily_recipe_sales` y `recipes`. Esta seccion calcula unidades vendidas, venta estimada por receta, coste estimado, margen bruto estimado, producto lider y producto con menor margen porcentual. No es todavia una matriz BCG dentro del informe.
 
@@ -65,6 +65,7 @@ Tabla de persistencia desde Fase 3: `professional_report_drafts`.
 
 - Crea un caso completo y determinista para febrero 2026.
 - Solo funciona fuera de produccion, salvo override explicito `ALLOW_REPORTING_DEMO_SEED=true`.
+- Su endpoint HTTP exige usuario autenticado y limita llamadas repetidas por usuario/IP.
 - Sirve para validar visualmente informes completos antes de avanzar en fases de analisis.
 
 ## 4. Reglas de negocio y restricciones
@@ -112,6 +113,7 @@ Tabla de persistencia desde Fase 3: `professional_report_drafts`.
 - La Fase 6 incorpora diagnostico basico de carta desde ventas por receta, sin clasificacion BCG.
 - La Fase 6.5 incorpora seed demo completa, tests de server action y pulido de exportacion imprimible.
 - La Fase 7 unifica la formula BCG de Menu Engineering, pero reporting aun no incorpora esos cuadrantes en el entregable profesional.
+- La Fase 7.2 cierra deuda menor de formulas y QA: `getStats().avgMargin` vuelve a margen ponderado, la brecha semanal queda acotada, el endpoint demo distingue auth/rate limit y se cubren edge cases de Menu Engineering.
 - Si dos guardados simultaneos chocan por version, la action reintenta una vez.
 
 ## 7. Al añadir/modificar reporting

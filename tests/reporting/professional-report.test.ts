@@ -277,8 +277,9 @@ describe('buildProfessionalRestaurantReport', () => {
     expect(sales?.metrics.find(metric => metric.id === 'best_weekday')?.value).toBe('sábado')
     expect(sales?.metrics.find(metric => metric.id === 'best_weekday_revenue')?.value).toBe(2000)
     expect(sales?.metrics.find(metric => metric.id === 'weakest_weekday')?.value).toBe('lunes')
-    expect(sales?.metrics.find(metric => metric.id === 'weekday_spread_pct')?.value).toBe(300)
+    expect(sales?.metrics.find(metric => metric.id === 'weekday_spread_pct')?.value).toBe(75)
     expect(sales?.narrative.join(' ')).toContain('sábado concentra')
+    expect(sales?.narrative.join(' ')).toContain('75% por debajo')
   })
 
   it('surfaces target completion in the executive presentation when targets exist', () => {

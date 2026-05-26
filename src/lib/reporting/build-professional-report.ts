@@ -55,8 +55,14 @@ function averageTargets(input: ProfessionalReportInput) {
   }
 }
 
-function evidence(sourceId: string, tables: string[], rowCount: number, notes?: string): ReportEvidence {
-  return { sourceId, tables, rowCount, kind: 'actual', notes }
+function evidence(
+  sourceId: string,
+  tables: string[],
+  rowCount: number,
+  notes?: string,
+  kind: ReportEvidence['kind'] = 'actual',
+): ReportEvidence {
+  return { sourceId, tables, rowCount, kind, notes }
 }
 
 function issue(
@@ -108,8 +114,8 @@ function buildSalesSection(input: ProfessionalReportInput): ProfessionalReportSe
   const weekdayEntries = Object.entries(weekdayRevenue).sort((a, b) => b[1] - a[1])
   const bestWeekday = weekdayEntries[0] ?? null
   const weakestWeekday = weekdayEntries[weekdayEntries.length - 1] ?? null
-  const weekdaySpreadPct = bestWeekday && weakestWeekday && weakestWeekday[1] > 0
-    ? pct(bestWeekday[1] - weakestWeekday[1], weakestWeekday[1])
+  const weekdaySpreadPct = bestWeekday && weakestWeekday && bestWeekday[1] > 0
+    ? pct(bestWeekday[1] - weakestWeekday[1], bestWeekday[1])
     : null
   const issues: DataQualityIssue[] = []
 
@@ -138,7 +144,7 @@ function buildSalesSection(input: ProfessionalReportInput): ProfessionalReportSe
     { id: 'best_weekday', label: 'Día fuerte', value: bestWeekday?.[0] ?? null, unit: 'text', kind: bestWeekday ? 'derived' : 'not_available', sourceIds: ['daily_sales.revenue'] },
     { id: 'best_weekday_revenue', label: 'Venta del día fuerte', value: bestWeekday ? round(bestWeekday[1]) : null, unit: 'eur', kind: bestWeekday ? 'derived' : 'not_available', sourceIds: ['daily_sales.revenue'] },
     { id: 'weakest_weekday', label: 'Día débil', value: weakestWeekday?.[0] ?? null, unit: 'text', kind: weakestWeekday ? 'derived' : 'not_available', sourceIds: ['daily_sales.revenue'] },
-    { id: 'weekday_spread_pct', label: 'Brecha día fuerte vs débil', value: weekdaySpreadPct, unit: 'pct', kind: weekdaySpreadPct === null ? 'not_available' : 'derived', sourceIds: ['daily_sales.revenue'] },
+    { id: 'weekday_spread_pct', label: 'Día débil por debajo del fuerte', value: weekdaySpreadPct, unit: 'pct', kind: weekdaySpreadPct === null ? 'not_available' : 'derived', sourceIds: ['daily_sales.revenue'] },
   ]
 
   const narrative = revenue > 0
@@ -146,7 +152,7 @@ function buildSalesSection(input: ProfessionalReportInput): ProfessionalReportSe
     : ['No se puede emitir una lectura comercial fiable sin ventas registradas.']
 
   if (bestWeekday && weakestWeekday && weekdaySpreadPct !== null) {
-    narrative.push(`${bestWeekday[0]} concentra la mayor venta registrada (${round(bestWeekday[1])} EUR), frente a ${weakestWeekday[0]} con ${round(weakestWeekday[1])} EUR; la brecha es del ${weekdaySpreadPct}%.`)
+    narrative.push(`${bestWeekday[0]} concentra la mayor venta registrada (${round(bestWeekday[1])} EUR), frente a ${weakestWeekday[0]} con ${round(weakestWeekday[1])} EUR; el día débil queda un ${weekdaySpreadPct}% por debajo del día fuerte.`)
   }
 
   return {
@@ -213,7 +219,7 @@ function buildStaffSection(input: ProfessionalReportInput): ProfessionalReportSe
     title: 'Personal',
     quality: buildQuality('staff', issues, [
       evidence('employees.active', ['employees'], input.employees.length),
-      evidence('shifts.cost', ['shifts'], input.shifts.length),
+      evidence('shifts.cost', ['shifts'], input.shifts.length, undefined, 'estimated'),
     ]),
     metrics: [
       { id: 'active_employees', label: 'Empleados activos', value: activeEmployees, unit: 'count', kind: 'actual', sourceIds: ['employees.active'] },
@@ -419,7 +425,13 @@ function buildProfitabilitySection(input: ProfessionalReportInput, sales: Profes
     quality: buildQuality('profitability', issues, [
       evidence('daily_sales.revenue', ['daily_sales'], input.sales.length),
       evidence('operating_expenses.amount', ['operating_expenses'], input.expenses.length),
-      evidence(laborFromExpenses > 0 ? 'operating_expenses.amount' : 'shifts.cost', laborFromExpenses > 0 ? ['operating_expenses'] : ['shifts'], laborFromExpenses > 0 ? input.expenses.length : input.shifts.length),
+      evidence(
+        laborFromExpenses > 0 ? 'operating_expenses.amount' : 'shifts.cost',
+        laborFromExpenses > 0 ? ['operating_expenses'] : ['shifts'],
+        laborFromExpenses > 0 ? input.expenses.length : input.shifts.length,
+        undefined,
+        laborFromExpenses > 0 ? 'actual' : 'estimated',
+      ),
       evidence('monthly_targets.targets', ['monthly_targets'], targets?.rowCount ?? 0),
     ]),
     metrics,

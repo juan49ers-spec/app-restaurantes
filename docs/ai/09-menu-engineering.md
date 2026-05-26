@@ -17,7 +17,7 @@ Analizar la rentabilidad y popularidad de los platos del menú para tomar decisi
    - Snapshots: para cada receta activa, guarda `cost_per_unit` y `price_per_unit` del momento.
 3. Navega a `/menu-engineering/[id]`. Ve `SalesInputGrid` con las recetas y sus cantidades editables.
 4. **Calcular Matriz** → `calculateMatrix(reportId)`:
-   - Calcula `avgQuantity` (aritmético) y `avgMargin` (ponderado).
+   - Calcula `avgQuantity` (aritmético) y `avgMargin` (margen de contribución unitario ponderado por unidades vendidas).
    - Clasifica cada item: STAR / PLOWHORSE / PUZZLE / DOG.
    - Status del reporte pasa a `ANALYZED`.
 5. Ve resultado:
@@ -60,7 +60,7 @@ Clasificación:
   popularity_pct <  avgPopularityPct && margin <  avgMargin → DOG
 ```
 
-**Contrato unificado desde Fase 7:** `src/lib/menu-engineering.ts` expone `calculateMenuEngineeringAnalysis()` como motor puro. La action `calculateMatrix` y el simulador cliente reutilizan esta misma regla. `avg_popularity` se guarda como decimal (`1 / N`, por ejemplo `0.25` en un menu de 4 items) porque la UI trabaja el eje X en porcentaje.
+**Contrato unificado desde Fase 7:** `src/lib/menu-engineering.ts` expone `calculateMenuEngineeringAnalysis()` como motor puro. La action `calculateMatrix` y el simulador cliente reutilizan esta misma regla. `avg_popularity` se guarda como decimal (`1 / N`, por ejemplo `0.25` en un menu de 4 items) porque la UI trabaja el eje X en porcentaje. `MenuEngineeringCalculator.getStats().avgMargin` debe coincidir con el mismo margen ponderado de la matriz, no con una media aritmetica de porcentajes.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -86,8 +86,9 @@ Clasificación:
 
 ## 6. Casos límite y errores conocidos
 
-- **Receta sin precio:** `price_per_unit=0` → `contribution_margin` negativo o cero. Distorsiona la matriz. Filtrar antes de crear el reporte.
-- **Reporte con un solo item:** los promedios son ese mismo item → siempre quedará en la frontera. Sin sentido analítico.
+- **Receta sin precio:** `price_per_unit=0` → `contribution_margin` negativo o cero. La libreria conserva el dato sin producir `NaN`, pero analiticamente conviene corregir ficha/precio antes de entregar conclusiones.
+- **Margen negativo:** `cost_per_unit > price_per_unit` se clasifica de forma relativa como cualquier otro item; puede ser PLOWHORSE si es popular pero destruye margen.
+- **Reporte con un solo item:** los promedios son ese mismo item → queda en la frontera y se clasifica como STAR por igualdad de umbrales. Sin sentido analítico.
 - **Cantidades cero pero no todas cero:** items con qty=0 contarán como "no vendidos" y casi siempre acabarán en DOG.
 - **Recetas activas vs inactivas:** el reporte se crea desde recetas activas. Si una se desactiva después, sigue en el reporte (snapshot).
 - **Daily recipe sales sin datos:** la pre-carga retorna 0 para esas recetas.
