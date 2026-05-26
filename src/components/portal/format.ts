@@ -1,4 +1,5 @@
 import type { PresentationKpi, ReportMetric } from '@/lib/reporting'
+import { formatDateInputEs } from '@/lib/date-format'
 import { formatCurrency, formatPct } from '@/lib/utils'
 
 export function formatPortalKpiValue(kpi: PresentationKpi) {
@@ -20,9 +21,5 @@ export function formatPortalMetricValue(metric: ReportMetric) {
 }
 
 export function formatPortalDate(value: string) {
-  return new Intl.DateTimeFormat('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(`${value}T00:00:00.000Z`))
+  return formatDateInputEs(value)
 }

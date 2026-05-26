@@ -6,6 +6,7 @@ import { updateMeetingRequestStatus, type ConsultantMeetingRequest } from '@/app
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { formatDateTimeEs } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
 
 interface MeetingRequestsPanelProps {
@@ -18,17 +19,6 @@ const STATUS_COPY: Record<ConsultantMeetingRequest['status'], { label: string; c
   PENDING: { label: 'Pendiente', className: 'border-amber-200 bg-amber-50 text-amber-700' },
   ACKNOWLEDGED: { label: 'En revisión', className: 'border-sky-200 bg-sky-50 text-sky-700' },
   COMPLETED: { label: 'Completada', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Europe/Madrid',
-  }).format(new Date(value))
 }
 
 export function MeetingRequestsPanel({ initialRequests }: MeetingRequestsPanelProps) {
@@ -88,7 +78,7 @@ export function MeetingRequestsPanel({ initialRequests }: MeetingRequestsPanelPr
                       </Badge>
                       <span className="flex items-center gap-1 text-xs text-slate-500">
                         <CalendarClock className="h-3.5 w-3.5" />
-                        {formatDateTime(request.createdAt)}
+                        {formatDateTimeEs(request.createdAt)}
                       </span>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-slate-700">

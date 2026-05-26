@@ -4,16 +4,10 @@ import { BriefcaseBusiness, FileCheck2, FileText, Send } from 'lucide-react'
 import { getConsultantWorkspace } from '@/app/actions/consultant'
 import { ConsultantBrandingForm } from '@/components/consultant/ConsultantBrandingForm'
 import { MeetingRequestsPanel } from '@/components/consultant/MeetingRequestsPanel'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(value))
-}
+import { formatDateEs } from '@/lib/date-format'
 
 export default async function ConsultantWorkspacePage() {
   const response = await getConsultantWorkspace()
@@ -30,7 +24,7 @@ export default async function ConsultantWorkspacePage() {
     )
   }
 
-  const { restaurant, publishedReports, meetingRequests } = response.data
+  const { restaurant, publishedReports, meetingRequests, warnings } = response.data
   const openRequests = meetingRequests.filter(request => request.status !== 'COMPLETED').length
   const latestReport = publishedReports[0]
 
@@ -70,6 +64,15 @@ export default async function ConsultantWorkspacePage() {
         </div>
       </header>
 
+      {warnings.length > 0 && (
+        <Alert>
+          <AlertTitle>Mesa cargada con avisos</AlertTitle>
+          <AlertDescription>
+            {warnings.join(' ')}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2 text-slate-500">
@@ -90,7 +93,7 @@ export default async function ConsultantWorkspacePage() {
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-medium text-slate-500">Última publicación</p>
           <p className="mt-4 text-2xl font-semibold text-slate-950">
-            {latestReport ? formatDate(latestReport.publishedAt) : 'Sin publicar'}
+            {latestReport ? formatDateEs(latestReport.publishedAt) : 'Sin publicar'}
           </p>
           <p className="mt-2 text-sm text-slate-500">
             {latestReport ? `${latestReport.periodFrom} a ${latestReport.periodTo}` : 'Aún no hay informe visible.'}
@@ -128,7 +131,7 @@ export default async function ConsultantWorkspacePage() {
                     <Badge variant="secondary" className="rounded-md">{report.status}</Badge>
                   </div>
                   <p className="mt-1 text-sm text-slate-500">
-                    Versión {report.version} · publicado {formatDate(report.publishedAt)}
+                    Versión {report.version} · publicado {formatDateEs(report.publishedAt)}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

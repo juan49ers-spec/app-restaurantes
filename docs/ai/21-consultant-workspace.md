@@ -27,6 +27,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - Llama `getConsultantWorkspace()`.
 - Si no hay restaurante activo, redirige a `/onboarding`.
 - Renderiza un dashboard operativo sin aceptar `restaurant_id` del cliente.
+- Si fallan lecturas no críticas (informes publicados o solicitudes), mantiene la mesa cargada con avisos y listas vacías. Solo falla de forma bloqueante si no puede cargar el restaurante activo.
 
 **Server actions:** `src/app/actions/consultant.ts`
 
@@ -36,6 +37,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
   - `portal_meeting_requests`
 - `updateConsultantBranding(input)` valida nombre/email/logo con Zod y actualiza solo el restaurante activo.
 - `updateMeetingRequestStatus(input)` valida UUID + estado y actualiza solo solicitudes del restaurante activo.
+- Las fechas visibles usan helpers compartidos en `src/lib/date-format.ts` con zona horaria `Europe/Madrid`. Es una decisión temporal para España y evita errores de hidratación entre servidor y navegador.
 
 **Client components:**
 
@@ -65,6 +67,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 
 - Si no hay informes publicados, muestra estado vacío y acceso a `/reports`.
 - Si no hay solicitudes, muestra estado vacío.
+- Si fallan informes o solicitudes, muestra un aviso y conserva el resto de la mesa operativa.
 - Si una solicitud apunta a un informe despublicado o eliminado, se conserva la solicitud pero sin enlace de reporte.
 - Si la actualización de marca falla, el portal mantiene la identidad anterior.
 - Si el consultor trabaja como admin impersonando un restaurante, las actions siguen resolviendo el restaurante impersonado mediante `getUserRestaurant()`.

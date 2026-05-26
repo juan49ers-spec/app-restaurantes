@@ -168,6 +168,7 @@ describe('consultant server actions', () => {
     const result = await getConsultantWorkspace()
 
     expect(result.success).toBe(true)
+    expect(result.data?.warnings).toEqual([])
     expect(result.data?.restaurant).toEqual(expect.objectContaining({
       id: RESTAURANT_ID,
       consultantName: 'Zinergia',
@@ -179,6 +180,33 @@ describe('consultant server actions', () => {
       ['not', 'published_at', 'is', null],
     ]))
     expect(calls.find(call => call.table === 'portal_meeting_requests')?.filters).toContainEqual(['eq', 'restaurant_id', RESTAURANT_ID])
+  })
+
+  it('returns a clean error when there is no active restaurant', async () => {
+    mockRestaurantId = null
+    const { getConsultantWorkspace } = await import('@/app/actions/consultant')
+
+    const result = await getConsultantWorkspace()
+
+    expect(result).toEqual({ success: false, error: 'No hay restaurante activo.' })
+    expect(calls).toEqual([])
+  })
+
+  it('keeps the workspace usable when non-critical consultant queries fail', async () => {
+    tableResults.professional_report_drafts = { data: null, error: { message: 'reports unavailable' } }
+    tableResults.portal_meeting_requests = { data: null, error: { message: 'requests unavailable' } }
+    const { getConsultantWorkspace } = await import('@/app/actions/consultant')
+
+    const result = await getConsultantWorkspace()
+
+    expect(result.success).toBe(true)
+    expect(result.data?.restaurant.name).toBe('Casa Juan')
+    expect(result.data?.publishedReports).toEqual([])
+    expect(result.data?.meetingRequests).toEqual([])
+    expect(result.data?.warnings).toEqual([
+      'No se pudieron cargar los informes publicados.',
+      'No se pudieron cargar las solicitudes de reunión.',
+    ])
   })
 
   it('updates consultant branding for the active restaurant only', async () => {

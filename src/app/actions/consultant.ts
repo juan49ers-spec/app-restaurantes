@@ -54,6 +54,7 @@ export interface ConsultantWorkspace {
   restaurant: ConsultantWorkspaceRestaurant
   publishedReports: ConsultantPublishedReport[]
   meetingRequests: ConsultantMeetingRequest[]
+  warnings: string[]
 }
 
 type RestaurantRow = {
@@ -126,23 +127,31 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
       .order('created_at', { ascending: false }),
   ])
 
-  const firstError = restaurantRes.error || reportsRes.error || requestsRes.error
-  if (firstError) return { success: false, error: 'No se pudo cargar la mesa de consultoría.' }
+  if (restaurantRes.error) return { success: false, error: 'No se pudo cargar el restaurante activo.' }
   if (!restaurantRes.data) return { success: false, error: 'Restaurante no encontrado.' }
 
-  const publishedReports = (reportsRes.data || []).map(row => mapPublishedReport(row as PublishedReportRow))
+  const warnings = [
+    reportsRes.error ? 'No se pudieron cargar los informes publicados.' : null,
+    requestsRes.error ? 'No se pudieron cargar las solicitudes de reunión.' : null,
+  ].filter((warning): warning is string => Boolean(warning))
+
+  const publishedReports = reportsRes.error
+    ? []
+    : (reportsRes.data || []).map(row => mapPublishedReport(row as PublishedReportRow))
   const reportsById = new Map(publishedReports.map(report => [report.id, report]))
-  const meetingRequests = (requestsRes.data || []).map(row => {
-    const request = row as MeetingRequestRow
-    return {
-      id: request.id,
-      reportId: request.report_id,
-      message: request.message,
-      status: request.status,
-      createdAt: request.created_at,
-      report: request.report_id ? reportsById.get(request.report_id) ?? null : null,
-    }
-  })
+  const meetingRequests = requestsRes.error
+    ? []
+    : (requestsRes.data || []).map(row => {
+        const request = row as MeetingRequestRow
+        return {
+          id: request.id,
+          reportId: request.report_id,
+          message: request.message,
+          status: request.status,
+          createdAt: request.created_at,
+          report: request.report_id ? reportsById.get(request.report_id) ?? null : null,
+        }
+      })
 
   return {
     success: true,
@@ -150,6 +159,7 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
       restaurant: mapRestaurant(restaurantRes.data as RestaurantRow),
       publishedReports,
       meetingRequests,
+      warnings,
     },
   }
 }
