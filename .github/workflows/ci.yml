@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         node-version: [20.x, 22.x]
 
@@ -24,16 +25,7 @@ jobs:
         cache: 'npm'
         
     - name: Install Dependencies
-      run: npm ci --legacy-peer-deps
+      run: npm ci
 
-    - name: Lint
-      run: npm run lint
-
-    - name: Type Check
-      run: npm run typecheck
-
-    - name: Run Tests
-      run: npx vitest run --exclude 'tests/ai/**' --exclude 'tests/e2e/**'
-
-    - name: Build
-      run: npm run build
+    - name: Verify
+      run: npm run verify

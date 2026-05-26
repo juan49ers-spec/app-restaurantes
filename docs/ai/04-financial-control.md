@@ -14,8 +14,8 @@ Centro operativo financiero del día a día. Aquí el restaurador registra venta
 2. Layout con 4 pestañas (lazy-loaded con Suspense):
    - **FACTURACIÓN** (default): `DailySalesForm` (izq) + `MonthlyPerformanceWidget` (der).
    - **GASTOS**: `ExpensesDashboard` (KPIs, donut, tabla histórica, formulario modal).
-   - **IMPUESTOS**: `ImpuestosDashboard` (IVA, IRPF, próximos vencimientos).
-   - **RESULTADOS**: `ResultadosDashboard` (P&L, ratios, tendencias).
+- **IMPUESTOS**: `ImpuestosDashboard` (IVA, IRPF, próximos vencimientos).
+- **RESULTADOS**: `ResultadosDashboard` (P&L, ratios, tendencias).
 3. Menú flotante de tabs se puede bloquear/desbloquear para navegar sin perder cambios (Lock toggle).
 4. **Registrar ventas del día:**
    - Selecciona fecha (default hoy).
@@ -41,13 +41,15 @@ getMonthlyTarget(restaurantId, monthYear)
 ```
 
 **Escritura:**
-- `upsertDailySales(payload)` — INSERT/UPDATE en `daily_sales` con clave (restaurant_id, date).
-- `upsertOperatingExpense(payload)` — UPSERT en `operating_expenses`. Soporta `idempotency_key`.
-- `deleteOperatingExpense(id)`.
-- `upsertMonthlyTarget(payload)` — `monthly_targets`.
-- `closeMonthlyResults(monthYear)` — congela el mes en `monthly_results` con `is_closed=true, closed_by, closed_at`.
+- `upsertDailySales(payload)` — INSERT/UPDATE en `daily_sales` con clave `(restaurant_id, date)`. El `restaurant_id` se resuelve siempre en servidor con `getUserRestaurant()`; si el payload lo trae por compatibilidad de formulario, se ignora.
+- `upsertOperatingExpense(payload)` — INSERT en `operating_expenses`. El `restaurant_id` se resuelve siempre en servidor; si el payload lo trae, se ignora.
+- `deleteOperatingExpense(id)` — borra solo si el gasto pertenece al restaurante activo.
+- `updateOperatingExpense(id, updates)` — actualiza solo si el gasto pertenece al restaurante activo e ignora cualquier `restaurant_id` del cliente.
+- `upsertMonthlyTarget(payload)` — `monthly_targets`. El `restaurant_id` se resuelve siempre en servidor.
+- `closeMonth(monthYear)` — congela el mes en `monthly_results` con `is_closed=true, closed_by, closed_at`, resolviendo el restaurante en servidor.
 
 **Componente cliente principal:** `FinancialControlClient` (en `client.tsx`). Mantiene tab activo, modales, fecha local. Tabs se cargan con `Suspense + lazy`.
+`ImpuestosDashboard` carga el trimestre de forma asíncrona y activa `isLoading` al cambiar de trimestre, evitando setState síncrono dentro del effect. `DesarrolloNegocio` calcula insights como derivado simple de métricas para no depender de memoización frágil.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -57,8 +59,10 @@ getMonthlyTarget(restaurantId, monthYear)
 - **Categorías de gasto:** enum estricto de 15 valores agrupados en 4 (`PERSONAL`, `COGS`, `OPERATIONS`, `FINANCIAL`). Ver `EXPENSE_GROUPS` en `src/types/schema.ts`.
 - **Modo profesional de factura:** flag `is_professional_invoice` activa campos fiscales (base, IVA, retención IRPF).
 - **Presupuesto mensual:** solo uno por (restaurant_id, month_year). Si abre el mes actual y no existe, se sugiere crearlo.
+- **Presupuesto a 0:** `revenue_target=0` se considera "sin meta configurada"; la UI no debe mostrar "objetivo superado" en ese caso.
 - **Cierre mensual:** una vez `is_closed=true`, edits a ese mes deberían bloquearse. (Confirmar enforcement en UI — la lógica está en `resultados.ts`.)
 - **IVA:** la app asume tipos españoles (10% para hostelería, 21% bebidas alcohólicas/etc.).
+- **Base imponible fiscal:** si `base_10 + base_21` es distinto de 0, se usa ese desglose aunque sea negativo (correcciones/abonos). Solo si el desglose está vacío se calcula desde `revenue_total - iva_collected`.
 
 ## 5. Dependencias e implicaciones cruzadas
 
@@ -76,12 +80,15 @@ getMonthlyTarget(restaurantId, monthYear)
 ## 6. Casos límite y errores conocidos
 
 - **Día con `revenue_total` y breakdown desincronizados:** la action elige el máximo entre `revenue_total`, suma de bases IVA y suma de canales. Posibilidad de inconsistencia visible si el usuario rellena ambos sin sumar bien.
+- **Correcciones fiscales negativas:** `getFiscalMetrics()` y el resumen trimestral conservan bases imponibles negativas cuando vienen informadas en `base_10/base_21`; no deben caer al fallback de `revenue_total`.
 - **Gasto recurrente:** marcar `recurrence` no genera futuras filas automáticamente — es solo un metadato. Si quieres recurrencia real, hay que añadir un job/cron (no existe).
 - **Duplicados por reintento:** mitigados con `idempotency_key` único. Si el cliente no lo envía, son posibles duplicados.
 - **Trigger de auditoría:** cualquier UPDATE/DELETE deja huella en `audit_logs`. No se puede "deshacer silenciosamente".
 - **Mes cerrado:** si pretendes editar `daily_sales` o `operating_expenses` de un mes en `is_closed=true`, la UI debería bloquearlo. Si no lo bloquea, es bug.
 - **Tab por defecto:** abre FACTURACIÓN. Si quieres deep-link a otro tab, usa `?view=gastos|impuestos|resultados`.
 - **`labor_cost` en `daily_sales` vs gastos PERSONAL:** son fuentes distintas. Para no double-contar, el dashboard usa una u otra — confirmar en `getResultsDashboardData`.
+- **Compatibilidad de formularios:** algunos formularios cliente siguen llevando `restaurant_id` en sus schemas por compatibilidad, pero las server actions lo ignoran y usan el restaurante activo del servidor.
+- **Lint React Compiler:** los componentes financieros no deben depender de casts `as any` para estilos ni de memoizaciones manuales con dependencias imprecisas; Next/React Compiler lo marca como error de lint.
 
 ## 7. Al añadir/modificar una función aquí
 

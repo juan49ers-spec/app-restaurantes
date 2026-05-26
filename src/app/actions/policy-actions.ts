@@ -1,7 +1,6 @@
 "use server"
 
 import { createClient } from "@/lib/supabaseServer"
-import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
@@ -18,11 +17,10 @@ const PolicySchema = z.object({
 export type Policy = z.infer<typeof PolicySchema>
 
 export async function getPolicies(restaurantId: string): Promise<Policy[]> {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('policies')
-        .select('id, restaurant_id, title, description, category, is_required, created_at')
+        .select('*')
         .eq('restaurant_id', restaurantId)
         .order('category')
         .order('title')

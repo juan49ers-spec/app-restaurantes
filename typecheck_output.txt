@@ -1,0 +1,19 @@
+
+> temp_app@0.1.0 typecheck
+> tsc --noEmit
+
+src/components/financial-control/ExpensesDashboard.tsx(75,29): error TS2345: Argument of type '{ date: string | undefined; category: "NOMINAS_LIQUIDAS" | "SEGURIDAD_SOCIAL" | "EN_MANO_PERSONAL" | "PROVEEDORES_COMIDA" | "PROVEEDORES_BEBIDA" | "VARIACION_EXISTENCIAS" | ... 8 more ... | "OTROS"; description: string; amount: number | undefined; expense_date?: string | undefined; }[]' is not assignable to parameter of type 'ExpenseExportData[]'.
+  Type '{ date: string | undefined; category: "NOMINAS_LIQUIDAS" | "SEGURIDAD_SOCIAL" | "EN_MANO_PERSONAL" | "PROVEEDORES_COMIDA" | "PROVEEDORES_BEBIDA" | "VARIACION_EXISTENCIAS" | ... 8 more ... | "OTROS"; description: string; amount: number | undefined; expense_date?: string | undefined; }' is missing the following properties from type 'ExpenseExportData': provider_detail, tag, payment_method, is_paid
+src/components/financial-control/ExpensesDashboard.tsx(127,21): error TS2322: Type '{ expenses: { id: string; date: string; expense_date?: string | undefined; }[]; category: "NOMINAS_LIQUIDAS" | "SEGURIDAD_SOCIAL" | "EN_MANO_PERSONAL" | "PROVEEDORES_COMIDA" | "PROVEEDORES_BEBIDA" | ... 9 more ... | "OTROS"; ... 6 more ...; tags: Record<...>; }[]' is not assignable to type '{ category: string; amount: number; weight: number; momVariation: number; ratioToSales: number; ratioToTarget: number; theoreticalTarget: number; expenses: ExpenseItem[]; }[]'.
+  Type '{ expenses: { id: string; date: string; expense_date?: string; }[]; category: OperatingExpenseCategory; amount: number; weight: number; ... 4 more ...; tags: Record<string, number>; }' is not assignable to type '{ category: string; amount: number; weight: number; momVariation: number; ratioToSales: number; ratioToTarget: number; theoreticalTarget: number; expenses: ExpenseItem[]; }'.
+    Types of property 'expenses' are incompatible.
+      Type '{ id: string; date: string; expense_date?: string | undefined; }[]' is not assignable to type 'ExpenseItem[]'.
+        Property 'amount' is missing in type '{ id: string; date: string; expense_date?: string; }' but required in type 'ExpenseItem'.
+src/components/invoices/ValidationInbox.tsx(87,17): error TS2554: Expected 3 arguments, but got 6.
+src/components/stock/DailyRecipeSalesForm.tsx(315,56): error TS18046: 'item' is of type 'unknown'.
+src/components/stock/DailyRecipeSalesForm.tsx(317,50): error TS18046: 'item' is of type 'unknown'.
+src/components/stock/DailyRecipeSalesForm.tsx(318,99): error TS18046: 'item' is of type 'unknown'.
+src/components/stock/DailyRecipeSalesForm.tsx(321,57): error TS18046: 'item' is of type 'unknown'.
+src/components/stock/DailyRecipeSalesForm.tsx(324,59): error TS18046: 'item' is of type 'unknown'.
+src/components/stock/DailyRecipeSalesForm.tsx(327,66): error TS18046: 'item' is of type 'unknown'.
+src/components/stock/DailyRecipeSalesForm.tsx(328,61): error TS18046: 'item' is of type 'unknown'.

@@ -80,7 +80,7 @@ export function SupplierScorecard({ metrics, supplierName }: ScorecardProps) {
                         {/* Mini Sparkline */}
                         {metrics.scoreHistory.length > 0 && (
                             <div className="h-10">
-                                <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%">
                                     <LineChart data={metrics.scoreHistory}>
                                         <Line
                                             type="monotone"

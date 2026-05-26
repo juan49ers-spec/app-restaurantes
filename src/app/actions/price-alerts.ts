@@ -11,7 +11,7 @@ export async function getPriceAlertRules(): Promise<PriceAlertRule[]> {
 
     const { data, error } = await supabase
         .from('price_alert_rules')
-        .select('id, restaurant_id, ingredient_id, category, max_variance_pct, is_active, created_at')
+        .select('*')
         .eq('restaurant_id', restaurantId)
 
     if (error) return []
@@ -71,8 +71,8 @@ export async function checkAlertViolations(): Promise<AlertViolation[]> {
     const restaurantId = await getUserRestaurant()
 
     const [rulesResult, historyResult, ingredientsResult] = await Promise.all([
-        supabase.from('price_alert_rules').select('id, restaurant_id, ingredient_id, category, max_variance_pct, is_active').eq('restaurant_id', restaurantId).eq('is_active', true),
-        supabase.from('price_history').select('id, master_ingredient_id, variance_pct, price_per_unit, recorded_at').eq('restaurant_id', restaurantId).order('recorded_at', { ascending: false }).limit(100),
+        supabase.from('price_alert_rules').select('*').eq('restaurant_id', restaurantId).eq('is_active', true),
+        supabase.from('price_history').select('*').eq('restaurant_id', restaurantId).order('recorded_at', { ascending: false }).limit(100),
         supabase.from('master_ingredients').select('id, name').eq('restaurant_id', restaurantId)
     ])
 

@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabaseServer"
 import { startOfMonth, endOfMonth } from "date-fns"
-import { verifyRestaurantAccess } from "@/lib/verify-access"
 
 interface ProductStat {
     id: string
@@ -32,7 +31,6 @@ export interface GhostProduct {
 }
 
 export async function getFinancialPulse(restaurantId: string, startDate?: string, endDate?: string) {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const now = new Date()
     const start = startDate ? new Date(startDate) : startOfMonth(now)

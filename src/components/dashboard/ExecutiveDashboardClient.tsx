@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useSearchParams, useRouter } from "next/navigation"
+import React from 'react'
 import { DateRange } from "react-day-picker"
 import { SmartBriefing } from "./SmartBriefing"
 import { DollarSign, TrendingUp, Wallet } from "lucide-react"
@@ -23,7 +22,6 @@ interface ExecutiveDashboardClientProps {
 }
 
 export function ExecutiveDashboardClient({
-    initialDateRange,
     initialData,
     missingRestaurant = false,
 }: ExecutiveDashboardClientProps) {

@@ -61,7 +61,7 @@ export function RestaurantList({ initialRestaurants }: RestaurantListProps) {
     const handleImpersonate = async (restaurantId: string, restaurantName: string) => {
         setLoadingId(`impersonate-${restaurantId}`)
         try {
-            await startImpersonation(restaurantId, restaurantName)
+            await startImpersonation(restaurantId)
             toast.success(`Iniciando sesión como "${restaurantName}"...`)
         } catch {
             toast.error("Error al iniciar modo administrador")

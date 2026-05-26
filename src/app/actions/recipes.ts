@@ -50,10 +50,10 @@ export async function getRecipes() {
     if (error) throw new Error(error.message)
 
     // Calculate Margin
-    const recipesWithMargin: RecipeWithCost[] = (data || []).map(recipe => ({
-        ...recipe,
-        calculated_margin: recipe.selling_price && recipe.current_cost
-            ? ((recipe.selling_price - recipe.current_cost) / recipe.selling_price) * 100
+    const recipesWithMargin: RecipeWithCost[] = data.map((r) => ({
+        ...r,
+        calculated_margin: r.selling_price
+            ? ((r.selling_price - r.current_cost) / r.selling_price) * 100
             : 0
     }))
 
@@ -207,7 +207,7 @@ export async function getRecipeForEdit(recipeId: string) {
     })
 
     return {
-        ...(recipe as unknown as Recipe),
+        ...recipe,
         ingredients
     }
 }
@@ -216,7 +216,7 @@ export async function getRecipePriceHistory(recipeId: string) {
 
     const { data, error } = await supabase
         .from('price_history')
-        .select('price, created_at, change_pct')
+        .select('*')
         .eq('entity_id', recipeId)
         .eq('entity_type', 'RECIPE')
         .order('created_at', { ascending: true })

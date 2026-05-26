@@ -1,0 +1,38 @@
+
+> temp_app@0.1.0 build
+> next build
+
+   Ôû▓ Next.js 15.1.6
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ÔÜá Compiled with warnings
+
+./src/components/financial-control/ImpuestosDashboard.tsx
+Attempted import error: 'IRPTable' is not exported from './IRPTable' (imported as 'IRPTable').
+
+Import trace for requested module:
+./src/components/financial-control/ImpuestosDashboard.tsx
+./src/app/financial-control/client.tsx
+
+ ÔÜá Compiled with warnings
+
+./src/components/financial-control/ImpuestosDashboard.tsx
+Attempted import error: 'IRPTable' is not exported from './IRPTable' (imported as 'IRPTable').
+
+Import trace for requested module:
+./src/components/financial-control/ImpuestosDashboard.tsx
+./src/app/financial-control/client.tsx
+
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./src/components/purchasing/SupplierItemMapper.tsx
+39:52  Error: '_ingredientId' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/scripts/maintenance.ts
+279:14  Error: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

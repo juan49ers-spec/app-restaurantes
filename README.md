@@ -1,12 +1,7 @@
 # Restaurant Financial Management System (SaaS)
 
 ![Project Status](https://img.shields.io/badge/status-active_development-brightgreen)
-![CI](https://github.com/juan49ers-spec/app-restaurantes/actions/workflows/ci.yml/badge.svg)
-
-> **Note on language**: this README and code comments are in English. End-user
-> facing documentation (`GUIA_USUARIO.md`, `OCR_SETUP.md`, `DEPLOY_GUIDE.md`,
-> `SUPABASE_SETUP.md`) is in Spanish, since the product targets Spanish-speaking
-> hospitality teams.
+![CI](https://github.com/tu-usuario/restaurant-finance-app/actions/workflows/ci.yml/badge.svg)
 
 ## Project Overview
 
@@ -19,7 +14,7 @@ A comprehensive financial control and menu engineering platform tailored for the
 
 ## Contributing
 
-Contributions welcome via Issues and Pull Requests.
+We welcome contributions! Please see our [Contributing Guidelines](Contributing.md) (coming soon) and use the provided templates for Issues and Pull Requests.
 
 1. Fork the repository.
 2. Create a feature branch: `git checkout -b feature/amazing-feature`.
@@ -65,20 +60,12 @@ Contributions welcome via Issues and Pull Requests.
    ```
 
 3. **Configure Environment**
-   Copy the example file and fill in your keys:
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   Required at minimum:
+   Create a `.env.local` file in the root directory:
 
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
-
-   See `.env.example` for OCR provider keys and optional configuration.
 
 4. **Run Development Server**
 
@@ -109,11 +96,4 @@ npm test
 # Run tests in watch mode
 npm run test:watch
 ```
-
-## Additional documentation
-
-- [DEPLOY_GUIDE.md](DEPLOY_GUIDE.md) — deployment instructions
-- [SUPABASE_SETUP.md](SUPABASE_SETUP.md) — database setup
-- [OCR_SETUP.md](OCR_SETUP.md) — OCR pipeline configuration
-- [GUIA_USUARIO.md](GUIA_USUARIO.md) — user guide (Spanish)
-- [docs/internal/](docs/internal/) — internal notes and historical docs
+<!-- Verification commit -->

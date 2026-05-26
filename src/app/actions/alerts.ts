@@ -39,7 +39,7 @@ export async function getRecentAlerts(limit = 5) {
 
   const { data } = await supabase
     .from('alerts')
-    .select('id, type, title, message, metadata, is_read, created_at')
+    .select('*')
     .eq('restaurant_id', restaurantId)
     .eq('type', 'price_spike')
     .order('created_at', { ascending: false })
@@ -56,7 +56,7 @@ export async function getAlertRules(): Promise<AlertRule[]> {
 
   const { data, error } = await supabase
     .from('alert_rules')
-    .select('id, name, type, severity, is_active, conditions, channels, created_at, updated_at, restaurant_id, enabled, cooldown')
+    .select('*')
     .eq('restaurant_id', restaurantId)
     .order('created_at', { ascending: false })
 
@@ -65,7 +65,7 @@ export async function getAlertRules(): Promise<AlertRule[]> {
     return []
   }
 
-  return (data || []) as AlertRule[]
+  return data || []
 }
 
 // Create default alert rules if none exist
@@ -77,7 +77,7 @@ export async function initializeDefaultAlertRules(): Promise<void> {
   // Check if rules already exist
   const { count } = await supabase
     .from('alert_rules')
-    .select('id', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true })
     .eq('restaurant_id', restaurantId)
 
   if (count && count > 0) return
@@ -150,7 +150,7 @@ export async function getNotifications(
 
   let query = supabase
     .from('alert_notifications')
-    .select('id, rule_id, entity_id, entity_type, type, severity, message, description, data, read, read_at, created_at, restaurant_id, title, entity_name', { count: 'exact' })
+    .select('*', { count: 'exact' })
     .eq('restaurant_id', restaurantId)
 
   if (options.unreadOnly) {
@@ -169,12 +169,12 @@ export async function getNotifications(
   // Get unread count
   const { count: unreadCount } = await supabase
     .from('alert_notifications')
-    .select('id', { count: 'exact', head: true })
+    .select('*', { count: 'exact', head: true })
     .eq('restaurant_id', restaurantId)
     .eq('read', false)
 
   return {
-    notifications: (data || []) as AlertNotification[],
+    notifications: data || [],
     total: count || 0,
     unread: unreadCount || 0,
   }

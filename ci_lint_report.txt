@@ -1,0 +1,259 @@
+
+> temp_app@0.1.0 lint
+> eslint
+
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\scripts\test_integrity.ts
+   74:21  warning  'recipeCheck' is never reassigned. Use 'const' instead  prefer-const
+   98:21  warning  'recipeFinal' is never reassigned. Use 'const' instead  prefer-const
+  116:19  warning  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\financial-diagnosis.ts
+  25:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\financial-engine.ts
+   7:12  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   8:11  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   9:11  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  10:14  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  92:19  warning  'margin' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\ingredients.ts
+  164:9  warning  'parseAllergens' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\invoices.ts
+  111:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:61  warning  'originalName' is defined but never used  @typescript-eslint/no-unused-vars
+  190:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\menu-engineering.ts
+  68:74  warning  'user' is defined but never used  @typescript-eslint/no-unused-vars
+  81:90  warning  'user' is defined but never used  @typescript-eslint/no-unused-vars
+  89:99  warning  'user' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\purchase-analytics.ts
+  138:19  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\recipes.ts
+   15:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\review-invoice.ts
+    4:10  warning  'InvoiceStatus' is defined but never used  @typescript-eslint/no-unused-vars
+  147:21  warning  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  153:58  warning  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\safe-action.ts
+  40:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\seed-shifts-robust.ts
+    4:10  warning  'addDays' is defined but never used       @typescript-eslint/no-unused-vars
+    4:19  warning  'format' is defined but never used        @typescript-eslint/no-unused-vars
+    4:27  warning  'startOfDay' is defined but never used    @typescript-eslint/no-unused-vars
+   31:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  107:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\supplier-mapping.ts
+   89:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  146:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  291:47  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\validation.ts
+  102:5  warning  'rawNameOnInvoice' is defined but never used  @typescript-eslint/no-unused-vars
+  103:5  warning  'rawPrice' is defined but never used          @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\actions\waste-actions.ts
+  161:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\admin\invoice-validation\page.tsx
+  64:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\admin\page.tsx
+  11:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\api\debug\seed-invoice\route.ts
+   38:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  153:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\api\debug\test-ingestion\route.ts
+  58:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\api\seed-ops\route.ts
+  5:27  warning  'req' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\login\page.tsx
+  34:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  57:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\menu-engineering\new\page.tsx
+  35:18  warning  '_err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\notifications\page.tsx
+   2:52  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+   3:10  warning  'Badge' is defined but never used            @typescript-eslint/no-unused-vars
+  16:33  warning  'unread' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\operational\page.tsx
+  1:10  warning  'createClient' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\purchasing\analytics\page.tsx
+   7:45  warning  'Package' is defined but never used            @typescript-eslint/no-unused-vars
+  19:64  warning  'mappings' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\recipes\[id]\edit\page.tsx
+  2:10  warning  'getRecipeDetails' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\app\test-seed\SeedButton.tsx
+   8:10  warning  'Card' is defined but never used             @typescript-eslint/no-unused-vars
+   8:16  warning  'CardContent' is defined but never used      @typescript-eslint/no-unused-vars
+   8:29  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+   8:46  warning  'CardHeader' is defined but never used       @typescript-eslint/no-unused-vars
+   8:58  warning  'CardTitle' is defined but never used        @typescript-eslint/no-unused-vars
+  27:18  warning  'error' is defined but never used            @typescript-eslint/no-unused-vars
+  44:18  warning  'error' is defined but never used            @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\alerts\AlertConfiguration.tsx
+    4:47  warning  'DEFAULT_ALERT_RULES' is defined but never used  @typescript-eslint/no-unused-vars
+   13:10  warning  'Tabs' is defined but never used                 @typescript-eslint/no-unused-vars
+   13:16  warning  'TabsContent' is defined but never used          @typescript-eslint/no-unused-vars
+   13:29  warning  'TabsList' is defined but never used             @typescript-eslint/no-unused-vars
+   13:39  warning  'TabsTrigger' is defined but never used          @typescript-eslint/no-unused-vars
+   26:3   warning  'Search' is defined but never used               @typescript-eslint/no-unused-vars
+   98:14  warning  'error' is defined but never used                @typescript-eslint/no-unused-vars
+  114:14  warning  'error' is defined but never used                @typescript-eslint/no-unused-vars
+  126:14  warning  'error' is defined but never used                @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\alerts\NotificationCenter.tsx
+   14:3   warning  'Trash2' is defined but never used        @typescript-eslint/no-unused-vars
+   15:3   warning  'TrendingUp' is defined but never used    @typescript-eslint/no-unused-vars
+   16:3   warning  'TrendingDown' is defined but never used  @typescript-eslint/no-unused-vars
+   19:3   warning  'X' is defined but never used             @typescript-eslint/no-unused-vars
+   99:14  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  110:14  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\alerts\NotificationHistory.tsx
+  15:3   warning  'Trash2' is defined but never used                             @typescript-eslint/no-unused-vars
+  19:3   warning  'Filter' is defined but never used                             @typescript-eslint/no-unused-vars
+  47:10  warning  'selectedNotifications' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  47:33  warning  'setSelectedNotifications' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  59:14  warning  'error' is defined but never used                              @typescript-eslint/no-unused-vars
+  68:14  warning  'error' is defined but never used                              @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\analytics\BCGMatrixChart.tsx
+  34:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\dashboard\CategorySpendChart.tsx
+  93:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\dashboard\SpendTrendChart.tsx
+  73:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  73:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\financial-control\ExpensesManager.tsx
+  101:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\financial-control\FinancialSimulator.tsx
+  80:11  warning  The 'currentMetrics' object makes the dependencies of useMemo Hook (at line 181) change on every render. To fix this, wrap the initialization of 'currentMetrics' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\financial-control\PnLReport.tsx
+   12:10  warning  'FileDown' is defined but never used      @typescript-eslint/no-unused-vars
+  133:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  138:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  194:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  194:55  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\ingredients\CreateIngredientDialog.tsx
+  23:5   warning  'FormDescription' is defined but never used  @typescript-eslint/no-unused-vars
+  55:59  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  62:47  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  65:35  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  78:18  warning  'error' is defined but never used            @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\ingredients\DeleteIngredientAlert.tsx
+  42:18  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\ingredients\IngredientSummaryCards.tsx
+  3:19  warning  'Percent' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\ingredients\IngredientsTable.tsx
+  17:10  warning  'AllergenBadges' is defined but never used  @typescript-eslint/no-unused-vars
+  59:18  warning  'error' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\invoices\UploadInvoice.tsx
+  69:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\invoices\ValidationInbox.tsx
+   9:34  warning  'AlertTriangle' is defined but never used            @typescript-eslint/no-unused-vars
+  44:12  warning  'searchQuery' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  44:25  warning  'setSearchQuery' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  60:18  warning  'error' is defined but never used                    @typescript-eslint/no-unused-vars
+  70:18  warning  'error' is defined but never used                    @typescript-eslint/no-unused-vars
+  94:18  warning  'error' is defined but never used                    @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\menu-engineering\EngineeringMatrix.tsx
+    4:27  warning  'useEffect' is defined but never used     @typescript-eslint/no-unused-vars
+    6:49  warning  'MenuScenario' is defined but never used  @typescript-eslint/no-unused-vars
+   89:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  353:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\operational\OperationalDashboardClient.tsx
+   32:67  warning  'restaurantName' is defined but never used                 @typescript-eslint/no-unused-vars
+   33:10  warning  'refreshing' is assigned a value but never used            @typescript-eslint/no-unused-vars
+   33:22  warning  'setRefreshing' is assigned a value but never used         @typescript-eslint/no-unused-vars
+   36:9   warning  'mediumPriorityAlerts' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   37:9   warning  'highPriorityTasks' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  268:3   warning  'trend' is defined but never used                          @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\purchasing\PriceComparisonTable.tsx
+   10:51  warning  'ArrowRight' is defined but never used         @typescript-eslint/no-unused-vars
+  106:21  warning  'avgPrice' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\purchasing\SupplierItemMapper.tsx
+  10:10  warning  'createSupplierMapping' is defined but never used  @typescript-eslint/no-unused-vars
+  40:52  warning  'ingredientId' is defined but never used           @typescript-eslint/no-unused-vars
+  48:14  warning  'error' is defined but never used                  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\recipes\CostBreakdownChart.tsx
+  66:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\recipes\DeleteRecipeAlert.tsx
+  41:18  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\recipes\PriceSensitivity.tsx
+  5:22  warning  'TrendingDown' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\recipes\RecipeHistory.tsx
+  14:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\shared\CostEvolutionChart.tsx
+   9:11  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  85:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\suppliers\SupplierDetailsModal.tsx
+  12:40  warning  'TrendingUp' is defined but never used  @typescript-eslint/no-unused-vars
+  12:52  warning  'Calendar' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\components\suppliers\SupplierTable.tsx
+   6:34  warning  'TableHead' is defined but never used              @typescript-eslint/no-unused-vars
+   6:45  warning  'TableHeader' is defined but never used            @typescript-eslint/no-unused-vars
+  16:61  warning  'Truck' is defined but never used                  @typescript-eslint/no-unused-vars
+  24:23  warning  'setSuppliers' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\lib\export-utils.ts
+   17:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   70:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  224:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\lib\import-utils.ts
+  27:7  warning  'VALID_UNITS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\src\lib\services\InvoiceIngestionService.ts
+  95:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  97:64  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 141 problems (0 errors, 141 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+

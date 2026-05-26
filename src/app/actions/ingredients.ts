@@ -20,7 +20,7 @@ export async function getIngredients() {
     .limit(1000) // Safety limit
 
   if (error) throw new Error(error.message)
-  return (data || []) as MasterIngredient[]
+  return data as MasterIngredient[]
 }
 
 export async function updateIngredientPrice(id: string, newPrice: number) {
@@ -233,7 +233,7 @@ export async function importIngredientsBulk(rows: Array<{
   // 1. Get ALL ingredients map (active and inactive) for this restaurant
   const { data: existingIngredients } = await supabase
     .from('master_ingredients')
-    .select('*')
+    .select('id, name, is_active')
     .eq('restaurant_id', restaurantId)
 
   const existingMap = new Map(existingIngredients?.map(i => [i.name.toLowerCase(), i]))

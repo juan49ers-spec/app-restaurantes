@@ -122,7 +122,7 @@ describe('DeleteIngredientAlert', () => {
       expect(mockedDeleteIngredient).toHaveBeenCalledWith('123')
       expect(mockedToastSuccess).toHaveBeenCalledWith('Ingrediente eliminado')
       expect(mockOnDelete).toHaveBeenCalled()
-    }, { timeout: 3000 })
+    })
   })
 
   it('debería mostrar error si falla la eliminación', async () => {
@@ -152,7 +152,7 @@ describe('DeleteIngredientAlert', () => {
 
     await waitFor(() => {
       expect(mockedToastError).toHaveBeenCalledWith('Error de base de datos')
-    }, { timeout: 3000 })
+    })
   })
 
   it('debería respetar el estado disabled', () => {

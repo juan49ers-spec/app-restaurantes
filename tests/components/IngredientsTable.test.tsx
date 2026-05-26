@@ -5,18 +5,28 @@ import { MasterIngredient } from '@/types/schema'
 import { toast } from 'sonner'
 
 // Mock de componentes hijos y utils
-vi.mock('@/components/ingredients/IngredientDialog', () => ({
-  IngredientDialog: ({ trigger, initialData }: any) => (
-    <div data-testid="ingredient-dialog">
-      {trigger}
-      <div data-testid="dialog-content">
-        <h2>Editar Ingrediente</h2>
-        <input aria-label="Nombre" defaultValue={initialData.name} />
-        <button onClick={() => toast.error('Números inválidos')}>Guardar con Error</button>
-      </div>
-    </div>
-  )
-}))
+vi.mock('@/components/ingredients/IngredientDialog', async () => {
+  const React = await vi.importActual<typeof import('react')>('react')
+
+  return {
+    IngredientDialog: ({ trigger, initialData }: any) => {
+      const [open, setOpen] = React.useState(false)
+
+      return (
+        <div data-testid="ingredient-dialog">
+          {React.cloneElement(trigger, { onClick: () => setOpen(true) })}
+          {open && (
+            <div data-testid="dialog-content">
+              <h2>Editar Ingrediente</h2>
+              <input aria-label="Nombre" defaultValue={initialData.name} />
+              <button onClick={() => toast.error('Números inválidos')}>Guardar con Error</button>
+            </div>
+          )}
+        </div>
+      )
+    }
+  }
+})
 
 vi.mock('@/components/ingredients/DeleteIngredientAlert', () => ({
   DeleteIngredientAlert: ({ ingredientName, onDelete }: any) => (
@@ -94,7 +104,7 @@ describe('IngredientsTable', () => {
     fireEvent.click(editButtons[0])
 
     // Simplificamos la búsqueda quitando el selector específico
-    expect(screen.getAllByText('Editar Ingrediente')[0]).toBeDefined()
+    expect(screen.getByText('Editar Ingrediente')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Pechuga de Pollo')).toBeInTheDocument()
   })
 
@@ -105,8 +115,7 @@ describe('IngredientsTable', () => {
     const editButtons = screen.getAllByText('Editar')
     fireEvent.click(editButtons[0])
 
-    const saveButton = screen.getAllByText('Guardar con Error')[0]
-    expect(saveButton).toBeDefined()
+    const saveButton = screen.getByText('Guardar con Error')
     fireEvent.click(saveButton)
 
     expect(mockedToastError).toHaveBeenCalledWith('Números inválidos')

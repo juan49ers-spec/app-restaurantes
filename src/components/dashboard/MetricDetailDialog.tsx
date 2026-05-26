@@ -14,7 +14,6 @@ import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { exportMetricToPDF } from "@/lib/export-utils"
-import { useRouter } from "next/navigation"
 
 interface MetricDetailDialogProps {
     title: string
@@ -28,7 +27,6 @@ interface MetricDetailDialogProps {
 }
 
 export function MetricDetailDialog({ title, value, subValue, trend, data, color, restaurantName, children }: MetricDetailDialogProps) {
-    const router = useRouter()
     const chartData = data.map((val, i) => ({ i: `Día ${i + 1}`, val }))
 
     // Calculate some simple insights
@@ -45,7 +43,7 @@ export function MetricDetailDialog({ title, value, subValue, trend, data, color,
     }[color]
 
     const handleViewFullBreakdown = () => {
-        router.push('/finance')
+        window.location.href = '/financial-control'
     }
 
     const handleDownloadReport = () => {
@@ -108,7 +106,7 @@ export function MetricDetailDialog({ title, value, subValue, trend, data, color,
                 </div>
 
                 <div className="h-[250px] w-full mt-4 bg-background border rounded-xl p-4">
-                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={chartData}>
                             <defs>
                                 <linearGradient id={`gradient-detail-${title}`} x1="0" y1="0" x2="0" y2="1">

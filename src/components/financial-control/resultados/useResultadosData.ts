@@ -94,8 +94,6 @@ export function useResultadosData(
           seguridadSocial: current.personal_seguridad_social || 0,
           irpf: current.personal_irpf || 0,
           total: current.personal_total || 0,
-          despidos: current.personal_despidos || undefined,
-          recMedico: current.personal_rec_medico || undefined,
         },
         materiaPrima: {
           comida: current.materia_prima_comida || 0,
@@ -104,14 +102,11 @@ export function useResultadosData(
           total: current.materia_prima_total || 0
         },
         suministros: current.suministros || 0,
-        suministrosFijos: current.suministros_fijos || undefined,
-        suministrosVariables: current.suministros_variables || undefined,
         mantenimiento: current.mantenimiento || 0,
         marketing: current.marketing || 0,
         gastosExtra: current.gastos_extra || 0,
         financiaciones: current.financiaciones || 0,
         inversiones: current.inversiones || 0,
-        inventoryValue: current.inventory_value || undefined,
         resultadoBruto: current.resultado_bruto || 0,
         resultadoNeto: current.resultado_neto || 0,
         margenNeto: current.margen_neto || 0,

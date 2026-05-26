@@ -21,7 +21,7 @@ Cuando vayas a tocar una funcionalidad:
 - **Mutaciones por server actions** con validación Zod y `revalidatePath()` tras escritura.
 - **Soft delete solo donde está definido** (ingredientes principalmente).
 - **Snapshots inmutables** en facturas, reportes BCG y desperdicios — los datos históricos no se reescriben.
-- **Lista de admins hardcoded en 3 sitios** (`middleware.ts`, `app/page.tsx`, `admin-queries.ts`) — mantener sincronizada.
+- **Lista de admins centralizada** en `src/lib/admin.ts` vía `process.env.ADMIN_EMAILS` — un solo punto de verdad.
 
 ## Índice maestro
 
@@ -50,6 +50,9 @@ Cuando vayas a tocar una funcionalidad:
 | 15 | [Operational](./15-operational.md) | `/operational` | Salud operativa: alertas + tareas pendientes. |
 | 16 | [Notifications](./16-notifications.md) | `/notifications` | Centro de notificaciones + reglas de alerta. |
 | 17 | [Admin](./17-admin.md) | `/admin/*` | Panel super-admin: restaurantes, usuarios, billing, audit, impersonación. |
+| 18 | [Inventory](./18-inventory.md) | `/operations/inventory` | Conteo físico de inventario + informe de consumo real. |
+| 19 | [Reports](./19-reports.md) | `/reports` | Mesa de revision de informes profesionales. |
+| 20 | [Portal Cliente](./20-portal-cliente.md) | `/portal` | Área cliente para informes profesionales publicados. |
 
 ### Transversales (lo que no es una página pero atraviesa todo)
 
@@ -61,6 +64,32 @@ Cuando vayas a tocar una funcionalidad:
 | T04 | [Financial math](./T04-financial-math.md) | Cálculos de coste, margen, prime cost, proyección, Menu Engineering BCG, gotchas. |
 | T05 | [Hooks y providers](./T05-hooks-y-providers.md) | Hooks compartidos, providers, cached queries, logger, after(), design tokens. |
 | T06 | [Server actions](./T06-server-actions-comunes.md) | Patrón estándar, `safe-action`, resolución de `restaurant_id`, revalidación, RPCs. |
+| T07 | [OCR Pipeline](./T07-ocr-pipeline.md) | Extractores V1/V2, Chandra, ingesta inteligente, persistencia atómica. |
+| T08 | [Drive Ingestion](./T08-drive-ingestion.md) | Google Drive → cron → OCR → DB. Reports API. |
+| T09 | [Services Layer](./T09-services-layer.md) | BusinessRules, FinancialAlerts, InvoiceAtomic, InvoiceIngestion. |
+| T10 | [AI Insights](./T10-ai-insights.md) | Informes narrativos por módulo y período con contexto del usuario. |
+| T11 | [Reporting profesional](./T11-reporting-profesional.md) | Contrato maestro de informes, mapa de fuentes, calidad de dato y borrador profesional. |
+
+### Informes de fase
+
+- [Cierre Fase 1 — Reporting profesional](./phase-1-reporting-cierre.md) — resumen claro de alcance, decisiones, verificación y siguiente paso.
+- [Cierre Fase 2 — Reporting profesional](./phase-2-reporting-cierre.md) — resumen de la mesa de revision, gates y siguiente paso.
+- [Cierre Fase 3 — Reporting profesional](./phase-3-reporting-cierre.md) — resumen de persistencia, versionado y exportacion imprimible.
+- [Cierre Fase 4 — Reporting profesional](./phase-4-reporting-cierre.md) — resumen de estructura ejecutiva, KPIs y conclusiones.
+- [Cierre Fase 5 — Reporting profesional](./phase-5-reporting-cierre.md) — resumen de objetivos mensuales y diagnostico semanal.
+- [Cierre Fase 6 — Reporting profesional](./phase-6-reporting-cierre.md) — resumen de carta, ventas por receta y margen por producto.
+- [Cierre Fase 6.5 — Consolidacion reporting](./phase-6-5-reporting-consolidacion.md) — seed demo completa, tests server action y exportacion pulida.
+- [Cierre Fase 7 — Menu Engineering](./phase-7-menu-engineering-cierre.md) — unificacion de formula BCG entre libreria, action y simulador.
+- [Cierre Fase 7.1 — Remediacion de revision externa](./phase-7-1-security-review-remediation.md) — cierre de IDOR/RLS en Menu Engineering y tests de guardado de informes.
+- [Cierre Fase 7.2 — Limpieza analitica y QA menor](./phase-7-2-analytical-cleanup.md) — coherencia de margen ponderado, brecha semanal acotada y endpoint demo protegido.
+- [Cierre Fase 8 — BCG en informe profesional](./phase-8-menu-engineering-reporting.md) — integra snapshots Menu Engineering ANALYZED en el informe sin recalcular en UI.
+- [Cierre Fase 9 — Área cliente](./phase-9-client-portal.md) — portal autenticado para informes publicados, solicitudes de reunión y descarga PDF.
+- [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
+- [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
+
+### Prompts de implementación
+
+- [Prompt Fase 9 — Área cliente](./prompts/phase-9-client-portal.md) — especificación operativa para construir `/portal`, publicación separada de informes y solicitud de reunión.
 
 ## Plantilla de archivo de página (para futuras adiciones)
 

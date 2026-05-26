@@ -40,7 +40,7 @@ export default function OnboardingPage() {
 
             // Hard navigation to ensure middleware re-runs and context updates
             setTimeout(() => {
-                router.push('/finance')
+                window.location.href = '/financial-control'
             }, 1000)
 
         } catch (error: unknown) {

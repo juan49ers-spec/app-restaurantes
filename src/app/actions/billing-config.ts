@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabaseServer';
 import { revalidatePath } from 'next/cache';
 import { BillingModule, UpdateModuleParams } from '@/types/billing';
 
-import { requireAdmin } from '@/lib/admin';
+import { requireSuperAdmin } from './broadcasts';
 
 /**
  * Obtiene la configuración de todos los módulos de facturación desde la base de datos.
@@ -14,7 +14,7 @@ export async function getBillingModulesConfig(): Promise<BillingModule[]> {
 
     const { data, error } = await supabase
         .from('billing_modules')
-        .select('id, name, description, price_monthly, price_yearly, is_base, features, is_active, created_at, updated_at')
+        .select('*')
         .order('is_base', { ascending: false })
         .order('price_monthly', { ascending: true });
 
@@ -23,14 +23,22 @@ export async function getBillingModulesConfig(): Promise<BillingModule[]> {
         throw new Error('No se pudo cargar la configuración de los módulos');
     }
 
-    return data as BillingModule[];
+    return (data || []).map((module) => ({
+        ...module,
+        description: module.description || '',
+        price_monthly: Number(module.price_monthly || 0),
+        price_yearly: Number(module.price_yearly || 0),
+        features: Array.isArray(module.features) ? module.features : [],
+        is_active: Boolean(module.is_active),
+        is_base: Boolean(module.is_base),
+    })) as BillingModule[];
 }
 
 /**
  * Actualiza la configuración de un módulo de facturación (Solo Super Admin).
  */
 export async function updateBillingModule(params: UpdateModuleParams) {
-    await requireAdmin();
+    await requireSuperAdmin();
     const supabase = await createClient();
 
     // La política RLS 'billing_modules_admin_all' ya se encarga de verificar que sea Super Admin

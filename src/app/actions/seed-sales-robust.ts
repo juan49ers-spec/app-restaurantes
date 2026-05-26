@@ -1,11 +1,9 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
-import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { revalidatePath } from "next/cache"
 
 export async function seedRobustSalesData(restaurantId: string) {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     // 1. Define simulation parameters

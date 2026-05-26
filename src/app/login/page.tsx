@@ -31,7 +31,13 @@ export default function LoginPage() {
 
             toast.success("Login exitoso")
 
-            router.push('/')
+            const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
+            if (ADMIN_EMAILS.includes(email.trim().toLowerCase())) {
+                router.push('/admin')
+            } else {
+                router.push('/')
+            }
+
             router.refresh()
 
         } catch (error: unknown) {

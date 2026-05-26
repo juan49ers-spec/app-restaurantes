@@ -23,22 +23,25 @@ export function BillingModulesConfig() {
     async function loadConfig() {
         try {
             const data = await getBillingModulesConfig();
-            setModules(data);
-        } catch (error) {
+            setModules((data || []).map(module => ({
+                ...module,
+                features: Array.isArray(module.features) ? module.features : [],
+            })));
+        } catch {
             toast.error('Error al cargar la configuración de módulos');
         } finally {
             setLoading(false);
         }
     }
 
-    const handleUpdateField = (id: string, field: keyof BillingModule, value: any) => {
+    const handleUpdateField = <K extends keyof BillingModule>(id: string, field: K, value: BillingModule[K]) => {
         setModules(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
     };
 
     const handleFeatureChange = (id: string, index: number, value: string) => {
         setModules(prev => prev.map(m => {
             if (m.id === id) {
-                const newFeatures = [...m.features];
+                const newFeatures = [...(m.features || [])];
                 newFeatures[index] = value;
                 return { ...m, features: newFeatures };
             }
@@ -47,13 +50,13 @@ export function BillingModulesConfig() {
     };
 
     const addFeature = (id: string) => {
-        setModules(prev => prev.map(m => m.id === id ? { ...m, features: [...m.features, ' Nueva característica'] } : m));
+        setModules(prev => prev.map(m => m.id === id ? { ...m, features: [...(m.features || []), ' Nueva característica'] } : m));
     };
 
     const removeFeature = (id: string, index: number) => {
         setModules(prev => prev.map(m => {
             if (m.id === id) {
-                const newFeatures = m.features.filter((_, i) => i !== index);
+                const newFeatures = (m.features || []).filter((_, i) => i !== index);
                 return { ...m, features: newFeatures };
             }
             return m;
@@ -78,7 +81,7 @@ export function BillingModulesConfig() {
             } else {
                 toast.error('Error al guardar los cambios');
             }
-        } catch (error) {
+        } catch {
             toast.error('Error de red al guardar');
         } finally {
             setSaving(null);
@@ -124,7 +127,7 @@ export function BillingModulesConfig() {
                                     <Input
                                         type="number"
                                         value={module.price_monthly}
-                                        onChange={(e) => handleUpdateField(module.id, 'price_monthly', e.target.value)}
+                                        onChange={(e) => handleUpdateField(module.id, 'price_monthly', Number(e.target.value))}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -132,7 +135,7 @@ export function BillingModulesConfig() {
                                     <Input
                                         type="number"
                                         value={module.price_yearly}
-                                        onChange={(e) => handleUpdateField(module.id, 'price_yearly', e.target.value)}
+                                        onChange={(e) => handleUpdateField(module.id, 'price_yearly', Number(e.target.value))}
                                     />
                                 </div>
                             </div>
@@ -153,7 +156,7 @@ export function BillingModulesConfig() {
                                     </Button>
                                 </Label>
                                 <div className="space-y-2">
-                                    {module.features.map((feature, idx) => (
+                                    {(module.features || []).map((feature, idx) => (
                                         <div key={idx} className="flex gap-2">
                                             <Input
                                                 className="text-sm h-8"

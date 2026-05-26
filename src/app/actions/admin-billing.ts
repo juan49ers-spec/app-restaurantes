@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
-import { requireAdmin } from "@/lib/admin"
+import { requireSuperAdmin } from "./broadcasts"
 import { AddonId, PlanModuleAccess, calculateEffectiveAccess } from "@/lib/plan-definitions"
 import { getBillingModulesConfig } from "./billing-config"
 
@@ -40,7 +40,7 @@ export interface RestaurantBillingInfo {
 }
 
 export async function getBillingOverview(): Promise<BillingOverview> {
-    await requireAdmin()
+    await requireSuperAdmin()
     const supabase = await createClient()
     const billingConfigs = await getBillingModulesConfig()
 
@@ -63,7 +63,9 @@ export async function getBillingOverview(): Promise<BillingOverview> {
     let revenue = 0
     let totalCredits = 0
 
-    restaurants.forEach(r => {
+    const safeRestaurants = restaurants || []
+
+    safeRestaurants.forEach(r => {
         distribution.CORE++
         revenue += baseModule?.price_monthly || 0;
 
@@ -80,7 +82,7 @@ export async function getBillingOverview(): Promise<BillingOverview> {
     })
 
     return {
-        totalRestaurants: restaurants.length,
+        totalRestaurants: safeRestaurants.length,
         addonDistribution: distribution,
         estimatedMonthlyRevenue: revenue,
         totalOcrCreditsInCirculation: totalCredits
@@ -88,7 +90,7 @@ export async function getBillingOverview(): Promise<BillingOverview> {
 }
 
 export async function getRestaurantsBillingList(): Promise<RestaurantBillingInfo[]> {
-    await requireAdmin()
+    await requireSuperAdmin()
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -98,7 +100,7 @@ export async function getRestaurantsBillingList(): Promise<RestaurantBillingInfo
 
     if (error) throw new Error("Failed to fetch restaurants billing data")
 
-    return data.map(r => ({
+    return (data || []).map(r => ({
         id: r.id,
         name: r.name,
         active_addons: (r.active_addons as AddonId[]) || [],
@@ -109,7 +111,7 @@ export async function getRestaurantsBillingList(): Promise<RestaurantBillingInfo
 }
 
 export async function changeRestaurantPlan(restaurantId: string, newAddons: AddonId[], reason?: string) {
-    const adminUser = await requireAdmin()
+    const { user: adminUser } = await requireSuperAdmin()
     const supabase = await createClient()
     const billingConfigs = await getBillingModulesConfig()
 
@@ -174,7 +176,7 @@ export async function changeRestaurantPlan(restaurantId: string, newAddons: Addo
 }
 
 export async function adjustCredits(restaurantId: string, creditChange: number, reason: string) {
-    const adminUser = await requireAdmin()
+    const { user: adminUser } = await requireSuperAdmin()
     const supabase = await createClient()
 
     if (!reason) throw new Error("A reason must be provided")
@@ -216,7 +218,7 @@ export async function adjustCredits(restaurantId: string, creditChange: number, 
 }
 
 export async function registerPayment(restaurantId: string, amount: number, concept: string) {
-    const adminUser = await requireAdmin()
+    const { user: adminUser } = await requireSuperAdmin()
     const supabase = await createClient()
 
     if (!amount || amount <= 0) throw new Error("Amount must be positive")
@@ -239,7 +241,7 @@ export async function registerPayment(restaurantId: string, amount: number, conc
 }
 
 export async function getBillingHistory(restaurantId: string): Promise<BillingEvent[]> {
-    await requireAdmin()
+    await requireSuperAdmin()
     const supabase = await createClient()
 
     const { data, error } = await supabase

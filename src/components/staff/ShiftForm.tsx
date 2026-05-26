@@ -87,7 +87,7 @@ export function ShiftForm({
         setLoading(true)
         setError(null)
         try {
-            const result = await deleteShift(formData.id, restaurantId)
+            const result = await deleteShift(formData.id)
             if (result.success) {
                 onSuccess()
             } else {

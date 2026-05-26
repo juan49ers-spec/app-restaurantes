@@ -56,7 +56,7 @@ describe('Suppliers Actions', () => {
       await getSuppliers()
 
       expect(mockSupabaseChain.from).toHaveBeenCalledWith('suppliers')
-      expect(mockSupabaseChain.select).toHaveBeenCalledWith('id, restaurant_id, name, tax_id, contact_email, contact_phone, payment_terms, created_at, reliability_score, trend_direction, total_orders, avg_price_variance, contract_renewal_date, last_price_audit')
+      expect(mockSupabaseChain.select).toHaveBeenCalledWith('*')
       expect(mockSupabaseChain.eq).toHaveBeenCalledWith('restaurant_id', '550e8400-e29b-41d4-a716-446655440000')
       expect(mockSupabaseChain.order).toHaveBeenCalledWith('name')
     })
@@ -81,7 +81,7 @@ describe('Suppliers Actions', () => {
       await getSupplier(supplierId)
 
       expect(mockSupabaseChain.from).toHaveBeenCalledWith('suppliers')
-      expect(mockSupabaseChain.select).toHaveBeenCalledWith('id, restaurant_id, name, tax_id, contact_email, contact_phone, payment_terms, created_at, reliability_score, trend_direction, total_orders, avg_price_variance, contract_renewal_date, last_price_audit')
+      expect(mockSupabaseChain.select).toHaveBeenCalledWith('*')
       expect(mockSupabaseChain.eq).toHaveBeenCalledWith('id', supplierId)
       expect(mockSupabaseChain.eq).toHaveBeenCalledWith('restaurant_id', '550e8400-e29b-41d4-a716-446655440000')
     })

@@ -5,12 +5,8 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import * as dotenv from 'dotenv'
 
-// Cargar variables de entorno
-dotenv.config({ path: '.env.local' })
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || ''
+const supabaseUrl = process.env.SUPABASE_URL || ''
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
 if (!supabaseUrl || !supabaseKey) {
@@ -73,10 +69,6 @@ async function main() {
         {
             name: 'Phase 3: Business Rules & Alerts',
             file: 'supabase/migrations/20250218_phase3_business_rules_alerts.sql'
-        },
-        {
-            name: 'OCR Metadata Columns',
-            file: 'supabase/migrations/20260326_add_ocr_metadata_columns.sql'
         }
     ]
     

@@ -154,7 +154,7 @@ describe('Recipes Actions - Comprehensive', () => {
       await getRecipePriceHistory(recipeId)
 
       expect(mockSupabase.from).toHaveBeenCalledWith('price_history')
-      expect(mockSupabase.select).toHaveBeenCalledWith('price, created_at, change_pct')
+      expect(mockSupabase.select).toHaveBeenCalledWith('*')
     })
   })
 

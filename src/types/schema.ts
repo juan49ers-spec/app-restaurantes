@@ -139,12 +139,6 @@ export const InvoiceSchema = z.object({
     total_amount: z.number().optional(),
     date: z.string().optional(), // ISO Date
     scanned_data: z.any().optional(), // JSONB
-    // Campos añadidos para trazabilidad de Drive:
-    drive_file_id: z.string().optional(),
-    drive_file_name: z.string().optional(),
-    extracted_data: z.any().optional(), // JSONB del LLM
-    confidence_score: z.number().min(0).max(1).default(0).optional(),
-    processing_error: z.string().optional(),
     created_at: z.string().optional()
 })
 
@@ -222,7 +216,7 @@ export const MenuReportSchema = z.object({
     date_from: z.string().optional(), // ISO Date
     date_to: z.string().optional(),   // ISO Date
     status: MenuReportStatusSchema.default('DRAFT'),
-    avg_popularity: z.number().optional(), // Calculated (100% / Items * 0.7)
+    avg_popularity: z.number().optional(), // Calculated (1 / Items), stored as decimal
     avg_margin: z.number().optional(),     // Calculated (Weighted)
     created_at: z.date().optional()
 });
@@ -265,14 +259,6 @@ export const DailySalesSchema = z.object({
     revenue_dine_in: z.number().default(0),
     revenue_takeout: z.number().default(0),
     revenue_delivery: z.number().default(0),
-    // Delivery por plataforma
-    delivery_uber_eats: z.number().default(0).optional(),
-    delivery_just_eat: z.number().default(0).optional(),
-    delivery_al_punto: z.number().default(0).optional(),
-    delivery_glovo: z.number().default(0).optional(),
-    // Método de pago
-    cash_amount: z.number().default(0).optional(),
-    card_amount: z.number().default(0).optional(),
     // Aggregated tax for backward compatibility
     iva_collected: z.number().default(0),
     total_covers: z.number().int().default(0),
@@ -585,72 +571,9 @@ export const WasteLogSchema = z.object({
     ingredient_id: z.string().uuid(),
     date: z.string(), // ISO Date YYYY-MM-DD
     quantity: z.number().positive(), // Siempre positivo (cantidad perdida)
-    unit_cost_snapshot: z.number().min(0).default(0),
     reason: WasteReasonSchema.default('OTRO'),
-    employee_name: z.string().optional().nullable(),
     notes: z.string().optional(),
     created_at: z.string().optional()
 });
 
 export type WasteLog = z.infer<typeof WasteLogSchema>;
-
-// 18. AI Period Reports (Indicaciones transversales)
-export const PeriodReportSchema = z.object({
-    id: z.string().uuid().optional(),
-    restaurant_id: z.string().uuid(),
-    module_name: z.string(), // e.g. 'BILLING', 'TAXES'
-    period_key: z.string(), // e.g. '2026-03', '2026-Q1'
-    context_notes: z.string().optional(),
-    ai_draft: z.string().optional(),
-    created_at: z.string().optional(),
-    updated_at: z.string().optional()
-});
-
-export type PeriodReport = z.infer<typeof PeriodReportSchema>;
-
-// 19. Google Drive Sync Config
-export const DriveSyncConfigSchema = z.object({
-    id: z.string().uuid().optional(),
-    restaurant_id: z.string().uuid(),
-    inbox_folder_id: z.string().min(1, "Inbox folder ID is required"),
-    processed_folder_id: z.string().min(1, "Processed folder ID is required"),
-    review_folder_id: z.string().min(1, "Review folder ID is required"),
-    is_active: z.boolean().default(true),
-    last_sync_at: z.string().optional(),
-    created_at: z.string().optional(),
-    updated_at: z.string().optional()
-});
-
-export type DriveSyncConfig = z.infer<typeof DriveSyncConfigSchema>;
-
-// 20. Inventory Sessions & Counts (Pilar 1: Control de Inventario)
-export const InventorySessionStatusSchema = z.enum(['draft', 'completed']);
-export type InventorySessionStatus = z.infer<typeof InventorySessionStatusSchema>;
-
-export const InventorySessionSchema = z.object({
-    id: z.string().uuid().optional(),
-    restaurant_id: z.string().uuid(),
-    date: z.string(), // ISO Date YYYY-MM-DD
-    status: InventorySessionStatusSchema.default('draft'),
-    notes: z.string().optional(),
-    created_at: z.string().optional(),
-    updated_at: z.string().optional(),
-    completed_at: z.string().optional()
-});
-
-export type InventorySession = z.infer<typeof InventorySessionSchema>;
-
-export const InventoryCountSchema = z.object({
-    id: z.string().uuid().optional(),
-    session_id: z.string().uuid(),
-    ingredient_id: z.string().uuid(),
-    quantity: z.number().min(0).default(0),
-    unit_price_snapshot: z.number().min(0).default(0),
-    category: z.string().optional(), // Denormalized for rapid filtering
-    created_at: z.string().optional(),
-    updated_at: z.string().optional()
-});
-
-export type InventoryCount = z.infer<typeof InventoryCountSchema>;
-
-

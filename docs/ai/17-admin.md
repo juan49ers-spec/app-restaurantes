@@ -13,7 +13,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 ### `/admin` (dashboard)
 
 1. Admin entra. `AdminLayout` verifica `user.email ∈ ADMIN_EMAILS`. Si no, `redirect('/')`.
-2. Layout envuelve en `<AdminShell>` (sidebar + nav).
+2. Layout envuelve en `<AdminShell>` (sidebar + nav). La ruta admin fuerza render dinámico (`dynamic = 'force-dynamic'`) porque depende de sesión/cookies y queries Supabase.
 3. Page carga `getAdminDashboardData()`:
    - Total restaurantes activos, ventas/gastos del mes, 50 audit logs recientes.
    - Health check del sistema (usuarios activos/inactivos, días sin usar).
@@ -44,6 +44,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 
 **Lectura (con `requireAdmin()`):**
 - `getAdminDashboardData()`, `getAllRestaurants()`, `getAdminUsers()` (RPC `admin_list_users`), `getAuditLogs(page, pageSize)`, `getBillingOverview()`, `getRestaurantsBillingList()`, `getBillingHistory(restaurantId)`.
+- Las lecturas de billing normalizan arrays y campos numéricos antes de llegar a la UI (`billing_modules.features`, precios, flags booleanos) para que `/admin/billing` no rompa si Supabase devuelve `null`.
 
 **Mutaciones (con `requireAdmin()` o `requireSuperAdmin()`):**
 - `toggleRestaurantModule(restaurantId, moduleName, level)` — actualiza `modules` y sincroniza `active_addons`.
@@ -69,6 +70,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - **`active_addons` se sincroniza con `modules`** cada vez que se actualiza el plan. Si los desincronizas, los filtros del sidebar de usuarios fallan.
 - **`ocr_credits` no puede ser negativo** — `adjustCredits` usa `Math.max(0, ...)`.
 - **Billing events** auditan TODOS los cambios de plan/créditos/pagos. No se borran.
+- **UI defensiva de billing:** `BillingManager` y `BillingModulesConfig` deben aceptar arrays vacíos y features nulas sin lanzar errores de render.
 - **Impersonación:** `auth.uid()` sigue siendo el del admin. Los `audit_logs.changed_by` apuntan al admin. Buena trazabilidad.
 - **Borrar restaurante (`admin_delete_restaurant_cascade`):** operación destructiva. Elimina todo el árbol (ingredients, recipes, invoices, employees, etc.). No reversible.
 - **Broadcasts:** sin `restaurant_id`. Globales. Solo super-admin.
@@ -93,6 +95,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - **Sin lock al cambiar de plan:** si dos admins cambian plan a la vez para el mismo restaurante, last-write-wins.
 - **`audit_logs` puede crecer mucho:** sin purga automática. Considerar archivado.
 - **Health check `admin_get_system_health` puede ser lento** si hay muchos usuarios y restaurantes — no está paginado.
+- **Build estático:** las rutas admin no deben prerenderizarse; si una subruta admin empieza a fallar en build por sesión/cookies, revisar que cuelgue del layout dinámico o declarar `dynamic` donde corresponda.
 
 ## 7. Al añadir/modificar una función aquí
 

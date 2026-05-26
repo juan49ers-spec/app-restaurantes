@@ -7,7 +7,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { EXPENSE_CATEGORY_LABELS, type OperatingExpenseCategory } from "@/types/schema"
-import type { Discrepancy } from "@/app/api/reports/compare/route"
+import type { Discrepancy } from "./types"
 import type { QueuedReport } from "./types"
 import { fmt, fmtPct } from "./types"
 import { DetailSection, KPICell, RatioBadge, EditableMiniKPI } from "./shared-components"
@@ -165,7 +165,7 @@ export function ReportCard({ item, onInsert, onRemove, onEditField }: ReportCard
                         Comparativa PDF vs Base de Datos
                     </p>
                     <div className="space-y-1">
-                        {cmp.discrepancies.map((d, i) => (
+                        {cmp.discrepancies.map((d: Discrepancy, i: number) => (
                             <DiscrepancyRow key={i} d={d} />
                         ))}
                     </div>
@@ -217,7 +217,7 @@ export function ReportCard({ item, onInsert, onRemove, onEditField }: ReportCard
 
                     <DetailSection title="Gastos por Categoría">
                         <div className="space-y-1.5">
-                            {report.expenses.breakdown.map((exp, i) => (
+                            {report.expenses.breakdown.map((exp: { category: string; amount: number }, i: number) => (
                                 <div key={i} className="flex items-center justify-between text-xs">
                                     <span className="text-neutral-600 dark:text-neutral-400">{categoryLabel(exp.category)}</span>
                                     {editMode ? (

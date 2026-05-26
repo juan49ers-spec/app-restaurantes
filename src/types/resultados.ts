@@ -15,8 +15,6 @@ export interface FinancialResult {
         seguridadSocial: number
         irpf: number
         total: number
-        despidos?: number
-        recMedico?: number
     }
     materiaPrima: {
         comida: number
@@ -25,8 +23,6 @@ export interface FinancialResult {
         total: number
     }
     suministros: number
-    suministrosFijos?: number
-    suministrosVariables?: number
     mantenimiento: number
     marketing: number
     gastosExtra: number
@@ -34,10 +30,7 @@ export interface FinancialResult {
     
     // Inversiones (CAPEX)
     inversiones: number
-
-    // Inventario (balance — no P&L)
-    inventoryValue?: number
-
+    
     // Resultados
     resultadoBruto: number
     resultadoNeto: number
@@ -132,19 +125,15 @@ export interface MonthlyResult {
     personal_sueldos_netos: number
     personal_seguridad_social: number
     personal_irpf: number
-    personal_despidos?: number
-    personal_rec_medico?: number
-
+    
     // Materia Prima
     materia_prima_total: number
     materia_prima_comida: number
     materia_prima_bebida: number
     materia_prima_variacion_existencias: number
-
+    
     // Otros gastos
     suministros: number
-    suministros_fijos?: number
-    suministros_variables?: number
     mantenimiento: number
     marketing: number
     gastos_extra: number
@@ -161,9 +150,6 @@ export interface MonthlyResult {
     ratio_materia_prima: number
     ratio_gastos_fijos: number
     
-    // Inventario
-    inventory_value?: number
-
     // Break-even
     break_even_punto: number
     break_even_dia?: number

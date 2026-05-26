@@ -1,24 +1,27 @@
-import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
-export default tseslint.config(
-    eslint.configs.recommended,
-    ...tseslint.configs.recommended,
-    {
-        ignores: ['.next/', 'node_modules/', 'dist/', 'coverage/', 'test-bundle.js']
+const eslintConfig = [
+  {
+    ignores: [".next/**", "node_modules/**", "dist/**", "out/**", "tests/**", "scripts/**",
+      "test-bundle.js",
+      "src/scripts/**",
+      "**/*.test.ts",
+      "**/*.test.tsx"],
+  },
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+        destructuredArrayIgnorePattern: "^_",
+        ignoreRestSiblings: true,
+        varsIgnorePattern: "^_",
+      }],
     },
-    {
-        rules: {
-            '@typescript-eslint/no-unused-vars': 'warn',
-            '@typescript-eslint/no-explicit-any': 'warn',
-            'no-undef': 'off',
-            '@typescript-eslint/no-require-imports': 'off',
-            'no-constant-condition': 'off',
-            'no-fallthrough': 'off',
-            'no-empty': 'off',
-            '@typescript-eslint/no-unused-expressions': 'off',
-            'no-case-declarations': 'off',
-            'react-hooks/exhaustive-deps': 'off'
-        }
-    }
-);
+  },
+];
+
+export default eslintConfig;

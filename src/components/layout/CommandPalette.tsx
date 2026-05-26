@@ -18,7 +18,10 @@ interface CommandPaletteProps {
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     const router = useRouter()
     const openRef = useRef(open)
-    openRef.current = open
+
+    useEffect(() => {
+        openRef.current = open
+    }, [open])
 
     useEffect(() => {
         function onKeyDown(e: KeyboardEvent) {

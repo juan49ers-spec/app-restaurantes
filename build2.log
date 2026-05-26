@@ -1,0 +1,29 @@
+ÔÜá Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Usuario\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Usuario\.gemini\antigravity\playground\app finanzas restaurante\package-lock.json
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬À optimizePackageImports
+
+ÔÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 20.7s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/actions/admin-billing.ts:157:35
+Type error: Property 'id' does not exist on type '{ supabase: SupabaseClient<any, "public", "public", any, any>; user: User; }'.
+
+  155 |                 reason: reason || 'Manual update via admin dashboard'
+  156 |             },
+> 157 |             created_by: adminUser.id
+      |                                   ^
+  158 |         })
+  159 |
+  160 |     if (eventErr) console.error("Could not log billing event:", eventErr) // Non-fatal
+Next.js build worker exited with code: 1 and signal: null

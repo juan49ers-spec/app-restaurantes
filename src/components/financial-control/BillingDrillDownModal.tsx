@@ -15,15 +15,14 @@ import {
     X,
     ArrowUpRight,
     ArrowDownRight,
+    TrendingUp,
     Calendar,
-    Search,
-    BarChart3
+    Search
 } from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { m, AnimatePresence } from "framer-motion"
 
 export interface BillingDataPoint {
     date: string
@@ -73,6 +72,8 @@ export function BillingDrillDownModal({ data, isOpen, onClose }: BillingDrillDow
         })
     }, [filteredData])
 
+    if (!isOpen) return null
+
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('es-ES', {
             style: 'currency',
@@ -82,246 +83,191 @@ export function BillingDrillDownModal({ data, isOpen, onClose }: BillingDrillDow
         }).format(val)
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 overflow-hidden">
-                    <m.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="absolute inset-0 bg-neutral-950/40 backdrop-blur-md cursor-pointer" 
-                    />
-                    
-                    <m.div 
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="relative bg-white/90 backdrop-blur-2xl w-full max-w-6xl h-full max-h-[90vh] rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col border border-white/40"
-                    >
-                        {/* Header Premium */}
-                        <header className="px-8 py-6 border-b border-neutral-200/50 flex items-center justify-between bg-white/40 sticky top-0 z-20">
-                            <div className="flex items-center gap-5">
-                                <div className="bg-neutral-900 p-3 rounded-2xl shadow-xl shadow-neutral-900/10 scale-110">
-                                    <BarChart3 className="w-5 h-5 text-emerald-400" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-black text-neutral-900 tracking-tight">
-                                        Detalle Operativo
-                                    </h2>
-                                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mt-0.5">
-                                        Análisis granular de ingresos
-                                    </p>
-                                </div>
-                            </div>
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={onClose} 
-                                className="rounded-2xl hover:bg-neutral-900 hover:text-white transition-all duration-300 h-10 w-10"
-                            >
-                                <X className="w-5 h-5" />
-                            </Button>
-                        </header>
-
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-12 custom-scrollbar relative">
-                            {/* Decorative gradients */}
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
-                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-sky-500/5 blur-[100px] rounded-full pointer-events-none" />
-
-                            {/* Chart Section */}
-                            <section className="space-y-6 relative z-10">
-                                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                                    <div>
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 flex items-center gap-2 mb-2">
-                                            <Calendar className="w-3.5 h-3.5" /> Evolución del Periodo
-                                        </h3>
-                                        <p className="text-sm font-medium text-neutral-500">Distribución de ingresos netos por jornada</p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-4 bg-white/50 backdrop-blur-sm p-3 rounded-2xl border border-neutral-200/50">
-                                        <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-emerald-600">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/40" /> Máximo
-                                        </span>
-                                        <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-rose-500">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-lg shadow-rose-500/40" /> Mínimo
-                                        </span>
-                                        <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-neutral-400">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-neutral-200" /> Cerrado
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                <m.div 
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2 }}
-                                    className="h-[380px] w-full bg-white/40 backdrop-blur-sm p-6 rounded-[2rem] border border-neutral-200/60 shadow-inner"
-                                >
-                                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
-                                        <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(229, 231, 235, 0.4)" />
-                                            <XAxis
-                                                dataKey="date"
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
-                                                tickFormatter={(val) => format(parseISO(val), 'dd')}
-                                                dy={10}
-                                            />
-                                            <YAxis
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
-                                                tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
-                                                dx={-10}
-                                                width={40}
-                                            />
-                                            <Tooltip
-                                                cursor={{ fill: 'rgba(0,0,0,0.02)', radius: 8 }}
-                                                content={({ active, payload }) => {
-                                                    if (active && payload && payload.length) {
-                                                        const d = payload[0].payload as BillingDataPoint
-                                                        return (
-                                                            <div className="bg-neutral-900 border-none rounded-2xl p-4 shadow-2xl backdrop-blur-xl">
-                                                                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-2">
-                                                                    {format(parseISO(d.date), "PPP", { locale: es })}
-                                                                </p>
-                                                                <p className="text-xl font-black text-white tracking-tighter mb-1">
-                                                                    {formatCurrency(d.netRevenue)}
-                                                                </p>
-                                                                <div className="h-1 w-full bg-white/10 rounded-full mt-2 overflow-hidden">
-                                                                    <div 
-                                                                        className="h-full bg-emerald-400 rounded-full" 
-                                                                        style={{ width: `${(d.netRevenue / stats.max) * 100}%` }}
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        )
-                                                    }
-                                                    return null
-                                                }}
-                                            />
-                                            <Bar dataKey="netRevenue" radius={[8, 8, 0, 0]} barSize={24}>
-                                                {data.map((entry, index) => {
-                                                    let color = "#f1f5f9" // Default
-                                                    if (entry.netRevenue > 0) {
-                                                        color = "#e2e8f0" // Standard Operative
-                                                        if (entry.netRevenue === stats.max) color = "#10B981"
-                                                        if (entry.netRevenue === stats.min) color = "#EF4444"
-                                                    }
-                                                    return <Cell key={`cell-${index}`} fill={color} className="transition-all duration-500" />
-                                                })}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </m.div>
-                            </section>
-
-                            {/* Table Section */}
-                            <section className="space-y-8 relative z-10">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                                    <div>
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-2">Registro de Operativa Diaria</h3>
-                                        <p className="text-sm font-medium text-neutral-500">Historial completo detallado por jornada</p>
-                                    </div>
-                                    <div className="relative w-full sm:w-auto">
-                                        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Buscar fecha..."
-                                            className="pl-11 pr-5 py-3 bg-white border border-neutral-200/60 rounded-2xl text-xs font-bold placeholder:text-neutral-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500/50 transition-all w-full sm:w-64 shadow-sm"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="bg-white/40 backdrop-blur-sm border border-neutral-200/60 rounded-[2.5rem] overflow-hidden shadow-xl shadow-neutral-200/20 overflow-x-auto">
-                                    <table className="w-full text-left text-xs border-collapse">
-                                        <thead>
-                                            <tr className="bg-neutral-900/5 border-b border-neutral-200/50">
-                                                <th className="px-8 py-5 font-black text-neutral-400 uppercase tracking-[0.2em]">Fecha</th>
-                                                <th className="px-8 py-5 font-black text-neutral-400 uppercase tracking-[0.2em] text-right">Total Bruto</th>
-                                                <th className="px-8 py-5 font-black text-neutral-400 uppercase tracking-[0.2em] text-right">Total Neto</th>
-                                                <th className="px-8 py-5 font-black text-neutral-400 uppercase tracking-[0.2em] text-center">Variación</th>
-                                                <th className="px-8 py-5 font-black text-neutral-400 uppercase tracking-[0.2em] text-right">Digital</th>
-                                                <th className="px-8 py-5 font-black text-neutral-400 uppercase tracking-[0.2em] text-right">Efectivo</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-neutral-100">
-                                            {tableData.map((row, idx) => (
-                                                <tr key={idx} className="hover:bg-white/80 transition-all duration-300 group cursor-default">
-                                                    <td className="px-8 py-5 tabular-nums text-neutral-500 font-bold">
-                                                        {format(parseISO(row.date), "dd/MM/yyyy")}
-                                                    </td>
-                                                    <td className="px-8 py-5 text-right font-extrabold text-neutral-400 tabular-nums">
-                                                        {formatCurrency(row.totalRevenue)}
-                                                    </td>
-                                                    <td className="px-8 py-5 text-right">
-                                                        <span className={cn(
-                                                            "font-black text-sm tracking-tighter tabular-nums px-3 py-1.5 rounded-lg",
-                                                            row.netRevenue === stats.max ? "bg-emerald-50 text-emerald-600" :
-                                                                row.netRevenue === stats.min ? "bg-rose-50 text-rose-600" : "text-neutral-900"
-                                                        )}>
-                                                            {formatCurrency(row.netRevenue)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-8 py-5">
-                                                        <div className="flex items-center justify-center gap-1.5">
-                                                            {row.variation !== 0 ? (
-                                                                <div className={cn(
-                                                                    "flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-black tabular-nums",
-                                                                    row.variation > 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
-                                                                )}>
-                                                                    {row.variation > 0 ? (
-                                                                        <ArrowUpRight className="w-3 h-3 stroke-[3]" />
-                                                                    ) : (
-                                                                        <ArrowDownRight className="w-3 h-3 stroke-[3]" />
-                                                                    )}
-                                                                    {Math.abs(row.variation).toFixed(1)}%
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-neutral-300 font-bold">-</span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-8 py-5 text-right font-bold text-neutral-600 tabular-nums">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-sky-400/40" />
-                                                            {formatCurrency(row.card)}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-8 py-5 text-right font-bold text-neutral-600 tabular-nums">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400/40" />
-                                                            {formatCurrency(row.cash)}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                        <tfoot className="bg-neutral-900 text-white border-t border-neutral-800">
-                                            <tr className="divide-x divide-white/5">
-                                                <td className="px-8 py-6 font-black uppercase tracking-[0.2em] text-[10px] text-neutral-400">Totales Periodo</td>
-                                                <td className="px-8 py-6 text-right font-extrabold tabular-nums text-neutral-400">
-                                                    {formatCurrency(tableData.reduce((acc, r) => acc + r.totalRevenue, 0))}
-                                                </td>
-                                                <td className="px-8 py-6 text-right font-black text-lg tracking-tighter tabular-nums text-emerald-400">
-                                                    {formatCurrency(tableData.reduce((acc, r) => acc + r.netRevenue, 0))}
-                                                </td>
-                                                <td colSpan={3} className="px-8 py-6 text-right">
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500">Análisis operativo completado</span>
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </section>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white w-full max-w-6xl h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+                {/* Header */}
+                <header className="p-6 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-neutral-900 p-2.5 rounded-xl shadow-lg shadow-neutral-200">
+                            <TrendingUp className="w-5 h-5 text-white" />
                         </div>
-                    </m.div>
+                        <div>
+                            <h2 className="text-xl font-bold text-neutral-900">Detalle de Facturación</h2>
+                            <p className="text-sm text-neutral-500 font-medium">Análisis profundo de ingresos netos</p>
+                        </div>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-neutral-100 transition-colors">
+                        <X className="w-6 h-6 text-neutral-500" />
+                    </Button>
+                </header>
+
+                <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
+                    {/* Chart Section */}
+                    <section className="space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 flex items-center gap-2">
+                                <Calendar className="w-4 h-4" /> Evolución del Mes
+                            </h3>
+                            <div className="flex flex-wrap gap-3 sm:gap-4">
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
+                                    <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Máximo
+                                </span>
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-rose-500">
+                                    <div className="w-2.5 h-2.5 rounded-sm bg-rose-500" /> Mínimo Op.
+                                </span>
+                                <span className="flex items-center gap-1.5 text-xs font-bold text-neutral-400">
+                                    <div className="w-2.5 h-2.5 rounded-sm bg-neutral-200" /> Cerrado
+                                </span>
+                            </div>
+                        </div>
+                        <div className="h-[350px] w-full bg-neutral-50 p-6 rounded-2xl border border-neutral-100">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E5E5" />
+                                    <XAxis
+                                        dataKey="date"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#A3A3A3', fontSize: 10, fontWeight: 600 }}
+                                        tickFormatter={(val) => format(parseISO(val), 'dd')}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#A3A3A3', fontSize: 10, fontWeight: 600 }}
+                                        tickFormatter={(val) => `${val}€`}
+                                    />
+                                    <Tooltip
+                                        cursor={{ fill: 'rgba(0,0,0,0.03)' }}
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const d = payload[0].payload as BillingDataPoint
+                                                return (
+                                                    <div className="bg-neutral-900 border-none rounded-xl p-3 shadow-xl">
+                                                        <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">
+                                                            {format(parseISO(d.date), "PPP", { locale: es })}
+                                                        </p>
+                                                        <p className="text-lg font-bold text-white mb-0.5">
+                                                            {formatCurrency(d.netRevenue)}
+                                                        </p>
+                                                        <p className="text-[10px] text-neutral-400 font-medium">
+                                                            Neto (Base Imponible)
+                                                        </p>
+                                                    </div>
+                                                )
+                                            }
+                                            return null
+                                        }}
+                                    />
+                                    <Bar dataKey="netRevenue" radius={[4, 4, 0, 0]}>
+                                        {data.map((entry, index) => {
+                                            let color = "#E2E8F0" // Default (Closed or light grey)
+                                            if (entry.netRevenue > 0) {
+                                                color = "#A3A3A3" // Standard Operative
+                                                if (entry.netRevenue === stats.max) color = "#10B981"
+                                                if (entry.netRevenue === stats.min) color = "#EF4444"
+                                            }
+                                            return <Cell key={`cell-${index}`} fill={color} />
+                                        })}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </section>
+
+                    {/* Table Section */}
+                    <section className="space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400">Tabla de Operativa Diaria</h3>
+                            <div className="relative w-full sm:w-auto">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar fecha..."
+                                    className="pl-9 pr-4 py-2 bg-neutral-100 rounded-full text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-neutral-900/5 transition-all w-full sm:w-48"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="border border-neutral-100 rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+                            <table className="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr className="bg-neutral-50/80 border-b border-neutral-100">
+                                        <th className="px-6 py-4 font-bold text-neutral-400 uppercase tracking-widest">Fecha</th>
+                                        <th className="px-6 py-4 font-bold text-neutral-400 uppercase tracking-widest text-right">Total Bruto</th>
+                                        <th className="px-6 py-4 font-bold text-neutral-400 uppercase tracking-widest text-right">Total Neto</th>
+                                        <th className="px-6 py-4 font-bold text-neutral-400 uppercase tracking-widest text-center">Variación</th>
+                                        <th className="px-6 py-4 font-bold text-neutral-400 uppercase tracking-widest text-right">Digital (Neto)</th>
+                                        <th className="px-6 py-4 font-bold text-neutral-400 uppercase tracking-widest text-right">Efectivo (Neto)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-neutral-100">
+                                    {tableData.map((row, idx) => (
+                                        <tr key={idx} className="hover:bg-neutral-50/50 transition-colors group">
+                                            <td className="px-6 py-4 font-bold text-neutral-700">
+                                                {format(parseISO(row.date), "dd/MM/yyyy")}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-medium text-neutral-500">
+                                                {formatCurrency(row.totalRevenue)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className={cn(
+                                                    "font-bold",
+                                                    row.netRevenue === stats.max ? "text-emerald-600" :
+                                                        row.netRevenue === stats.min ? "text-rose-600" : "text-neutral-900"
+                                                )}>
+                                                    {formatCurrency(row.netRevenue)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    {row.variation !== 0 ? (
+                                                        <>
+                                                            {row.variation > 0 ? (
+                                                                <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+                                                            ) : (
+                                                                <ArrowDownRight className="w-3 h-3 text-rose-500" />
+                                                            )}
+                                                            <span className={cn(
+                                                                "font-bold",
+                                                                row.variation > 0 ? "text-emerald-500" : "text-rose-500"
+                                                            )}>
+                                                                {Math.abs(row.variation).toFixed(2)}%
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-neutral-300">-</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-medium text-neutral-600">
+                                                {formatCurrency(row.card)}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-medium text-neutral-600">
+                                                {formatCurrency(row.cash)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot className="bg-neutral-900 text-white font-bold">
+                                    <tr>
+                                        <td className="px-6 py-4 uppercase tracking-widest opacity-50">Totales Mes</td>
+                                        <td className="px-6 py-4 text-right">
+                                            {formatCurrency(tableData.reduce((acc, r) => acc + r.totalRevenue, 0))}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            {formatCurrency(tableData.reduce((acc, r) => acc + r.netRevenue, 0))}
+                                        </td>
+                                        <td colSpan={3}></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </section>
                 </div>
-            )}
-        </AnimatePresence>
+            </div>
+        </div>
     )
 }

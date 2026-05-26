@@ -16,28 +16,36 @@ interface Props {
 }
 
 export function BroadcastBanner({ broadcasts }: Props) {
-    const [activeBroadcasts, setActiveBroadcasts] = useState<Broadcast[]>([])
-    const [dismissedIds, setDismissedIds] = useState<string[]>([])
+    const [dismissedIds, setDismissedIds] = useState<string[]>(() => {
+        if (typeof window === 'undefined') return []
+
+        const stored = window.localStorage.getItem('dismissed_broadcasts')
+        if (!stored) return []
+
+        try {
+            const parsed = JSON.parse(stored)
+            return Array.isArray(parsed) ? parsed : []
+        } catch (e) {
+            console.error('Error parsing dismissed broadcasts', e)
+            return []
+        }
+    })
 
     useEffect(() => {
-        const stored = localStorage.getItem('dismissed_broadcasts')
-        if (stored) {
+        if (typeof window !== 'undefined') {
             try {
-                setDismissedIds(JSON.parse(stored))
+                window.localStorage.setItem('dismissed_broadcasts', JSON.stringify(dismissedIds))
             } catch (e) {
-                console.error('Error parsing dismissed broadcasts', e)
+                console.error('Error storing dismissed broadcasts', e)
             }
         }
-        setActiveBroadcasts(broadcasts)
-    }, [broadcasts])
+    }, [dismissedIds])
 
     const handleDismiss = (id: string) => {
-        const newDismissed = [...dismissedIds, id]
-        setDismissedIds(newDismissed)
-        localStorage.setItem('dismissed_broadcasts', JSON.stringify(newDismissed))
+        setDismissedIds(prev => [...prev, id])
     }
 
-    const visibleBroadcasts = activeBroadcasts.filter(b => !dismissedIds.includes(b.id))
+    const visibleBroadcasts = broadcasts.filter(b => !dismissedIds.includes(b.id))
 
     if (visibleBroadcasts.length === 0) return null
 

@@ -40,10 +40,9 @@ export const EMPTY_DATA: DashboardUiData = {
     ingresosNetos: 0, ingresosExtra: 0, totalIngresos: 0,
     personal: { sueldosNetos: 0, seguridadSocial: 0, irpf: 0, total: 0 },
     materiaPrima: { comida: 0, bebida: 0, variacionExistencias: 0, total: 0 },
-    suministros: 0, suministrosFijos: undefined, suministrosVariables: undefined,
+    suministros: 0,
     mantenimiento: 0, marketing: 0,
     gastosExtra: 0, financiaciones: 0, inversiones: 0,
-    inventoryValue: undefined,
     resultadoBruto: 0, resultadoNeto: 0, margenNeto: 0,
     ratioPersonal: 0, ratioMateriaPrima: 0, ratioGastosFijos: 0
   },

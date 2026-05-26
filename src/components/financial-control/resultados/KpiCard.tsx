@@ -4,7 +4,7 @@ import { memo } from "react"
 import { TrendingUp, TrendingDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
-import { formatCurrency, formatPercent } from "./formatters"
+import { formatPercent } from "./formatters"
 
 interface KpiCardProps {
   title: string

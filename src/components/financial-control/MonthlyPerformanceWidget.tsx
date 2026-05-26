@@ -7,8 +7,6 @@ import { formatCurrency } from "@/lib/utils"
 interface PerformanceWidgetProps {
     stats: {
         totalNet: number
-        totalGross: number
-        totalIVA: number
         momVariation: number
         avgDaily: number
         avgVariation: number
@@ -22,8 +20,7 @@ interface PerformanceWidgetProps {
 
 export function MonthlyPerformanceWidget({ stats, onClick }: PerformanceWidgetProps) {
     const target = stats.revenue_target || 0
-    const gross = stats.totalGross || stats.totalNet  // fallback for older data
-    const progress = target > 0 ? Math.min((gross / target) * 100, 100) : 0
+    const progress = target > 0 ? Math.min((stats.totalNet / target) * 100, 100) : 0
     const dashArray = 2 * Math.PI * 38
     const dashOffset = dashArray - (dashArray * progress) / 100
 
@@ -102,15 +99,15 @@ export function MonthlyPerformanceWidget({ stats, onClick }: PerformanceWidgetPr
                     <div className="flex-1 space-y-4 w-full">
                         <div>
                             <m.p
-                                key={gross}
+                                key={stats.totalNet}
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white tracking-tight leading-none mb-1"
+                                className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white tracking-tight leading-none mb-2"
                             >
-                                {formatCurrency(gross)}
+                                {formatCurrency(stats.totalNet)}
                             </m.p>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-xs font-medium text-neutral-500">Facturación Bruta</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-neutral-500">Facturación Actual</span>
                                 <div className={cn(
                                     "flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide",
                                     stats.momVariation >= 0
@@ -120,12 +117,6 @@ export function MonthlyPerformanceWidget({ stats, onClick }: PerformanceWidgetPr
                                     {stats.momVariation >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                                     {Math.abs(stats.momVariation).toFixed(2)}% vs Mes Anterior
                                 </div>
-                            </div>
-                            {/* Bruto / Neto / IVA breakdown */}
-                            <div className="flex items-center gap-3 text-[10px]">
-                                <span className="text-neutral-400">Neta <span className="font-bold text-neutral-700">{formatCurrency(stats.totalNet)}</span></span>
-                                <span className="text-neutral-300">·</span>
-                                <span className="text-neutral-400">IVA <span className="font-bold text-amber-600">{formatCurrency(stats.totalIVA)}</span></span>
                             </div>
                         </div>
 

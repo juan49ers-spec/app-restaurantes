@@ -7,26 +7,29 @@
 - **Proveedor:** Supabase Auth.
 - **Método único:** email + password (`supabase.auth.signInWithPassword`). No hay OAuth ni magic links implementados, aunque hay un botón "¿Olvidaste tu contraseña?" sin handler.
 - **Registro:** `supabase.auth.signUp` desde el mismo `/login`. Sin verificación de email habilitada por defecto.
-- **Sesión:** cookies gestionadas por `@supabase/ssr`. El middleware refresca cookies en cada request.
+- **Sesión:** cookies gestionadas por `@supabase/ssr`. El proxy de Next refresca cookies en cada request.
 
 ## Decisión de rol
 
 - **No hay tabla `user_roles`.** El rol se decide por email contra una whitelist hardcoded.
 - **Lista de admins:** `ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']`.
 - Esta lista aparece **en tres sitios** y debe mantenerse sincronizada:
-  - `src/middleware.ts:62`
+  - `src/proxy.ts`
   - `src/app/page.tsx:23`
   - `src/app/actions/admin-queries.ts` (y derivados de admin actions)
 
 Implicación: añadir/quitar un admin = editar las 3 referencias.
 
-## Middleware (`src/middleware.ts`)
+## Proxy (`src/proxy.ts`)
 
 Responsabilidades:
 
 1. Inyectar cliente Supabase server con cookies del request.
-2. `supabase.auth.getUser()` → user actual.
-3. Si **no hay user** y la ruta no es `/login`, `/auth` o `/api/debug` → redirige a `/login`.
+2. Antes de llamar a Supabase, revisa si hay cookie `sb-*auth-token*`.
+3. Si no hay cookie y la ruta es pública (`/login`, `/auth`, `/api/debug`) → deja pasar sin tocar Supabase.
+4. Si no hay cookie y la ruta es privada → redirige a `/login` sin llamada de red.
+5. Si hay cookie, ejecuta `supabase.auth.getUser()` → user actual.
+6. Si **no hay user** y la ruta no es `/login`, `/auth` o `/api/debug` → redirige a `/login`.
 4. Si **hay user y va a `/login`** → redirige a `/admin` (si admin) o `/` (si no).
 5. Si **hay user admin y va a `/`** → redirige a `/admin`.
 
@@ -36,14 +39,15 @@ Matcher excluye estáticos (`_next/static`, `_next/image`, `favicon.ico`, imáge
 
 En cada render:
 
-1. `createClient()` server → `supabase.auth.getUser()`.
-2. Si hay user, importa dinámicamente `getCurrentRestaurant()` y obtiene:
+1. Lee cookies. Si no hay cookie `sb-*auth-token*`, no crea cliente Supabase ni llama `getUser()`.
+2. Si hay cookie, `createClient()` server → `supabase.auth.getUser()`.
+3. Si hay user, importa dinámicamente `getCurrentRestaurant()` y obtiene:
    - `activeAddons` (array de strings)
    - `restaurantId`
    - `restaurantName`
-3. Lee cookies para detectar impersonación: `impersonated_restaurant_name`.
-4. Carga broadcasts activos vía `getActiveBroadcasts()`.
-5. Renderiza `<AppLayout>` con esos datos.
+4. Lee cookies para detectar impersonación: `impersonated_restaurant_name`.
+5. Solo carga broadcasts activos vía `getActiveBroadcasts()` si hay user.
+6. Renderiza `<AppLayout>` con esos datos.
 
 ## Resolución del `restaurant_id` en server actions
 
@@ -64,7 +68,7 @@ Hay también `getCurrentRestaurant()` en `src/app/actions/user.ts` que retorna e
 - Algunos puntos del código usan `requireRestaurant()` (en `src/lib/auth-helpers.ts`) que hace el redirect.
 - El formulario pide un único campo: nombre del restaurante.
 - Inserta en `restaurants` con `owner_id = user.id`. Active addons quedan vacíos / módulos en defaults.
-- Después navega con `window.location.href = '/financial-control'` (navegación dura) para forzar re-ejecución del middleware y refresco del layout.
+- Después navega con `window.location.href = '/financial-control'` (navegación dura) para forzar re-ejecución del proxy y refresco del layout.
 
 ## Sistema de permisos por módulo
 
@@ -143,4 +147,4 @@ export default async function Page() {
 - El email se compara con `email.trim().toLowerCase()`. Asegúrate de meter los emails en `ADMIN_EMAILS` ya en minúsculas.
 - La impersonación NO cambia el `auth.uid()`. Sigue siendo el admin. Los `audit_logs` van a registrar al admin como `changed_by`, pero los datos modificados van al `restaurant_id` impersonado. Útil para auditoría.
 - `requireRestaurant()` está en `lib/auth-helpers.ts` pero no se usa universalmente — algunas páginas validan manualmente con `getCurrentRestaurant()` + `redirect`.
-- El onboarding hace `window.location.href` (no `router.push`) a propósito: necesita re-ejecutar middleware con la nueva sesión/cookies.
+- El onboarding hace `window.location.href` (no `router.push`) a propósito: necesita re-ejecutar el proxy con la nueva sesión/cookies.

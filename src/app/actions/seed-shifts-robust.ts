@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
-import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { subDays, getDay } from "date-fns"
 
 // Realistic Staff Profiles
@@ -17,7 +16,6 @@ const MOCK_EMPLOYEES = [
 ]
 
 export async function seedShiftsAndEmployees(restaurantId: string) {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     console.log(`🌱 Seeding Operations data for restaurant: ${restaurantId}`)

@@ -58,15 +58,15 @@ export async function executeAfterCallbacks() {
  * Hook de Next.js para ejecutar after callbacks automáticamente
  * Puedes agregar esto a tu layout o page wrapper
  */
-export function withAfterHandler<T extends (...args: any[]) => Promise<any>>(
-  handler: T
-): T {
-  return (async (...args: any[]) => {
+export function withAfterHandler<TArgs extends unknown[], TResult>(
+  handler: (...args: TArgs) => Promise<TResult>
+): (...args: TArgs) => Promise<TResult> {
+  return async (...args: TArgs) => {
     const result = await handler(...args)
     
     // Ejecutar after callbacks después de la respuesta
     executeAfterCallbacks().catch(() => {})
     
     return result
-  }) as T
+  }
 }

@@ -1,9 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from "@/components/ui/button"
-import { AlertCircle, RefreshCcw } from "lucide-react"
 
 export default function Error({
     error,
@@ -12,8 +9,6 @@ export default function Error({
     error: Error & { digest?: string }
     reset: () => void
 }) {
-    const router = useRouter()
-
     useEffect(() => {
         // Log the error to an observability service
         console.error(error)
@@ -21,8 +16,8 @@ export default function Error({
 
     return (
         <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 animate-in fade-in zoom-in duration-500">
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-full text-red-500 mb-6">
-                <AlertCircle className="w-12 h-12" />
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-4xl font-bold text-red-500 dark:bg-red-900/20">
+                !
             </div>
 
             <h2 className="text-2xl font-serif font-bold text-center mb-2">
@@ -35,19 +30,20 @@ export default function Error({
             </p>
 
             <div className="flex gap-4">
-                <Button
-                    variant="outline"
-                    onClick={() => router.push('/')}
+                <button
+                    type="button"
+                    onClick={() => window.location.href = '/'}
+                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
                 >
                     Ir al Inicio
-                </Button>
-                <Button
+                </button>
+                <button
+                    type="button"
                     onClick={() => reset()}
-                    className="gap-2"
+                    className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
                 >
-                    <RefreshCcw className="w-4 h-4" />
                     Reintentar
-                </Button>
+                </button>
             </div>
 
             {process.env.NODE_ENV === 'development' && (

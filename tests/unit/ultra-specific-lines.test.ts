@@ -82,10 +82,6 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn()
 }))
 
-vi.mock('@/lib/verify-access', () => ({
-  verifyRestaurantAccess: vi.fn().mockResolvedValue(undefined)
-}))
-
 describe('Ultra-Specific Line Coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks()

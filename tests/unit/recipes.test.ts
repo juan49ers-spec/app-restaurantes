@@ -340,7 +340,7 @@ describe('Recipes Actions', () => {
       // Verificar que from fue llamado con price_history
       expect(mockSupabaseChain.from).toHaveBeenCalledWith('price_history')
       // Verificar que select fue llamado
-      expect(mockSupabaseChain.select).toHaveBeenCalledWith('price, created_at, change_pct')
+      expect(mockSupabaseChain.select).toHaveBeenCalledWith('*')
     })
   })
 

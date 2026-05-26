@@ -14,12 +14,11 @@ import {
     calculateHistoryEntry,
     generateHistoryMonths
 } from "@/lib/financial-utils"
-import { verifyRestaurantAccess } from "@/lib/verify-access"
+import { getUserRestaurant } from "./utils"
 
 // --- Daily Sales Actions ---
 
 export async function getDailySales(restaurantId: string, date: string) {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -38,7 +37,6 @@ export async function getDailySales(restaurantId: string, date: string) {
 }
 
 export async function getDailySalesRange(restaurantId: string, startDate: string, endDate: string) {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -59,6 +57,11 @@ export async function getDailySalesRange(restaurantId: string, startDate: string
 
 export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema>) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para guardar ventas." }
+    }
 
     // Validate input
     const validData = DailySalesSchema.parse(formData)
@@ -83,7 +86,7 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
     const { data, error } = await supabase
         .from('daily_sales')
         .upsert({
-            restaurant_id: validData.restaurant_id,
+            restaurant_id: restaurantId,
             date: validData.date,
             revenue_total,
             base_10: validData.base_10,
@@ -94,12 +97,6 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
             revenue_dine_in: validData.revenue_dine_in,
             revenue_takeout: validData.revenue_takeout,
             revenue_delivery: validData.revenue_delivery,
-            delivery_uber_eats: validData.delivery_uber_eats ?? 0,
-            delivery_just_eat: validData.delivery_just_eat ?? 0,
-            delivery_al_punto: validData.delivery_al_punto ?? 0,
-            delivery_glovo: validData.delivery_glovo ?? 0,
-            cash_amount: validData.cash_amount ?? 0,
-            card_amount: validData.card_amount ?? 0,
             total_covers: validData.total_covers,
             labor_hours: validData.labor_hours,
             day_status: validData.day_status,
@@ -108,7 +105,7 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
             source: 'manual_entry',
             updated_at: new Date().toISOString()
         }, { onConflict: 'restaurant_id, date' })
-        .select('id')
+        .select()
         .single()
 
     if (error) {
@@ -116,35 +113,15 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/finance')
-    revalidatePath('/dashboard')
+    revalidatePath('/financial-control')
+    revalidatePath('/') // Refresh Executive Dashboard
+    revalidatePath('/dashboard') // Refresh if accessed via /dashboard alias
     return { success: true, data }
-}
-
-export async function unlockDailySales(restaurantId: string, date: string) {
-    await verifyRestaurantAccess(restaurantId)
-    const supabase = await createClient()
-
-    const { error } = await supabase
-        .from('daily_sales')
-        .update({ day_status: 'OPEN', updated_at: new Date().toISOString() })
-        .eq('restaurant_id', restaurantId)
-        .eq('date', date)
-
-    if (error) {
-        console.error("Error unlocking daily sales:", error)
-        return { success: false, error: error.message }
-    }
-
-    revalidatePath('/finance')
-    revalidatePath('/dashboard')
-    return { success: true }
 }
 
 // --- Operating Expenses Actions ---
 
 export async function getOperatingExpenses(restaurantId: string, startDate: string, endDate: string) {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const { data, error } = await supabase
@@ -165,6 +142,11 @@ export async function getOperatingExpenses(restaurantId: string, startDate: stri
 
 export async function upsertOperatingExpense(formData: z.infer<typeof OperatingExpenseSchema>) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para guardar gastos." }
+    }
 
     // Validate
     // Note: Schema expects string dates, but we might receive dates. Standardize if needed.
@@ -173,7 +155,7 @@ export async function upsertOperatingExpense(formData: z.infer<typeof OperatingE
     const { data, error } = await supabase
         .from('operating_expenses')
         .insert({
-            restaurant_id: validData.restaurant_id,
+            restaurant_id: restaurantId,
             expense_date: validData.expense_date,
             category: validData.category,
             amount: validData.amount,
@@ -191,7 +173,7 @@ export async function upsertOperatingExpense(formData: z.infer<typeof OperatingE
             withholding_amount: validData.withholding_amount,
             is_professional_invoice: validData.is_professional_invoice
         })
-        .select('id')
+        .select()
         .single()
 
     if (error) {
@@ -199,48 +181,63 @@ export async function upsertOperatingExpense(formData: z.infer<typeof OperatingE
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/finance')
+    revalidatePath('/financial-control')
     return { success: true, data }
 }
 
 export async function deleteOperatingExpense(id: string) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para eliminar gastos." }
+    }
 
     const { error } = await supabase
         .from('operating_expenses')
         .delete()
         .eq('id', id)
+        .eq('restaurant_id', restaurantId)
 
     if (error) {
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/finance')
+    revalidatePath('/financial-control')
+    revalidatePath('/')
     revalidatePath('/dashboard')
     return { success: true }
 }
 
 export async function updateOperatingExpense(id: string, updates: Partial<OperatingExpense>) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para actualizar gastos." }
+    }
+
+    const { restaurant_id: _ignoredRestaurantId, ...safeUpdates } = updates
 
     const { data, error } = await supabase
         .from('operating_expenses')
-        .update(updates)
+        .update(safeUpdates)
         .eq('id', id)
-        .select('id')
+        .eq('restaurant_id', restaurantId)
+        .select()
         .single()
 
     if (error) {
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/finance')
+    revalidatePath('/financial-control')
+    revalidatePath('/')
     revalidatePath('/dashboard')
     return { success: true, data }
 }
 
 export async function getBillingDashboardData(restaurantId: string, date: string) {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const targetDate = new Date(date)
 
@@ -254,23 +251,20 @@ export async function getBillingDashboardData(restaurantId: string, date: string
 
     // Fetch both months in parallel
     const [currentMonth, prevMonth] = await Promise.all([
-        supabase.from('daily_sales').select('date, revenue_total, iva_collected, day_status, cash_amount, card_amount').eq('restaurant_id', restaurantId).gte('date', currentStart).lte('date', currentEnd).order('date', { ascending: true }),
-        supabase.from('daily_sales').select('date, revenue_total, iva_collected, day_status, cash_amount, card_amount').eq('restaurant_id', restaurantId).gte('date', prevStart).lte('date', prevEnd)
+        supabase.from('daily_sales').select('*').eq('restaurant_id', restaurantId).gte('date', currentStart).lte('date', currentEnd).order('date', { ascending: true }),
+        supabase.from('daily_sales').select('*').eq('restaurant_id', restaurantId).gte('date', prevStart).lte('date', prevEnd)
     ])
 
     if (currentMonth.error || prevMonth.error) throw new Error("Error fetching billing data")
 
-    // Use Pick to enforce strict type safety on the restricted payload
-    const sales = (currentMonth.data || []) as Pick<DailySales, 'date' | 'revenue_total' | 'iva_collected' | 'day_status' | 'cash_amount' | 'card_amount'>[]
-    const prevSales = (prevMonth.data || []) as Pick<DailySales, 'date' | 'revenue_total' | 'iva_collected' | 'day_status' | 'cash_amount' | 'card_amount'>[]
+    const sales = currentMonth.data || []
+    const prevSales = prevMonth.data || []
 
     // Helper: Calculate Net Revenue (Base Imponible)
-    const getNet = (s: Pick<DailySales, 'revenue_total' | 'iva_collected'>) => (s?.revenue_total || 0) - (s?.iva_collected || 0)
+    const getNet = (s: DailySales) => (s?.revenue_total || 0) - (s?.iva_collected || 0)
 
-    // KPI 1: Total Gross + Net Monthly
-    const totalGrossCurrent = sales.reduce((acc, s) => acc + (s.revenue_total || 0), 0)
-    const totalIVACurrent = sales.reduce((acc, s) => acc + (s.iva_collected || 0), 0)
-    const totalNetCurrent = totalGrossCurrent - totalIVACurrent
+    // KPI 1: Total Net Monthly
+    const totalNetCurrent = sales.reduce((acc, s) => acc + getNet(s), 0)
     const totalNetPrev = prevSales.reduce((acc, s) => acc + getNet(s), 0)
     const momVariation = totalNetPrev > 0 ? ((totalNetCurrent - totalNetPrev) / totalNetPrev) * 100 : 0
 
@@ -282,15 +276,13 @@ export async function getBillingDashboardData(restaurantId: string, date: string
     const avgDailyPrev = operativeDaysPrev.length > 0 ? totalNetPrev / operativeDaysPrev.length : 0
     const avgVariation = avgDailyPrev > 0 ? ((avgDailyCurrent - avgDailyPrev) / avgDailyPrev) * 100 : 0
 
-    // KPI 3: Real cash/card distribution from recorded daily_sales data
-    const cashTotal = sales.reduce((acc, s) => acc + (s.cash_amount || 0), 0)
-    const cardTotal = sales.reduce((acc, s) => acc + (s.card_amount || 0), 0)
+    // KPI 3: Distribution
+    const cashTotal = totalNetCurrent * 0.4 // Placeholder 40%
+    const cardTotal = totalNetCurrent * 0.6 // Placeholder 60%
 
     return {
         stats: {
             totalNet: totalNetCurrent,
-            totalGross: totalGrossCurrent,
-            totalIVA: totalIVACurrent,
             momVariation,
             avgDaily: avgDailyCurrent,
             avgVariation,
@@ -304,183 +296,22 @@ export async function getBillingDashboardData(restaurantId: string, date: string
             totalRevenue: s.revenue_total,
             iva: s.iva_collected,
             status: s.day_status,
-            cash: s.cash_amount || 0,
-            card: s.card_amount || 0
+            // Placeholder for breakdown
+            cash: getNet(s) * 0.4,
+            card: getNet(s) * 0.6
         }))
-    }
-}
-
-// --- Billing Period Data (Mes / Trimestre) ---
-
-export interface BillingPeriodData {
-    stats: {
-        totalGross: number
-        totalNet: number
-        totalIVA: number
-        momVariation: number
-        avgDaily: number
-        avgWeekly: number
-        operativeDays: number
-        cashTotal: number
-        cardTotal: number
-        revenue_target?: number
-    }
-    prevPeriodStats: {
-        totalGross: number
-        totalNet: number
-        avgDaily: number
-    }
-    dailyData: {
-        date: string
-        netRevenue: number
-        totalRevenue: number
-        iva: number
-        status: string
-        cash: number
-        card: number
-    }[]
-    monthlyBreakdown: {
-        month: string
-        monthName: string
-        gross: number
-        net: number
-        operativeDays: number
-    }[]
-}
-
-export async function getBillingPeriodData(
-    restaurantId: string,
-    year: number,
-    startMonth: number,  // 1-indexed
-    numMonths: number
-): Promise<BillingPeriodData> {
-    await verifyRestaurantAccess(restaurantId)
-    const supabase = await createClient()
-
-    const endMonth = startMonth + numMonths - 1
-    const currentStart = `${year}-${startMonth.toString().padStart(2, '0')}-01`
-    const currentEnd = format(endOfMonth(new Date(year, endMonth - 1, 1)), 'yyyy-MM-dd')
-
-    // Previous period of same length
-    const prevDate = subMonths(new Date(year, startMonth - 1, 1), numMonths)
-    const prevEndDate = subMonths(new Date(year, endMonth - 1, 1), numMonths)
-    const prevStart = format(startOfMonth(prevDate), 'yyyy-MM-dd')
-    const prevEnd = format(endOfMonth(prevEndDate), 'yyyy-MM-dd')
-
-    const [currentData, prevData, targetData] = await Promise.all([
-        supabase.from('daily_sales')
-            .select('date, revenue_total, iva_collected, day_status, cash_amount, card_amount')
-            .eq('restaurant_id', restaurantId)
-            .gte('date', currentStart)
-            .lte('date', currentEnd)
-            .order('date', { ascending: true }),
-        supabase.from('daily_sales')
-            .select('date, revenue_total, iva_collected')
-            .eq('restaurant_id', restaurantId)
-            .gte('date', prevStart)
-            .lte('date', prevEnd),
-        supabase.from('monthly_targets')
-            .select('revenue_target')
-            .eq('restaurant_id', restaurantId)
-            .eq('month_year', `${year}-${startMonth.toString().padStart(2, '0')}`)
-            .maybeSingle()
-    ])
-
-    if (currentData.error) throw new Error("Error fetching billing period data")
-    if (prevData.error) throw new Error("Error fetching previous period data")
-
-    type SalesRow = Pick<DailySales, 'date' | 'revenue_total' | 'iva_collected' | 'day_status' | 'cash_amount' | 'card_amount'>
-    type PrevRow = Pick<DailySales, 'date' | 'revenue_total' | 'iva_collected'>
-
-    const sales = (currentData.data || []) as SalesRow[]
-    const prevSales = (prevData.data || []) as PrevRow[]
-
-    const getNet = (s: { revenue_total: number | null; iva_collected: number | null }) =>
-        (s.revenue_total || 0) - (s.iva_collected || 0)
-
-    // Current period
-    const totalGross = sales.reduce((acc, s) => acc + (s.revenue_total || 0), 0)
-    const totalIVA = sales.reduce((acc, s) => acc + (s.iva_collected || 0), 0)
-    const totalNet = totalGross - totalIVA
-    const cashTotal = sales.reduce((acc, s) => acc + (s.cash_amount || 0), 0)
-    const cardTotal = sales.reduce((acc, s) => acc + (s.card_amount || 0), 0)
-
-    const operative = sales.filter(s => getNet(s) > 0)
-    const avgDaily = operative.length > 0 ? totalNet / operative.length : 0
-
-    // Weekly average: distinct ISO weeks with operative data
-    const weeks = new Set(operative.map(s => {
-        const d = new Date(s.date)
-        const jan1 = new Date(d.getFullYear(), 0, 1)
-        const dayOfYear = Math.floor((d.getTime() - jan1.getTime()) / 86400000) + 1
-        return `${d.getFullYear()}-W${Math.ceil((dayOfYear + jan1.getDay()) / 7)}`
-    }))
-    const avgWeekly = weeks.size > 0 ? totalNet / weeks.size : 0
-
-    // Previous period
-    const prevTotalNet = prevSales.reduce((acc, s) => acc + getNet(s), 0)
-    const prevTotalGross = prevSales.reduce((acc, s) => acc + (s.revenue_total || 0), 0)
-    const prevOperative = prevSales.filter(s => getNet(s) > 0)
-    const prevAvgDaily = prevOperative.length > 0 ? prevTotalNet / prevOperative.length : 0
-    const momVariation = prevTotalNet > 0 ? ((totalNet - prevTotalNet) / prevTotalNet) * 100 : 0
-
-    // Monthly breakdown
-    const monthlyBreakdown: BillingPeriodData['monthlyBreakdown'] = []
-    for (let i = 0; i < numMonths; i++) {
-        const mNum = startMonth + i
-        const monthStr = `${year}-${mNum.toString().padStart(2, '0')}`
-        const monthDate = new Date(year, mNum - 1, 1)
-        const mName = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(monthDate)
-        const monthSales = sales.filter(s => s.date.startsWith(monthStr))
-        const gross = monthSales.reduce((acc, s) => acc + (s.revenue_total || 0), 0)
-        const net = monthSales.reduce((acc, s) => acc + getNet(s), 0)
-        const opDays = monthSales.filter(s => getNet(s) > 0).length
-        monthlyBreakdown.push({
-            month: monthStr,
-            monthName: mName.charAt(0).toUpperCase() + mName.slice(1),
-            gross, net, operativeDays: opDays
-        })
-    }
-
-    // Daily data
-    const dailyData: BillingPeriodData['dailyData'] = sales.map(s => ({
-        date: s.date,
-        netRevenue: getNet(s),
-        totalRevenue: s.revenue_total || 0,
-        iva: s.iva_collected || 0,
-        status: s.day_status || '',
-        cash: s.cash_amount || 0,
-        card: s.card_amount || 0
-    }))
-
-    return {
-        stats: {
-            totalGross, totalNet, totalIVA,
-            momVariation, avgDaily, avgWeekly,
-            operativeDays: operative.length,
-            cashTotal, cardTotal,
-            revenue_target: targetData.data?.revenue_target ?? undefined
-        },
-        prevPeriodStats: {
-            totalGross: prevTotalGross,
-            totalNet: prevTotalNet,
-            avgDaily: prevAvgDaily
-        },
-        dailyData,
-        monthlyBreakdown
     }
 }
 
 // --- Financial Hub Aggregation ---
 
 export async function getFinancialHubData(restaurantId: string, startDate: string, endDate: string) {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     // 1. Fetch Daily Sales
     const { data: sales, error: salesError } = await supabase
         .from('daily_sales')
-        .select('date, revenue_total, cost_of_goods, labor_hours')
+        .select('*')
         .eq('restaurant_id', restaurantId)
         .gte('date', startDate)
         .lte('date', endDate)
@@ -491,7 +322,7 @@ export async function getFinancialHubData(restaurantId: string, startDate: strin
     // 2. Fetch Expenses
     const { data: expenses, error: expensesError } = await supabase
         .from('operating_expenses')
-        .select('id, amount, expense_date, category')
+        .select('*')
         .eq('restaurant_id', restaurantId)
         .gte('expense_date', startDate)
         .lte('expense_date', endDate)
@@ -513,8 +344,8 @@ export async function getFinancialHubData(restaurantId: string, startDate: strin
     const primeCost = costOfGoods + laborCost
 
     return {
-        sales: (sales || []) as Pick<DailySales, 'date' | 'revenue_total' | 'cost_of_goods' | 'labor_hours'>[],
-        expenses: (expenses || []) as Pick<OperatingExpense, 'id' | 'amount' | 'expense_date' | 'category'>[],
+        sales: sales || [],
+        expenses: expenses || [],
         kpis: {
             totalRevenue,
             totalExpenses,
@@ -529,12 +360,11 @@ export async function getFinancialHubData(restaurantId: string, startDate: strin
 // --- Monthly Target Actions ---
 
 export async function getMonthlyTarget(restaurantId: string, monthYear: string) {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     const { data, error } = await supabase
         .from('monthly_targets')
-        .select('id, month_year, revenue_target, cogs_target_pct, labor_target_pct')
+        .select('*')
         .eq('restaurant_id', restaurantId)
         .eq('month_year', monthYear)
         .single()
@@ -548,12 +378,18 @@ export async function getMonthlyTarget(restaurantId: string, monthYear: string) 
 
 export async function upsertMonthlyTarget(formData: z.infer<typeof MonthlyTargetSchema>) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para guardar objetivos." }
+    }
+
     const validData = MonthlyTargetSchema.parse(formData)
 
     const { data, error } = await supabase
         .from('monthly_targets')
         .upsert({
-            restaurant_id: validData.restaurant_id,
+            restaurant_id: restaurantId,
             month_year: validData.month_year,
             revenue_target: validData.revenue_target,
             cogs_target_pct: validData.cogs_target_pct,
@@ -567,7 +403,7 @@ export async function upsertMonthlyTarget(formData: z.infer<typeof MonthlyTarget
         return { success: false, error: error.message }
     }
 
-    revalidatePath('/finance')
+    revalidatePath('/financial-control')
     return { success: true, data }
 }
 
@@ -592,7 +428,7 @@ export interface ExpenseDashboardData {
         ratioToSales: number
         ratioToTarget: number
         theoreticalTarget: number
-        expenses: Pick<OperatingExpense, 'id' | 'amount' | 'expense_date' | 'category' | 'description' | 'provider_detail' | 'tag' | 'payment_method' | 'recurrence' | 'is_paid' | 'is_professional_invoice'>[]
+        expenses: OperatingExpense[]
         tags: Record<string, number>
     }[]
     insight: {
@@ -610,8 +446,8 @@ export interface ExpenseDashboardData {
 }
 
 // Helper functions for expense calculations
-function groupExpensesByCategory<T extends Pick<OperatingExpense, 'category'>>(expenses: T[]) {
-    const groups: Record<string, T[]> = {}
+function groupExpensesByCategory(expenses: OperatingExpense[]) {
+    const groups: Record<string, OperatingExpense[]> = {}
     expenses.forEach(exp => {
         if (!groups[exp.category]) {
             groups[exp.category] = []
@@ -641,20 +477,19 @@ function calculateCategoryRatios(
 }
 
 function getTheoreticalTargetForCategory(category: string): number {
-    if (isPersonalCategory(category)) return TARGET_RATIOS.PERSONAL_TARGET_PCT
-    if (isCOGSCategory(category)) return TARGET_RATIOS.COGS_TARGET_PCT
-    if (category === 'suministros') return TARGET_RATIOS.SUMINISTROS_TARGET_PCT
-    if (category === 'mantenimiento') return TARGET_RATIOS.MANTENIMIENTO_TARGET_PCT
-    if (category === 'marketing') return TARGET_RATIOS.MARKETING_TARGET_PCT
-    if (category === 'inversiones') return TARGET_RATIOS.INVERSIONES_TARGET_PCT
-    return 0 // gastos_varios, financiaciones: variable
+    if (isPersonalCategory(category)) {
+        return TARGET_RATIOS.PERSONAL_TARGET_PCT
+    }
+    if (isCOGSCategory(category)) {
+        return TARGET_RATIOS.COGS_TARGET_PCT
+    }
+    return 0 // Rest: Variable (no specific target)
 }
 
 export async function getExpenseDashboardData(
     restaurantId: string,
     currentMonth: string // YYYY-MM
 ): Promise<ExpenseDashboardData> {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     // Calculate date ranges for current and previous month
@@ -670,14 +505,14 @@ export async function getExpenseDashboardData(
     const [currentMonthExpenses, prevMonthExpenses, salesData] = await Promise.all([
         supabase
             .from('operating_expenses')
-            .select('id, amount, expense_date, category, description, provider_detail, tag, payment_method, recurrence, is_paid, is_professional_invoice')
+            .select('*')
             .eq('restaurant_id', restaurantId)
             .gte('expense_date', currentStart)
             .lte('expense_date', currentEnd)
             .order('expense_date', { ascending: true }),
         supabase
             .from('operating_expenses')
-            .select('id, amount, expense_date, category')
+            .select('*')
             .eq('restaurant_id', restaurantId)
             .gte('expense_date', prevStart)
             .lte('expense_date', prevEnd),
@@ -693,9 +528,9 @@ export async function getExpenseDashboardData(
     if (prevMonthExpenses.error) throw new Error('Failed to fetch previous expenses')
     if (salesData.error) throw new Error('Failed to fetch sales data')
 
-    const currentExpenses = (currentMonthExpenses.data || []) as Pick<OperatingExpense, 'id' | 'amount' | 'expense_date' | 'category' | 'description' | 'provider_detail' | 'tag' | 'payment_method' | 'recurrence' | 'is_paid' | 'is_professional_invoice'>[]
-    const prevExpenses = (prevMonthExpenses.data || []) as Pick<OperatingExpense, 'id' | 'amount' | 'expense_date' | 'category'>[]
-    const sales = (salesData.data || []) as Pick<DailySales, 'revenue_total' | 'iva_collected'>[]
+    const currentExpenses = currentMonthExpenses.data || []
+    const prevExpenses = prevMonthExpenses.data || []
+    const sales = salesData.data || []
 
     // Calculate total net sales (Base Imponible)
     const totalNetSales = sales.reduce((sum, s) => {
@@ -793,7 +628,7 @@ export async function getExpenseDashboardData(
 
     const history: ExpenseDashboardData['history'] = historyMonths.map(({ month }) => {
         const monthExpenses = (allHistExpenses || []).filter(e =>
-            e.expense_date?.startsWith(month)
+            e.expense_date.startsWith(month)
         )
         return calculateHistoryEntry(month, monthExpenses)
     })
@@ -826,7 +661,6 @@ export interface FiscalMetrics {
 }
 
 export async function getFiscalMetrics(restaurantId: string, startDate: string, endDate: string): Promise<FiscalMetrics> {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
 
     // 1. Fetch Sales (IVA Repercutido)
@@ -854,7 +688,7 @@ export async function getFiscalMetrics(restaurantId: string, startDate: string, 
 
     // Fallback: si base_10/base_21 no están desglosados, calcular desde revenue_total - iva_collected
     const baseFromFields = sales?.reduce((sum, day) => sum + (day.base_10 || 0) + (day.base_21 || 0), 0) || 0
-    const revenueTaxableBase = baseFromFields > 0
+    const revenueTaxableBase = baseFromFields !== 0
         ? baseFromFields
         : sales?.reduce((sum, day) => sum + (day.revenue_total || 0) - (day.iva_collected || 0), 0) || 0
 
@@ -898,19 +732,16 @@ export interface QuarterlyFiscalData {
     }[];
 }
 
-// Internal helper — not a Server Action (not exported)
-async function fetchFiscalPeriodData(
-    restaurantId: string,
-    year: number,
-    startMonth: number,  // 1-indexed
-    numMonths: number
-): Promise<QuarterlyFiscalData> {
+export async function getQuarterlyFiscalData(restaurantId: string, year: number, quarter: number): Promise<QuarterlyFiscalData> {
     const supabase = await createClient()
 
-    const endMonth = startMonth + numMonths - 1
+    const startMonth = (quarter - 1) * 3 + 1
+    const endMonth = startMonth + 2
+
     const startDate = `${year}-${startMonth.toString().padStart(2, '0')}-01`
     const endDate = format(endOfMonth(new Date(`${year}-${endMonth.toString().padStart(2, '0')}-01`)), 'yyyy-MM-dd')
 
+    // Fetch Sales
     const { data: sales, error: salesError } = await supabase
         .from('daily_sales')
         .select('date, base_10, base_21, iva_collected, tax_10, tax_21, revenue_total')
@@ -920,6 +751,7 @@ async function fetchFiscalPeriodData(
 
     if (salesError) throw new Error("Failed to fetch sales fiscal data")
 
+    // Fetch Expenses
     const { data: expenses, error: expensesError } = await supabase
         .from('operating_expenses')
         .select('expense_date, category, taxable_amount, tax_amount, withholding_amount, is_professional_invoice, withholding_rate')
@@ -937,7 +769,8 @@ async function fetchFiscalPeriodData(
     let totalIvaDeducible = 0
     let totalIrpf = 0
 
-    for (let i = 0; i < numMonths; i++) {
+    // Month Logic
+    for (let i = 0; i < 3; i++) {
         const currentMonthNum = startMonth + i
         const monthDate = new Date(year, currentMonthNum - 1, 1)
         const monthName = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(monthDate)
@@ -949,7 +782,7 @@ async function fetchFiscalPeriodData(
         // Fallback robusto: si los campos desglosados (base_10/21, tax_10/21) están vacíos,
         // calcular desde revenue_total e iva_collected que sí tienen datos.
         const baseFromFields = monthlySales.reduce((sum, s) => sum + (s.base_10 || 0) + (s.base_21 || 0), 0)
-        const baseImponible = baseFromFields > 0
+        const baseImponible = baseFromFields !== 0
             ? baseFromFields
             : monthlySales.reduce((sum, s) => sum + (s.revenue_total || 0) - (s.iva_collected || 0), 0)
 
@@ -972,7 +805,17 @@ async function fetchFiscalPeriodData(
         })
     }
 
-    const irpfConceptsMap: Record<string, { categoria: string; modelo: string; baseSujeta: number; porcentajeRetencion: number; cuotaIngresar: number; count: number }> = {
+    // IRPF Concept grouping
+    type IrpfConceptSummary = {
+        categoria: string
+        modelo: string
+        baseSujeta: number
+        porcentajeRetencion: number
+        cuotaIngresar: number
+        count: number
+    }
+
+    const irpfConceptsMap: Record<string, IrpfConceptSummary> = {
         "Nóminas": { categoria: "Nóminas", modelo: "Mod. 111", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 },
         "Alquiler": { categoria: "Alquiler", modelo: "Mod. 115", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 },
         "Profesionales": { categoria: "Profesionales", modelo: "Mod. 111", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 }
@@ -981,15 +824,17 @@ async function fetchFiscalPeriodData(
     safeExpenses.forEach(exp => {
         if (exp.withholding_amount && exp.withholding_amount > 0) {
             totalIrpf += exp.withholding_amount
+
             let conceptKey = "Profesionales"
             if (exp.category === 'NOMINAS_LIQUIDAS') conceptKey = "Nóminas"
             if (exp.category === 'ALQUILER') conceptKey = "Alquiler"
+
             const target = irpfConceptsMap[conceptKey]
             target.baseSujeta += (exp.taxable_amount || 0)
             target.cuotaIngresar += exp.withholding_amount
             if (exp.withholding_rate) {
-                target.porcentajeRetencion += exp.withholding_rate
-                target.count++
+                target.porcentajeRetencion += exp.withholding_rate;
+                target.count++;
             }
         }
     })
@@ -1004,14 +849,17 @@ async function fetchFiscalPeriodData(
             cuotaIngresar: c.cuotaIngresar
         }))
 
-    // Deadline: siempre calcular respecto al trimestre padre del periodo
-    // Esto asegura que daysRemaining funcione tanto en vista mes como trimestre
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const parentQuarterEnd = Math.ceil(endMonth / 3) * 3 // Último mes del trimestre padre
-    const deadlineDate = new Date(year, parentQuarterEnd, 20) // Día 20 del mes siguiente al cierre
-    deadlineDate.setHours(0, 0, 0, 0)
-    const daysRemaining = Math.max(0, Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)))
+    // Calculate Days Remaining securely:
+    const today = new Date();
+    // deadline is the 20th of the month following the quarter
+    const deadlineDate = new Date(year, endMonth, 20);
+
+    // Normalize to start of day
+    today.setHours(0, 0, 0, 0);
+    deadlineDate.setHours(0, 0, 0, 0);
+
+    const diffTime = deadlineDate.getTime() - today.getTime();
+    const daysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
     return {
         pulseData: {
@@ -1021,124 +869,5 @@ async function fetchFiscalPeriodData(
         },
         ivaByMonth,
         irpfByConcept
-    }
-}
-
-export async function getQuarterlyFiscalData(restaurantId: string, year: number, quarter: number): Promise<QuarterlyFiscalData> {
-    await verifyRestaurantAccess(restaurantId)
-    const startMonth = (quarter - 1) * 3 + 1
-    return fetchFiscalPeriodData(restaurantId, year, startMonth, 3)
-}
-
-export async function getMonthlyFiscalData(restaurantId: string, year: number, month: number): Promise<QuarterlyFiscalData> {
-    await verifyRestaurantAccess(restaurantId)
-    return fetchFiscalPeriodData(restaurantId, year, month, 1)
-}
-
-// ==========================================
-// IMPUESTO DE SOCIEDADES
-// ==========================================
-
-export interface AnnualISData {
-    year: number
-    totalIngresos: number
-    totalGastos: number
-    bai: number
-    monthsClosed: number
-    monthsTotal: number
-    isYTD: boolean
-    projectedAnnualBAI: number  // BAI extrapolado a 12 meses
-    isLiveData: boolean         // true si los datos vienen de daily_sales/expenses en vez de monthly_results
-}
-
-export async function getAnnualISData(restaurantId: string, year: number): Promise<AnnualISData> {
-    await verifyRestaurantAccess(restaurantId)
-    const supabase = await createClient()
-    const currentYear = new Date().getFullYear()
-    const isYTD = year === currentYear
-
-    // Intento 1: Datos consolidados de monthly_results
-    const { data: months, error } = await supabase
-        .from('monthly_results')
-        .select('month, total_ingresos, ingresos_netos, resultado_neto, materia_prima_total, personal_total, suministros, mantenimiento, marketing, gastos_extra, financiaciones, inversiones, is_closed')
-        .eq('restaurant_id', restaurantId)
-        .eq('year', year)
-        .order('month', { ascending: true })
-
-    if (error) throw new Error("Error fetching annual IS data")
-
-    const closedMonths = (months || []).filter(m => m.is_closed)
-
-    // Si hay meses cerrados, usar datos consolidados
-    if (closedMonths.length > 0) {
-        let totalIngresos = 0
-        let totalGastos = 0
-
-        for (const m of closedMonths) {
-            totalIngresos += m.ingresos_netos || 0
-            const gastos = (m.materia_prima_total || 0) + (m.personal_total || 0) +
-                (m.suministros || 0) + (m.mantenimiento || 0) +
-                (m.marketing || 0) + (m.gastos_extra || 0) +
-                (m.financiaciones || 0) + (m.inversiones || 0)
-            totalGastos += gastos
-        }
-
-        const bai = totalIngresos - totalGastos
-        const projectedAnnualBAI = closedMonths.length > 0
-            ? (bai / closedMonths.length) * 12
-            : 0
-
-        return {
-            year, totalIngresos, totalGastos, bai,
-            monthsClosed: closedMonths.length,
-            monthsTotal: 12, isYTD,
-            projectedAnnualBAI,
-            isLiveData: false
-        }
-    }
-
-    // Fallback: Sin meses cerrados → calcular desde datos vivos (daily_sales + operating_expenses)
-    const startDate = `${year}-01-01`
-    const endDate = `${year}-12-31`
-
-    const [salesResult, expensesResult] = await Promise.all([
-        supabase.from('daily_sales')
-            .select('date, revenue_total, iva_collected')
-            .eq('restaurant_id', restaurantId)
-            .gte('date', startDate)
-            .lte('date', endDate),
-        supabase.from('operating_expenses')
-            .select('expense_date, amount')
-            .eq('restaurant_id', restaurantId)
-            .gte('expense_date', startDate)
-            .lte('expense_date', endDate)
-    ])
-
-    const sales = salesResult.data || []
-    const expenses = expensesResult.data || []
-
-    // Ingresos netos = revenue - IVA
-    const totalIngresos = sales.reduce((sum, s) =>
-        sum + (s.revenue_total || 0) - (s.iva_collected || 0), 0
-    )
-    const totalGastos = expenses.reduce((sum, e) => sum + (e.amount || 0), 0)
-    const bai = totalIngresos - totalGastos
-
-    // Contar meses distintos con datos para proyectar
-    const monthsWithData = new Set([
-        ...sales.map(s => s.date.substring(0, 7)),
-        ...expenses.map(e => e.expense_date.substring(0, 7))
-    ]).size
-
-    const projectedAnnualBAI = monthsWithData > 0
-        ? (bai / monthsWithData) * 12
-        : 0
-
-    return {
-        year, totalIngresos, totalGastos, bai,
-        monthsClosed: monthsWithData,
-        monthsTotal: 12, isYTD,
-        projectedAnnualBAI,
-        isLiveData: true
     }
 }

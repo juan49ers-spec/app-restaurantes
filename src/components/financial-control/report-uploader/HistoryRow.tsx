@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { ChevronDown, ChevronUp, CloudDownload } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { ReportImportRecord } from "@/app/api/reports/history/route"
+import type { ReportImportRecord } from "./types"
 import { fmtPct } from "./types"
 
 export function HistoryRow({ record }: { record: ReportImportRecord }) {
@@ -48,7 +48,7 @@ export function HistoryRow({ record }: { record: ReportImportRecord }) {
                     {record.discrepancies && record.discrepancies.length > 0 && (
                         <div>
                             <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Discrepancias detectadas</p>
-                            {record.discrepancies.map((d, i) => (
+                            {record.discrepancies.map((d: { label: string; severity: "ok" | "warn" | "error"; diff_pct: number }, i: number) => (
                                 <div key={i} className="flex items-center justify-between text-[11px]">
                                     <span className="text-neutral-500">{d.label}</span>
                                     <span className={cn(
@@ -65,7 +65,7 @@ export function HistoryRow({ record }: { record: ReportImportRecord }) {
                     {record.errors && record.errors.length > 0 && (
                         <div>
                             <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1">Errores</p>
-                            {record.errors.map((e, i) => (
+                            {record.errors.map((e: string, i: number) => (
                                 <p key={i} className="text-[11px] text-red-400">{e}</p>
                             ))}
                         </div>

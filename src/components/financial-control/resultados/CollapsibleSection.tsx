@@ -3,7 +3,6 @@
 import { useState, useCallback, memo } from "react"
 import { m, AnimatePresence } from "framer-motion"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 interface CollapsibleSectionProps {
   title: string

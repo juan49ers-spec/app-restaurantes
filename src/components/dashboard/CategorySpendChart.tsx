@@ -59,7 +59,7 @@ export function CategorySpendChart({ data, restaurantId, currentPeriodDates }: C
                 </CardHeader>
                 <CardContent>
                     <div className="h-[280px] w-full relative">
-                        <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={data}

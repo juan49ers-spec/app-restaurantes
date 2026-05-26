@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createActionLogger } from '@/lib/logger';
 import { getUserRestaurant } from './utils';
 
 export type ActionResponse<T> = {
@@ -40,12 +41,11 @@ export async function executeSafeAction<TInput, TOutput>(
         return { success: true, data };
 
     } catch (error: unknown) {
-        const isAccessDenied = error instanceof Error && error.message.includes('Access denied')
-        const clientMessage = isAccessDenied
-            ? 'No tienes permiso para esta operación'
-            : 'Ha ocurrido un error inesperado'
+        createActionLogger('executeSafeAction').error({ err: error, msg: 'Action failed' });
 
-        return { success: false, error: clientMessage };
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
+
+        return { success: false, error: message };
     }
 }
 

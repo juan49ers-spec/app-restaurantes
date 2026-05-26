@@ -56,13 +56,13 @@ describe('Lib Utils', () => {
     it('debería formatear euros correctamente', () => {
       const result = formatCurrency(1234.56)
       expect(result).toContain('€')
-      expect(result).toMatch(/1[.,]?234,56/)
+      expect(result).toContain('1234,56')
     })
 
-    it('debería redondear a enteros', () => {
+    it('debería conservar dos decimales', () => {
       const result1 = formatCurrency(100.4)
       const result2 = formatCurrency(100.5)
-      expect(result1).toContain('100')
+      expect(result1).toContain('100,40')
       expect(result1).toContain('€')
       expect(result2).toContain('100,50')
       expect(result2).toContain('€')
@@ -100,9 +100,9 @@ describe('Lib Utils', () => {
       expect(result).toContain('%')
     })
 
-    it('debería mostrar un decimal', () => {
+    it('debería mostrar dos decimales', () => {
       const result = formatPct(33.333)
-      expect(result).toContain('33,3')
+      expect(result).toContain('33,33')
       expect(result).toContain('%')
     })
 
@@ -115,7 +115,7 @@ describe('Lib Utils', () => {
     it('debería redondear correctamente', () => {
       const result1 = formatPct(33.34)
       const result2 = formatPct(33.35)
-      expect(result1).toContain('33,3')
+      expect(result1).toContain('33,34')
       expect(result2).toContain('33,35')
     })
   })

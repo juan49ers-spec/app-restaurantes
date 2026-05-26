@@ -59,10 +59,6 @@ vi.mock('@/app/actions/utils', () => ({
   getUserRestaurant: vi.fn().mockResolvedValue('550e8400-e29b-41d4-a716-446655440000')
 }))
 
-vi.mock('@/lib/verify-access', () => ({
-  verifyRestaurantAccess: vi.fn().mockResolvedValue(undefined)
-}))
-
 describe('Financial Control - Ultra Deep Coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks()

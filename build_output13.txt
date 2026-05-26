@@ -1,0 +1,25 @@
+
+> temp_app@0.1.0 build
+> next build
+
+   Ôû▓ Next.js 15.1.6
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./src/components/financial-control/ExpensesDashboard.tsx
+62:36  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+64:31  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+64:60  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+66:38  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+67:33  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+126:58  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+128:41  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+129:43  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+129:72  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

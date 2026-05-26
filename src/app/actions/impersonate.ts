@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/admin"
 import { logAuditEvent } from "@/lib/audit"
 import { createClient } from "@/lib/supabaseServer"
 
-export async function startImpersonation(restaurantId: string, restaurantName: string) {
+export async function startImpersonation(restaurantId: string) {
     const admin = await requireAdmin()
 
     const supabase = await createClient()
@@ -33,7 +33,7 @@ export async function startImpersonation(restaurantId: string, restaurantName: s
         secure: true,
         sameSite: 'strict' as const,
         path: '/',
-        maxAge: 1800, // 30 minutes auto-expire
+        maxAge: 1800,
     }
 
     cookieStore.set('impersonated_restaurant_id', restaurant.id, cookieOptions)

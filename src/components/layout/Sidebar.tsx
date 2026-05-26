@@ -10,7 +10,7 @@ import {
     LogOut
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { navigationConfig, MenuGroup } from "@/config/navigation"
 import { supabase } from "@/lib/supabaseClient"
@@ -33,11 +33,9 @@ interface SidebarProps {
     activeAddons?: string[]
     restaurantId?: string
     restaurantName?: string
-    isImpersonating?: boolean
-    isAdmin?: boolean
 }
 
-export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile, activeAddons = [], restaurantId, restaurantName, isImpersonating = false, isAdmin = false }: SidebarProps) {
+export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile, activeAddons = [], restaurantId, restaurantName }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
 
@@ -61,6 +59,7 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-[280px]">
+                    <SheetTitle className="sr-only">Menú principal</SheetTitle>
                     <SidebarContent
                         pathname={pathname}
                         collapsed={false}
@@ -72,8 +71,6 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                         activeAddons={activeAddons}
                         restaurantId={restaurantId}
                         restaurantName={restaurantName}
-                        isImpersonating={isImpersonating}
-                        isAdmin={isAdmin}
                     />
                 </SheetContent>
             </Sheet>
@@ -102,8 +99,6 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                 activeAddons={activeAddons}
                 restaurantId={restaurantId}
                 restaurantName={restaurantName}
-                isImpersonating={isImpersonating}
-                isAdmin={isAdmin}
             />
         </aside>
     )
@@ -120,11 +115,9 @@ interface SidebarContentProps {
     activeAddons: string[]
     restaurantId?: string
     restaurantName?: string
-    isImpersonating: boolean
-    isAdmin: boolean
 }
 
-function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout, activeAddons, restaurantId, restaurantName, isImpersonating, isAdmin }: SidebarContentProps) {
+function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout, activeAddons, restaurantId, restaurantName }: SidebarContentProps) {
     const router = useRouter()
 
     const getInitials = () => {
@@ -142,13 +135,11 @@ function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGro
 
     const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Invitado"
     const userRole = user?.user_metadata?.role || "Usuario"
-    const isAdminUser = isAdmin
+    const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin' || (user?.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase()))
 
     const filteredMenuGroups = menuGroups.map(group => {
-        // If it's a superadmin AND they are NOT impersonating, show everything.
-        // If they ARE impersonating, we want them to see what the client sees (respect activeAddons).
-        if (isAdminUser && !isImpersonating) return group
-
+        if (isAdmin) return group // Admins see everything
         if (group.title === "CORE") return group
         if (group.title === "OPERATIVA" && activeAddons.includes('operativa')) return group
         if (group.title === "ESTRUCTURA" && activeAddons.includes('personal')) return group

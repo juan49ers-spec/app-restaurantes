@@ -4,22 +4,22 @@
  * que se invocan desde Server Components (pages/layouts).
  */
 import { createClient } from "@/lib/supabaseServer"
-import { requireAdmin, getAdminEmailList } from "@/lib/admin"
 
-export { requireAdmin }
+const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
+
+export async function requireAdmin() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
+        throw new Error("Unauthorized: Super Admin access required")
+    }
+    return user
+}
 
 // ==========================================
 // TYPES
 // ==========================================
-
-export interface Broadcast {
-    id: string
-    title: string
-    content: string
-    severity: 'INFO' | 'WARNING' | 'CRITICAL' | 'SUCCESS'
-    expires_at: string
-    created_at: string
-}
 
 export interface AdminDashboardData {
     totalRestaurants: number
@@ -29,7 +29,18 @@ export interface AdminDashboardData {
     recentAuditLogs: AuditLogEntry[]
     restaurants: AdminRestaurantRow[]
     systemHealth: SystemHealthData | null
-    broadcasts: Broadcast[]
+    broadcasts: AdminBroadcastRow[]
+}
+
+export interface AdminBroadcastRow {
+    id: string
+    title: string
+    content: string
+    severity: 'INFO' | 'WARNING' | 'CRITICAL' | 'SUCCESS'
+    expires_at: string
+    created_at: string
+    is_active?: boolean
+    target_type?: string
 }
 
 export interface SystemHealthData {
@@ -68,6 +79,14 @@ export interface AdminRestaurantRow {
     employeeCount: number
 }
 
+interface AdminListedUser {
+    id: string
+    email?: string | null
+    created_at: string
+    last_sign_in_at: string | null
+    restaurant_id: string | null
+}
+
 // ==========================================
 // QUERIES
 // ==========================================
@@ -78,7 +97,7 @@ export async function getAllRestaurants() {
 
     const { data, error } = await supabase
         .from('restaurants')
-        .select('id, name, created_at, modules, owner_id')
+        .select('*')
         .order('created_at', { ascending: false })
 
     if (error) {
@@ -100,14 +119,10 @@ export async function getAllRestaurants() {
             }
 
             result.push({
-                id: r.id,
-                name: r.name,
+                ...r,
                 modules: r.modules || { financial_control: 'basic', operativa: 'none', proveedores: 'none', personal: 'none' },
-                created_at: safeDate,
-                salesThisMonth: 0,
-                expensesThisMonth: 0,
-                employeeCount: 0
-            })
+                created_at: safeDate
+            } as AdminRestaurantRow)
         } catch (e) {
             console.error(`[Admin - Restaurants] Fallo al parsear restaurante ID: ${r.id}`, e)
             // Se omite el restaurante corrupto en vez de tirar toda la página con un 500
@@ -139,7 +154,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         supabase.from('daily_sales').select('restaurant_id, revenue_total').gte('date', monthStart).lt('date', monthEnd),
         supabase.from('operating_expenses').select('restaurant_id, amount').gte('expense_date', monthStart).lt('expense_date', monthEnd),
         supabase.from('employees').select('restaurant_id, id'),
-        supabase.from('audit_logs').select('id, table_name, record_id, action, old_data, new_data, changed_by, created_at, restaurant_id', { count: 'exact' }).order('created_at', { ascending: false }).limit(50),
+        supabase.from('audit_logs').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(50),
         supabase.rpc('admin_get_system_health'),
         supabase.from('global_broadcasts').select('*').eq('is_active', true).order('created_at', { ascending: false })
     ])
@@ -184,9 +199,9 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
         const rMap = new Map<string, string>(restaurants.map(r => [r.id, r.name]))
         const userRestaurantMap = new Map<string, string>(
-            allUsers
-                .filter((u: { id: string; restaurant_id: string | null }) => u.restaurant_id)
-                .map((u: { id: string; restaurant_id: string | null }) => [u.id, u.restaurant_id ? (rMap.get(u.restaurant_id) || '') : ''])
+            (allUsers as AdminListedUser[])
+                .filter((u) => u.restaurant_id)
+                .map((u) => [u.id, rMap.get(u.restaurant_id || '') || ''])
         )
 
         systemHealth.users_data = systemHealth.users_data.map(u => ({
@@ -203,7 +218,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         recentAuditLogs: auditLogs,
         restaurants: restaurantRows,
         systemHealth,
-        broadcasts: broadcastsRes.data || []
+        broadcasts: (broadcastsRes.data || []) as AdminBroadcastRow[]
     }
 }
 
@@ -217,12 +232,12 @@ export async function getAuditLogs(page = 1, pageSize = 50): Promise<{ logs: Aud
     const [dataRes, countRes] = await Promise.all([
         supabase
             .from('audit_logs')
-            .select('id, table_name, record_id, action, old_data, new_data, changed_by, created_at, restaurant_id')
+            .select('*')
             .order('created_at', { ascending: false })
             .range(from, to),
         supabase
             .from('audit_logs')
-            .select('id', { count: 'exact', head: true })
+            .select('*', { count: 'exact', head: true })
     ])
 
     if (dataRes.error || countRes.error) {
@@ -270,13 +285,13 @@ export async function getAdminUsers(): Promise<AdminUserRow[]> {
         (restaurants || []).map(r => [r.id, r.name])
     )
 
-    return (users || []).map((u: { id: string; email: string; created_at: string; last_sign_in_at: string | null; restaurant_id: string | null }) => ({
+    return ((users || []) as AdminListedUser[]).map((u) => ({
         id: u.id,
         email: u.email || 'Sin email',
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at || null,
         restaurant_id: u.restaurant_id || null,
         restaurant_name: u.restaurant_id ? (restaurantMap.get(u.restaurant_id) || 'Desconocido') : null,
-        is_admin: getAdminEmailList().includes((u.email || '').trim().toLowerCase()),
+        is_admin: ADMIN_EMAILS.includes((u.email || '').trim().toLowerCase()),
     }))
 }

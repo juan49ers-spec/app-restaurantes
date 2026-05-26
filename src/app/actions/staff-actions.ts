@@ -3,15 +3,17 @@
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { EmployeeSchema, type Employee, ShiftSchema, type Shift } from "@/types/schema"
-import { verifyRestaurantAccess } from "@/lib/verify-access"
+import { getUserRestaurant } from "./utils"
 
 /**
  * EMPLOYEES
  */
 
-export async function getEmployees(restaurantId: string): Promise<Employee[]> {
-    await verifyRestaurantAccess(restaurantId)
+export async function getEmployees(_restaurantId: string): Promise<Employee[]> {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return []
+
     const { data, error } = await supabase
         .from('employees')
         .select('*')
@@ -24,6 +26,8 @@ export async function getEmployees(restaurantId: string): Promise<Employee[]> {
 
 export async function upsertEmployee(employee: Employee) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) throw new Error('No hay restaurante activo.')
 
     // Clean up empty ID for new employees
     const employeeData = { ...employee }
@@ -33,10 +37,11 @@ export async function upsertEmployee(employee: Employee) {
 
     // Validate with Zod
     const validated = EmployeeSchema.parse(employeeData)
+    const { restaurant_id: _ignoredRestaurantId, ...safeEmployee } = validated
 
     const { data, error } = await supabase
         .from('employees')
-        .upsert(validated)
+        .upsert({ ...safeEmployee, restaurant_id: restaurantId })
         .select()
         .single()
 
@@ -51,10 +56,14 @@ export async function upsertEmployee(employee: Employee) {
 
 export async function deleteEmployee(id: string) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) throw new Error('No hay restaurante activo.')
+
     const { error } = await supabase
         .from('employees')
         .delete()
         .eq('id', id)
+        .eq('restaurant_id', restaurantId)
 
     if (error) throw error
 
@@ -65,29 +74,34 @@ export async function deleteEmployee(id: string) {
  * SHIFTS
  */
 
-export async function getShifts(restaurantId: string, startDate: string, endDate: string): Promise<Pick<Shift, 'id' | 'employee_id' | 'date' | 'start_time' | 'end_time' | 'estimated_cost' | 'actual_cost'>[]> {
-    await verifyRestaurantAccess(restaurantId)
+export async function getShifts(_restaurantId: string, startDate: string, endDate: string): Promise<Shift[]> {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return []
+
     const { data, error } = await supabase
         .from('shifts')
-        .select('id, employee_id, date, start_time, end_time, estimated_cost, actual_cost')
+        .select('*')
         .eq('restaurant_id', restaurantId)
         .gte('date', startDate)
         .lte('date', endDate)
         .order('date', { ascending: true })
 
     if (error) throw error
-    return data as Pick<Shift, 'id' | 'employee_id' | 'date' | 'start_time' | 'end_time' | 'estimated_cost' | 'actual_cost'>[]
+    return data as Shift[]
 }
 
 export async function upsertShift(shift: Shift) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) throw new Error('No hay restaurante activo.')
 
     const validated = ShiftSchema.parse(shift)
+    const { restaurant_id: _ignoredRestaurantId, ...safeShift } = validated
 
     const { data, error } = await supabase
         .from('shifts')
-        .upsert(validated)
+        .upsert({ ...safeShift, restaurant_id: restaurantId })
         .select()
         .single()
 
@@ -99,10 +113,14 @@ export async function upsertShift(shift: Shift) {
 
 export async function deleteShift(id: string) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) throw new Error('No hay restaurante activo.')
+
     const { error } = await supabase
         .from('shifts')
         .delete()
         .eq('id', id)
+        .eq('restaurant_id', restaurantId)
 
     if (error) throw error
 
@@ -124,14 +142,15 @@ export interface DailyForecast {
     efficiency: number // (Labor / Sales) * 100
 }
 
-export async function getStaffingForecast(restaurantId: string, startDate: string, endDate: string): Promise<DailyForecast[]> {
-    await verifyRestaurantAccess(restaurantId)
+export async function getStaffingForecast(_restaurantId: string, startDate: string, endDate: string): Promise<DailyForecast[]> {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return []
 
     // 1. Fetch Scheduled Shifts for the period
     const { data: shifts } = await supabase
         .from('shifts')
-        .select('id, date, start_time, end_time, estimated_cost')
+        .select('*')
         .eq('restaurant_id', restaurantId)
         .gte('date', startDate)
         .lte('date', endDate)

@@ -17,14 +17,14 @@ interface ExpenseDonutChartProps {
 }
 
 const COLORS = [
-    { hex: "#171717", bgClass: "bg-neutral-900" }, // neutral-900
-    { hex: "#404040", bgClass: "bg-neutral-700" }, // neutral-700
-    { hex: "#737373", bgClass: "bg-neutral-500" }, // neutral-500
-    { hex: "#a3a3a3", bgClass: "bg-neutral-400" }, // neutral-400
-    { hex: "#d4d4d4", bgClass: "bg-neutral-300" }, // neutral-300
-    { hex: "#e5e5e5", bgClass: "bg-neutral-200" }, // neutral-200
-    { hex: "#0a0a0a", bgClass: "bg-neutral-950" }, // neutral-950
-    { hex: "#262626", bgClass: "bg-neutral-800" }, // neutral-800
+    { hex: "#3b82f6", bgClass: "bg-blue-500" },
+    { hex: "#10b981", bgClass: "bg-emerald-500" },
+    { hex: "#f59e0b", bgClass: "bg-amber-500" },
+    { hex: "#ef4444", bgClass: "bg-red-500" },
+    { hex: "#8b5cf6", bgClass: "bg-violet-500" },
+    { hex: "#ec4899", bgClass: "bg-pink-500" },
+    { hex: "#06b6d4", bgClass: "bg-cyan-500" },
+    { hex: "#f97316", bgClass: "bg-orange-500" },
 ]
 
 interface CustomTooltipProps {
@@ -97,8 +97,8 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
 
 
     return (
-        <Card className="shadow-sm border-neutral-200 bg-white">
-            <CardHeader className="pb-2 pt-4 px-4 border-b border-neutral-100">
+        <Card className="shadow-sm border-neutral-200 bg-white h-full flex flex-col overflow-hidden">
+            <CardHeader className="pb-2 pt-4 px-4 flex-none border-b border-neutral-100">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-neutral-50 rounded-lg text-neutral-500">
@@ -126,17 +126,16 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="p-4 space-y-4">
-                {/* Donut */}
-                <div className="relative h-[200px]">
-                    <ResponsiveContainer minWidth={0} minHeight={0} width="100%" height="100%">
+            <CardContent className="flex-1 flex flex-col sm:flex-row items-center p-0 overflow-hidden min-h-[220px]">
+                <div className="relative w-full sm:w-1/2 h-[180px] sm:h-full p-4 flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
                                 data={activeData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={62}
-                                outerRadius={88}
+                                innerRadius={55}
+                                outerRadius={80}
                                 paddingAngle={2}
                                 dataKey="value"
                                 stroke="none"
@@ -145,7 +144,7 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                                         setSelectedCategory(data.category as OperatingExpenseCategory)
                                     }
                                 }}
-                                className={cn(selectedCategory ? "cursor-default" : "cursor-pointer", "outline-none")}
+                                className="cursor-pointer focus:outline-none"
                             >
                                 {activeData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -154,44 +153,52 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
                             <Tooltip content={<CustomTooltip totalValue={totalValue} />} />
                         </PieChart>
                     </ResponsiveContainer>
+
                     {/* Center Text */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-center">
                             <p className="text-[9px] text-neutral-400 font-medium">Total</p>
-                            <p className="text-sm font-bold text-neutral-900">{formatCurrency(totalValue)}</p>
+                            <p className="text-xs font-bold text-neutral-900">{formatCurrency(totalValue)}</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Legend */}
-                <div className="space-y-1">
-                    {activeData.map((item, index) => (
-                        <div
-                            key={index}
-                            className={cn(
-                                "flex items-center justify-between text-[11px] px-2 py-1.5 rounded-lg transition-colors",
-                                !selectedCategory ? "hover:bg-neutral-50 cursor-pointer" : ""
-                            )}
-                            onClick={() => {
-                                if (!selectedCategory && 'category' in item) {
-                                    setSelectedCategory(item.category as OperatingExpenseCategory)
-                                }
-                            }}
-                        >
-                            <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-                                <div className={cn("w-2 h-2 rounded-full flex-shrink-0", item.bgClass)} />
-                                <span className="text-neutral-600 font-medium truncate">{item.name}</span>
+                {/* Legend Section */}
+                <div className="w-full sm:w-1/2 h-full p-4 bg-neutral-50/50 border-t sm:border-t-0 sm:border-l border-neutral-100 overflow-y-auto max-h-[180px] sm:max-h-none">
+                    <div className="space-y-1">
+                        {activeData.map((item, index) => (
+                            <div
+                                key={index}
+                                className={cn(
+                                    "flex items-center justify-between text-[10px] p-1.5 rounded-lg transition-all",
+                                    !selectedCategory ? "hover:bg-white hover:shadow-sm cursor-pointer" : ""
+                                )}
+                                onClick={() => {
+                                    if (!selectedCategory && 'category' in item) {
+                                        setSelectedCategory(item.category as OperatingExpenseCategory)
+                                    }
+                                }}
+                            >
+                                <div className="flex items-center gap-2 overflow-hidden flex-1">
+                                    <div
+                                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                        style={{ backgroundColor: item.color }}
+                                    />
+                                    <span className="text-neutral-600 font-medium truncate" title={item.name}>
+                                        {item.name}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 ml-2">
+                                    <span className="font-mono text-neutral-400">
+                                        {totalValue > 0 ? Math.round((item.value / totalValue) * 100) : 0}%
+                                    </span>
+                                    <span className="font-bold text-neutral-900 min-w-[50px] text-right">
+                                        {formatCurrency(item.value)}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-3 ml-2 flex-shrink-0">
-                                <span className="text-neutral-400 tabular-nums">
-                                    {totalValue > 0 ? Math.round((item.value / totalValue) * 100) : 0}%
-                                </span>
-                                <span className="font-semibold text-neutral-900 tabular-nums">
-                                    {formatCurrency(item.value)}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </CardContent>
         </Card>

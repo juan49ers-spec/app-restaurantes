@@ -2,8 +2,6 @@
 
 import { createClient } from "@/lib/supabaseServer"
 import { redirect } from "next/navigation"
-import { getAdminEmailList } from "@/lib/admin"
-import { logAuditEvent } from "@/lib/audit"
 
 export async function getUserRestaurant(): Promise<string | null> {
     const supabase = await createClient()
@@ -14,31 +12,14 @@ export async function getUserRestaurant(): Promise<string | null> {
     }
 
     // --- IMPERSONATION LOGIC ---
-    const adminEmails = getAdminEmailList()
-    if (user.email && adminEmails.includes(user.email.trim().toLowerCase())) {
+    // Only super admins can impersonate a restaurant.
+    const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
+    if (user.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
         const { cookies } = await import('next/headers')
         const cookieStore = await cookies()
         const impersonatedId = cookieStore.get('impersonated_restaurant_id')?.value
         if (impersonatedId) {
-            const { data: restaurant } = await supabase
-                .from('restaurants')
-                .select('id')
-                .eq('id', impersonatedId)
-                .maybeSingle()
-
-            if (!restaurant) {
-                cookieStore.delete('impersonated_restaurant_id')
-                cookieStore.delete('impersonated_restaurant_name')
-                await logAuditEvent({
-                    action: 'impersonation_invalid',
-                    target_type: 'restaurant',
-                    target_id: impersonatedId,
-                    metadata: { reason: 'restaurant_not_found', admin_email: user.email }
-                })
-                return null
-            }
-
-            return restaurant.id
+            return impersonatedId
         }
     }
 
@@ -56,6 +37,6 @@ export async function getUserRestaurant(): Promise<string | null> {
     const metadataId = user.user_metadata?.restaurant_id
     if (metadataId) return metadataId as string
 
-    // 3. No restaurant found
+    // 3. No restaurant found — admin users or new users without restaurant
     return null
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { useRouter, useSearchParams } from "next/navigation"
 import { m } from "framer-motion"
 import { DashboardDatePicker } from "@/components/dashboard/DashboardDatePicker"
@@ -106,7 +106,7 @@ export function UnifiedDashboard({
                         </span>
                     </div>
                     <button
-                        onClick={() => router.push('/finance')}
+                        onClick={() => window.location.href = '/financial-control'}
                         className="text-[9px] font-black uppercase tracking-widest text-primary/70 hover:text-primary transition-all flex items-center gap-1.5"
                     >
                         Informe Detallado <TrendingUp className="w-2.5 h-2.5" />

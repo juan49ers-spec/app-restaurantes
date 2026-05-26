@@ -103,7 +103,7 @@ export function StockDashboard() {
     return (
         <div className="space-y-6">
             {/* KPI Cards */}
-            <div id="stock-stats-cards" className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card className="bg-white border-neutral-200 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500" />
                     <CardHeader className="pb-2">
@@ -164,9 +164,7 @@ export function StockDashboard() {
                     <Button variant="outline" size="sm" onClick={loadInventory} disabled={loading}>
                         <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Actualizar
                     </Button>
-                    <div id="manual-entry-btn">
-                        <ManualStockEntryDialog onSuccess={loadInventory} />
-                    </div>
+                    <ManualStockEntryDialog onSuccess={loadInventory} />
                     <Button size="sm" onClick={handleInitialize} disabled={isPending} variant="secondary">
                         <Plus className="w-4 h-4 mr-1.5" /> Inicializar Stock
                     </Button>
@@ -174,7 +172,7 @@ export function StockDashboard() {
             </div>
 
             {/* Inventory Table */}
-            <Card id="inventory-table">
+            <Card>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table>

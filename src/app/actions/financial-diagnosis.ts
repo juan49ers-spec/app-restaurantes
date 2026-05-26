@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
-import { verifyRestaurantAccess } from "@/lib/verify-access"
 import { startOfMonth, endOfMonth, subMonths } from "date-fns"
 import { DailySales } from "@/types/schema"
 
@@ -32,7 +31,6 @@ export async function getFinancialDiagnosis(
     startDate?: string,
     endDate?: string
 ): Promise<FinancialDiagnosis> {
-    await verifyRestaurantAccess(restaurantId)
     const supabase = await createClient()
     const now = new Date()
 
@@ -43,7 +41,7 @@ export async function getFinancialDiagnosis(
     // 1. Fetch Daily Sales for current period
     const { data: salesData, error } = await supabase
         .from('daily_sales')
-        .select('id, restaurant_id, date, revenue_total, base_10, tax_10, base_21, tax_21, revenue_dine_in, revenue_takeout, revenue_delivery, iva_collected, total_covers, labor_hours, day_status, cost_of_goods, labor_cost, source, created_at')
+        .select('*')
         .eq('restaurant_id', restaurantId)
         .gte('date', start.toISOString().split('T')[0])
         .lte('date', end.toISOString().split('T')[0])

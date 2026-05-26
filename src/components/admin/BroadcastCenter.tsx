@@ -15,6 +15,8 @@ interface Broadcast {
     created_at: string
 }
 
+type BroadcastSeverity = Broadcast['severity']
+
 interface Props {
     initialBroadcasts: Broadcast[]
 }
@@ -24,7 +26,12 @@ export function BroadcastCenter({ initialBroadcasts }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Form State
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        title: string
+        content: string
+        severity: BroadcastSeverity
+        expires_at: string
+    }>({
         title: '',
         content: '',
         severity: 'INFO' as const,
@@ -55,7 +62,7 @@ export function BroadcastCenter({ initialBroadcasts }: Props) {
             } else {
                 toast.error('Error al enviar el anuncio')
             }
-        } catch (error) {
+        } catch {
             toast.error('Ocurrió un error inesperado')
         } finally {
             setIsSubmitting(false)
@@ -71,7 +78,7 @@ export function BroadcastCenter({ initialBroadcasts }: Props) {
                 setBroadcasts(prev => prev.filter(b => b.id !== id))
                 toast.success('Anuncio eliminado')
             }
-        } catch (error) {
+        } catch {
             toast.error('Error al eliminar')
         }
     }
@@ -135,7 +142,7 @@ export function BroadcastCenter({ initialBroadcasts }: Props) {
                         <select
                             aria-label="Gravedad del anuncio"
                             value={formData.severity}
-                            onChange={e => setFormData(prev => ({ ...prev, severity: e.target.value as any }))}
+                            onChange={e => setFormData(prev => ({ ...prev, severity: e.target.value as BroadcastSeverity }))}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
                         >
                             <option value="INFO">Info</option>

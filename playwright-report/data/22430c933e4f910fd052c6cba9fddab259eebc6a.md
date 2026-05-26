@@ -1,0 +1,99 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - button "Abrir menú" [ref=e3]:
+      - img
+    - main [ref=e4]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - generic [ref=e9]: Control Hub
+          - generic [ref=e10]: Inicia sesión o regístrate para continuar.
+        - generic [ref=e12]:
+          - generic [ref=e13]:
+            - generic [ref=e14]:
+              - generic [ref=e15]: Email
+              - textbox "Email" [ref=e16]:
+                - /placeholder: tu@email.com
+            - generic [ref=e17]:
+              - generic [ref=e18]: Contraseña
+              - textbox "Contraseña" [ref=e19]
+          - button "Iniciar Sesión" [ref=e21]
+        - generic [ref=e22]:
+          - generic [ref=e23]: ¿No tienes cuenta?
+          - button "Crear Cuenta" [ref=e24]
+  - region "Notifications alt+T"
+  - generic [active]:
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - navigation [ref=e30]:
+          - button "previous" [disabled] [ref=e31]:
+            - img "previous" [ref=e32]
+          - generic [ref=e34]:
+            - generic [ref=e35]: 1/
+            - text: "1"
+          - button "next" [disabled] [ref=e36]:
+            - img "next" [ref=e37]
+        - generic [ref=e40]:
+          - img [ref=e41]
+          - generic "Latest available version is detected (16.1.6)." [ref=e43]: Next.js 16.1.6
+          - generic [ref=e44]: Turbopack
+      - dialog "Build Error" [ref=e46]:
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e51]:
+              - generic [ref=e53]: Build Error
+              - generic [ref=e54]:
+                - button "Copy Error Info" [ref=e55] [cursor=pointer]:
+                  - img [ref=e56]
+                - button "No related documentation found" [disabled] [ref=e58]:
+                  - img [ref=e59]
+                - button "Attach Node.js inspector" [ref=e61] [cursor=pointer]:
+                  - img [ref=e62]
+            - generic [ref=e71]: Error parsing package.json file
+          - generic [ref=e73]:
+            - generic [ref=e75]:
+              - img [ref=e77]
+              - generic [ref=e79]: ./package.json (17:1)
+              - button "Open in editor" [ref=e80] [cursor=pointer]:
+                - img [ref=e82]
+            - generic [ref=e85]:
+              - generic [ref=e86]: Error parsing package.json file
+              - generic [ref=e87]: 15 |
+              - text: "\"test:e2e:ui\":"
+              - generic [ref=e88]: "\"playwright test --ui\""
+              - text: ","
+              - generic [ref=e89]: 16 |
+              - text: "\"test:e2e:debug\":"
+              - generic [ref=e90]: "\"playwright test --debug\""
+              - text: ",\" >"
+              - generic [ref=e91]: 17 |
+              - text: "\"smoke-test\":"
+              - generic [ref=e92]: "\"node scripts/smoke-test.js\""
+              - text: ","
+              - generic [ref=e93]: "|"
+              - text: ^
+              - generic [ref=e94]: 18 |
+              - text: "\"pre-refactor\":"
+              - generic [ref=e95]: "\"npm run smoke-test\""
+              - text: ","
+              - generic [ref=e96]: 19 |
+              - text: "\"post-refactor\":"
+              - generic [ref=e97]: "\"npm run smoke-test && npm run typecheck && npm run build\""
+              - generic [ref=e98]: 20 |
+              - generic [ref=e99]: "}"
+              - text: ","
+              - generic [ref=e100]: "package.json is not parseable: invalid JSON: control character (\\u0000-\\u001F) found while parsing a string at line 17 column 0"
+        - generic [ref=e101]: "1"
+        - generic [ref=e102]: "2"
+    - generic [ref=e107] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e108]:
+        - img [ref=e109]
+      - button "Open issues overlay" [ref=e113]:
+        - generic [ref=e114]:
+          - generic [ref=e115]: "0"
+          - generic [ref=e116]: "1"
+        - generic [ref=e117]: Issue
+  - alert [ref=e118]
+```

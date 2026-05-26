@@ -1,9 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabaseServer'
-import { requireAdmin } from '@/lib/admin'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+
+const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
 
 const broadcastSchema = z.object({
     title: z.string().min(1, 'El título es obligatorio'),
@@ -16,9 +17,14 @@ const broadcastSchema = z.object({
     }),
 })
 
-async function requireSuperAdmin() {
-    const user = await requireAdmin()
+export async function requireSuperAdmin() {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
+        throw new Error('No tienes permisos de super_admin')
+    }
+
     return { supabase, user }
 }
 
@@ -38,6 +44,7 @@ export async function createBroadcast(rawData: unknown) {
         })
 
     if (error) {
+        console.error('Error creating broadcast:', error)
         return { success: false, error: 'Error al crear el anuncio' }
     }
 
@@ -50,12 +57,13 @@ export async function getActiveBroadcasts() {
 
     const { data, error } = await supabase
         .from('global_broadcasts')
-        .select('id, title, content, severity, target_type, target_restaurant_ids, expires_at, created_at, created_by, is_active')
+        .select('*')
         .eq('is_active', true)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
 
     if (error) {
+        console.error('Error fetching broadcasts:', error)
         return []
     }
 
@@ -71,6 +79,7 @@ export async function deleteBroadcast(id: string) {
         .eq('id', id)
 
     if (error) {
+        console.error('Error deleting broadcast:', error)
         return { success: false, error: 'Error al eliminar el anuncio' }
     }
 

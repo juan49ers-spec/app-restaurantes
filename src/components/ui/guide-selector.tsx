@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Wand2, Clock, BarChart3, ChevronRight, PlayCircle, BookOpen, Utensils, PackageCheck, ChefHat, Compass } from "lucide-react"
+import { Wand2, Clock, BarChart3, ChevronRight, PlayCircle, BookOpen, Utensils, PackageCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface GuideSelectorProps {
@@ -44,8 +44,6 @@ export function GuideSelector({ open, onOpenChange, onSelectScenario }: GuideSel
             case 'Utensils': return <Utensils className="w-5 h-5 text-slate-500 group-hover:text-primary transition-colors" />
             case 'PackageCheck': return <PackageCheck className="w-5 h-5 text-slate-500 group-hover:text-primary transition-colors" />
             case 'BarChart3': return <BarChart3 className="w-5 h-5 text-slate-500 group-hover:text-primary transition-colors" />
-            case 'ChefHat': return <ChefHat className="w-5 h-5 text-slate-500 group-hover:text-primary transition-colors" />
-            case 'Compass': return <Compass className="w-5 h-5 text-slate-500 group-hover:text-primary transition-colors" />
             default: return <BookOpen className="w-5 h-5 text-slate-500 group-hover:text-primary transition-colors" />
         }
     }

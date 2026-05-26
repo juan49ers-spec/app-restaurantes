@@ -1,0 +1,111 @@
+
+> temp_app@0.1.0 test
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/Usuario/.gemini/antigravity/playground/app finanzas restaurante[39m
+
+stderr | tests/unit/ingredients.test.ts > Ingredients Actions > getIngredientPriceHistory > deber├¡a retornar array vac├¡o si falla la consulta
+Error fetching price history: { message: 'History error' }
+
+ [32mÔ£ô[39m tests/unit/ingredients.test.ts [2m([22m[2m24 tests[22m[2m)[22m[33m 745[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m deber├¡a obtener ingredientes activos del restaurante [33m 690[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/financial-control-insights.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 868[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a existir getExpenseDashboardData [33m 862[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/financial-control-final.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 760[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m deber├¡a ejecutar l├¡nea 545 con categor├¡as de aumento [33m 751[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/safeaction-handlers-real.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 806[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m deber├¡a ejecutar handler real y crear ingrediente [33m 590[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/ultra-specific-lines.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 489[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m deber├¡a ejecutar l├¡nea 545: .map(cat => cat.category) [33m 415[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/financial-control-ultra.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 667[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m deber├¡a ejecutar l├¡nea 545 - topIncreaseCategories con datos reales [33m 657[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/setup.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 705[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m should support testing library matchers [33m 694[2mms[22m[39m
+ [32mÔ£ô[39m tests/integration/flows.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 1512[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m deber├¡a existir flujo de creaci├│n de ingredientes [33m 990[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m deber├¡a existir flujo de registro de ventas [33m 501[2mms[22m[39m
+ [32mÔ£ô[39m tests/components/DeleteIngredientAlert.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 2688[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a renderizar el bot├│n de eliminar [33m 612[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a abrir el di├ílogo al hacer clic en el bot├│n [33m 564[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a mostrar advertencia cuando hay recetas asociadas [33m 407[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a permitir eliminaci├│n cuando no hay recetas [33m 561[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a mostrar error si falla la eliminaci├│n [33m 475[2mms[22m[39m
+stderr | tests/unit/ingredients-import-comprehensive.test.ts > checkIngredientUsage - Deep Tests > deber├¡a retornar array vac├¡o si hay error (l├¡nea 171-173)
+Error checking usage: { message: 'Database error' }
+
+ [32mÔ£ô[39m tests/unit/lib-utils.test.ts [2m([22m[2m36 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+stderr | tests/unit/ingredients-import-comprehensive.test.ts > importIngredientsBulk - Deep Tests > Error handling (l├¡neas 257-258) > deber├¡a lanzar error detallado cuando falla el upsert (l├¡nea 257-258)
+Error importing ingredients: { message: 'unique_violation: duplicate key value' }
+
+stderr | tests/unit/ingredients-import-comprehensive.test.ts > importIngredientsBulk - Deep Tests > Error handling (l├¡neas 257-258) > deber├¡a lanzar error para constraint violations
+Error importing ingredients: { message: 'foreign_key_violation' }
+
+ [32mÔ£ô[39m tests/unit/ingredients-import-comprehensive.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 340[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/suppliers.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 336[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/recipes-delete-handler.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 185[2mms[22m[39m
+ [32mÔ£ô[39m tests/components/IngredientsTable.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 2462[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a renderizar la tabla con ingredientes [33m 363[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a cancelar edici├│n al hacer clic en X [33m 1000[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a mostrar error con valores inv├ílidos [33m 409[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/recipes-comprehensive.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 191[2mms[22m[39m
+stderr | tests/unit/financial-control.test.ts > Financial Control Actions > Manejo de Errores > deber├¡a lanzar error en getDailySales para otros errores
+Error fetching daily sales: { code: 'PGRST001', message: 'Connection failed' }
+
+stderr | tests/unit/financial-control.test.ts > Financial Control Actions > Manejo de Errores > deber├¡a lanzar error en getDailySalesRange
+Error fetching daily sales range: { message: 'Database timeout' }
+
+stderr | tests/unit/financial-control.test.ts > Financial Control Actions > Manejo de Errores > deber├¡a retornar error en upsertDailySales
+Error upserting daily sales: { message: 'Unique violation' }
+
+stderr | tests/unit/financial-control.test.ts > Financial Control Actions > Manejo de Errores > deber├¡a lanzar error en getOperatingExpenses
+Error fetching expenses: { message: 'Permission denied' }
+
+stderr | tests/unit/financial-control.test.ts > Financial Control Actions > Manejo de Errores > deber├¡a retornar error en upsertOperatingExpense
+Error upserting expense: { message: 'Insert failed' }
+
+ [32mÔ£ô[39m tests/unit/financial-control.test.ts [2m([22m[2m42 tests[22m[2m)[22m[33m 469[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m deber├¡a obtener ventas diarias [33m 349[2mms[22m[39m
+stderr | tests/unit/recipes.test.ts > Recipes Actions > getRecipePriceHistory > deber├¡a manejar error de consulta y retornar array vac├¡o
+Error fetching recipe price history: { message: 'Database connection lost' }
+
+ [32mÔ£ô[39m tests/unit/recipes.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 281[2mms[22m[39m
+stderr | tests/unit/safe-action.test.ts > Safe Action > executeSafeAction > deber├¡a manejar error de autenticaci├│n
+Action Error: Error: Unauthorized
+    at C:/Users/Usuario/.gemini/antigravity/playground/app finanzas restaurante/tests/unit/safe-action.test.ts:75:47
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at file:///C:/Users/Usuario/.gemini/antigravity/playground/app%20finanzas%20restaurante/node_modules/@vitest/runner/dist/index.js:915:20
+
+stderr | tests/unit/safe-action.test.ts > Safe Action > executeSafeAction > deber├¡a manejar errores del handler
+Action Error: Error: Database connection failed
+    at C:/Users/Usuario/.gemini/antigravity/playground/app finanzas restaurante/tests/unit/safe-action.test.ts:87:53
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at file:///C:/Users/Usuario/.gemini/antigravity/playground/app%20finanzas%20restaurante/node_modules/@vitest/runner/dist/index.js:915:20
+
+stderr | tests/unit/safe-action.test.ts > Safe Action > executeSafeAction > deber├¡a manejar errores no-Error
+Action Error: String error
+
+stderr | tests/unit/safe-action.test.ts > Safe Action > safeAction factory > deber├¡a manejar errores en acci├│n creada
+Action Error: Error: Action failed
+    at C:/Users/Usuario/.gemini/antigravity/playground/app finanzas restaurante/tests/unit/safe-action.test.ts:201:49
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at file:///C:/Users/Usuario/.gemini/antigravity/playground/app%20finanzas%20restaurante/node_modules/@vitest/runner/dist/index.js:915:20
+
+ [32mÔ£ô[39m tests/unit/safe-action.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+ [32mÔ£ô[39m tests/components/CreateIngredientDialog.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 4719[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a abrir el di├ílogo al hacer clic en el bot├│n [33m 1243[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a mostrar todos los campos del formulario [33m 583[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a tener valores por defecto correctos [33m 311[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a permitir ingresar datos en el formulario [33m 498[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deber├¡a calcular y mostrar el yield [33m 354[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/recipes-format.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/supabase-server.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/recipe-utils.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/utils.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32mÔ£ô[39m tests/unit/financial-utils.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m24 passed[39m[22m[90m (24)[39m
+[2m      Tests [22m [1m[32m287 passed[39m[22m[90m (287)[39m
+[2m   Start at [22m 18:09:20
+[2m   Duration [22m 12.31s[2m (transform 5.19s, setup 7.87s, import 10.91s, tests 18.46s, environment 66.44s)[22m
+

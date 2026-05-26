@@ -22,7 +22,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-*.log
 
 # Local Env Files
 .env
@@ -51,52 +50,15 @@ next-env.d.ts
 *.sln
 *.sw?
 
-# Agent/AI/IDE tools
+# Agent/AI
 .gemini/
 .agent/
-.agents/
 brain/
-.augment/
-.claude/
-.codebuddy/
-.commandcode/
-.continue/
-.crush/
-.factory/
-.goose/
-.junie/
-.kilocode/
-.kiro/
-.kode/
-.mcpjam/
-.mux/
-.neovate/
-.openhands/
-.pi/
-.pochi/
-.qoder/
-.qwen/
-.roo/
-.trae/
-.windsurf/
-.zencoder/
-skills/
-skills-lock.json
+.codex/
+.superpowers/
 
-# Temp/logs/debug artifacts
-*.txt
-!README.txt
-*.pdf
-*.csv
-*.sql
-!supabase/migrations/*.sql
+# Local dev server logs
+dev-codex-localhost*.log
+
+# Supabase local/link metadata
 supabase/.temp/
-debug-*.js
-debug-*.ts
-check_db.*
-repro_*.ts
-verify_*.ts
-test-bundle.*
-dummy_out.*
-invoice-debug.*
-*.bat

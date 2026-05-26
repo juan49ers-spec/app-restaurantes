@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 
 interface IVATableProps {
-    periodLabel: string
+    year: number
+    quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4'
     data: {
         month: string
         baseImponible: number
@@ -15,7 +16,7 @@ interface IVATableProps {
     }[]
 }
 
-export function IVATable({ periodLabel, data }: IVATableProps) {
+export function IVATable({ year, quarter, data }: IVATableProps) {
     const dataWithResults = useMemo(() => {
         return data.map(row => ({
             ...row,
@@ -44,7 +45,7 @@ export function IVATable({ periodLabel, data }: IVATableProps) {
                     </div>
                 </div>
                 <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal text-neutral-500 bg-neutral-50">
-                    {periodLabel}
+                    {quarter} {year}
                 </Badge>
             </div>
 

@@ -93,7 +93,7 @@ describe('Utils Actions', () => {
       expect(mockRedirect).toHaveBeenCalledWith('/login')
     })
 
-    it('debería lanzar error si no existe restaurante para el usuario', async () => {
+    it('debería retornar null si no existe restaurante para el usuario', async () => {
       const { getUserRestaurant } = await import('@/app/actions/utils')
       
       const mockUser = {
@@ -111,8 +111,7 @@ describe('Utils Actions', () => {
         error: null
       })
       
-      const result = await getUserRestaurant()
-      expect(result).toBeNull()
+      await expect(getUserRestaurant()).resolves.toBeNull()
     })
 
     it('debería manejar usuarios con diferentes IDs', async () => {
