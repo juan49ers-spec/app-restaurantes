@@ -429,12 +429,16 @@ function buildMenuEngineeringSection(input: ProfessionalReportInput): Profession
   const topStar = topItem(items, 'STAR')
   const priorityPuzzle = topItem(items, 'PUZZLE')
   const plowhorse = topItem(items, 'PLOWHORSE', 'quantity_sold')
+  const avgPopularity = report.avg_popularity
+  const avgMargin = report.avg_margin
+  const hasAvgPopularity = avgPopularity != null
+  const hasAvgMargin = avgMargin != null
 
   const metrics: ReportMetric[] = [
     { id: 'bcg_report_name', label: 'Reporte BCG usado', value: report.name, unit: 'text', kind: 'actual', sourceIds: ['menu_engineering.report'] },
     { id: 'bcg_item_count', label: 'Productos analizados', value: items.length, unit: 'count', kind: 'actual', sourceIds: ['menu_engineering.report'] },
-    { id: 'bcg_avg_popularity_pct', label: 'Umbral popularidad', value: report.avg_popularity !== null && report.avg_popularity !== undefined ? round(report.avg_popularity * 100, 2) : null, unit: 'pct', kind: report.avg_popularity !== null && report.avg_popularity !== undefined ? 'derived' : 'not_available', sourceIds: ['menu_engineering.report'] },
-    { id: 'bcg_avg_margin', label: 'Umbral margen contribución', value: report.avg_margin ?? null, unit: 'eur', kind: report.avg_margin !== null && report.avg_margin !== undefined ? 'derived' : 'not_available', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_avg_popularity_pct', label: 'Umbral popularidad', value: hasAvgPopularity ? round(avgPopularity * 100, 2) : null, unit: 'pct', kind: hasAvgPopularity ? 'derived' : 'not_available', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_avg_margin', label: 'Umbral margen contribución', value: avgMargin ?? null, unit: 'eur', kind: hasAvgMargin ? 'derived' : 'not_available', sourceIds: ['menu_engineering.report'] },
     { id: 'bcg_star_count', label: 'Estrellas', value: countByClassification(items, 'STAR'), unit: 'count', kind: 'derived', sourceIds: ['menu_engineering.report'] },
     { id: 'bcg_plowhorse_count', label: 'Vacas', value: countByClassification(items, 'PLOWHORSE'), unit: 'count', kind: 'derived', sourceIds: ['menu_engineering.report'] },
     { id: 'bcg_puzzle_count', label: 'Enigmas', value: countByClassification(items, 'PUZZLE'), unit: 'count', kind: 'derived', sourceIds: ['menu_engineering.report'] },

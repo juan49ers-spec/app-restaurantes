@@ -50,6 +50,14 @@ Incorporar Menu Engineering al informe profesional sin recalcular en la UI, sin 
 
 Resultado: todo correcto.
 
+## Ajuste posterior de revision
+
+Tras la revision externa de Fase 8 se han cerrado los tres puntos menores detectados:
+
+- Se ha simplificado la deteccion de disponibilidad de los umbrales BCG (`avg_popularity` y `avg_margin`) para evitar condiciones repetidas.
+- Se ha documentado en codigo la decision editorial de priorizar PUZZLE sobre STAR en la conclusion ejecutiva cuando existen ambos, porque PUZZLE suele ser la palanca mas accionable.
+- Se ha reforzado el test de la server action para comprobar que la lectura de `menu_reports` ordena por `created_at` descendente y limita a 1 resultado. Asi queda cubierto que el informe usa el snapshot BCG mas reciente dentro del periodo.
+
 ## Decisiones conscientes
 
 - No se modifica la seed demo en esta fase para no ampliar una mutacion grande sin test especifico del flujo completo.

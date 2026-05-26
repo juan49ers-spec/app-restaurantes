@@ -6,12 +6,20 @@ const RESTAURANT_ID = '550e8400-e29b-41d4-a716-446655440000'
 
 let mockRestaurantId: string | null = RESTAURANT_ID
 let tableResults: Record<string, QueryResult> = {}
-let calls: Array<{ table: string; filters: Array<[string, string, unknown]>; select?: string }> = []
+let calls: Array<{
+  table: string
+  filters: Array<[string, string, unknown]>
+  select?: string
+  orders: Array<{ column: string; ascending?: boolean }>
+  limitCount?: number
+}> = []
 let insertedDrafts: Record<string, unknown>[] = []
 let draftInsertErrors: Array<{ message: string; code?: string } | null> = []
 
 class MockQuery {
   private filters: Array<[string, string, unknown]> = []
+  private orders: Array<{ column: string; ascending?: boolean }> = []
+  private limitCount?: number
   private selectValue?: string
 
   constructor(
@@ -44,11 +52,13 @@ class MockQuery {
     return this
   }
 
-  order() {
+  order(column: string, options?: { ascending?: boolean }) {
+    this.orders.push({ column, ascending: options?.ascending })
     return this
   }
 
-  limit() {
+  limit(count: number) {
+    this.limitCount = count
     return this
   }
 
@@ -65,7 +75,13 @@ class MockQuery {
   }
 
   private resolve(): QueryResult {
-    calls.push({ table: this.table, filters: this.filters, select: this.selectValue })
+    calls.push({
+      table: this.table,
+      filters: this.filters,
+      select: this.selectValue,
+      orders: this.orders,
+      limitCount: this.limitCount,
+    })
 
     if (this.table === 'professional_report_drafts' && this.operation === 'insert') {
       const nextError = draftInsertErrors.shift()
@@ -243,6 +259,8 @@ describe('professional-reporting server actions', () => {
       ['gte', 'date_from', '2026-02-01'],
       ['lte', 'date_to', '2026-02-28'],
     ]))
+    expect(menuReportCall?.orders).toContainEqual({ column: 'created_at', ascending: false })
+    expect(menuReportCall?.limitCount).toBe(1)
   })
 
   it('returns a clean validation error for invalid periods', async () => {

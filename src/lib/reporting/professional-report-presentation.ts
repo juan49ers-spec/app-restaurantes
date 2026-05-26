@@ -274,6 +274,7 @@ function buildBusinessConclusions(report: ProfessionalRestaurantReport): Present
   }
 
   if (typeof topStar === 'string' || typeof priorityPuzzle === 'string') {
+    // PUZZLE is shown first when present because it is the more actionable BCG lever.
     conclusions.push({
       id: 'menu-engineering-read',
       order: conclusions.length + 1,
