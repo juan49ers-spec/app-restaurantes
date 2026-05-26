@@ -66,6 +66,7 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
     const isExemptRoute = pathname?.startsWith('/login') ||
         pathname?.startsWith('/auth') ||
         pathname?.startsWith('/admin') ||
+        pathname?.startsWith('/portal') ||
         pathname?.startsWith('/reports/print')
 
     if (isExemptRoute) {
