@@ -20,10 +20,11 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 6. Revisa estado global, confianza, bloqueos criticos, fuentes y secciones.
 7. Revisa la vista de informe final: KPIs destacados, capitulos, carta y conclusiones ejecutivas.
 8. Edita la narrativa de cada seccion.
-9. Pulsa "Guardar version". La action regenera los datos en servidor, guarda un snapshot y conserva las narrativas editadas.
-10. Cuando una version esta `READY`, puede publicarla en el portal cliente o despublicarla.
-11. Desde "Versiones" abre "Exportar", que lleva a `/reports/print/[draftId]`.
-12. En la vista imprimible pulsa "Imprimir / guardar PDF" para usar el dialogo nativo del navegador.
+9. Pulsa "Guardar revision". La action regenera los datos en servidor, guarda un snapshot y conserva las narrativas editadas.
+10. Si no hay bloqueos criticos, puede pulsar "Guardar listo para publicar" para crear una version `READY`.
+11. Cuando una version esta `READY`, puede publicarla en el portal cliente o despublicarla.
+12. Desde "Versiones" abre "Exportar", que lleva a `/reports/print/[draftId]`.
+13. En la vista imprimible pulsa "Imprimir / guardar PDF" para usar el dialogo nativo del navegador.
 
 ## 3. Flujo tecnico de datos
 
@@ -44,7 +45,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - Renderiza la capa ejecutiva construida por `buildProfessionalReportPresentation(report)`.
 - Agrupa secciones en tabs.
 - Permite editar narrativa.
-- Guarda versiones mediante `saveProfessionalReportDraft`.
+- Guarda versiones mediante `saveProfessionalReportDraft`: revision normal (`DRAFT`/`REVIEWED`) o version `READY` cuando no hay bloqueos criticos.
 - Publica o despublica versiones `READY` mediante `publishReportDraft` y `unpublishReportDraft`.
 - No envia `restaurant_id` ni calculos financieros desde cliente.
 
@@ -98,7 +99,8 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - El guardado siempre regenera el informe en servidor antes de insertar el snapshot; no se persisten metricas enviadas por cliente.
 - Cada guardado crea una nueva version inmutable. No se sobrescriben versiones anteriores.
 - `saveProfessionalReportDraft` debe estar cubierto por tests de snapshot regenerado, bloqueo por restaurante no coincidente y retry por choque de version.
-- Si hay bloqueos criticos, la version se guarda como `DRAFT`; si no, como `REVIEWED`.
+- "Guardar revision" crea `DRAFT` si hay bloqueos criticos y `REVIEWED` si no los hay.
+- "Guardar listo para publicar" solo esta habilitado sin bloqueos criticos y crea una version `READY`.
 - `READY` significa listo internamente. Solo `published_at IS NOT NULL` hace visible una version en `/portal`.
 - La exportacion actual es HTML imprimible/PDF de navegador, no generacion binaria server-side.
 - La seed demo de informes no debe exponerse como funcionalidad normal de cliente. Es herramienta de verificacion/dev. El endpoint devuelve `401` si no hay usuario autenticado, `403` si la seed no esta habilitada en el entorno y `429` si se excede el limite por usuario/IP.

@@ -49,6 +49,7 @@ interface ProfessionalReportReviewProps {
 
 type DraftNarratives = Record<string, string>
 type SaveState = { type: 'success' | 'error'; message: string } | null
+type DraftSaveStatus = SavedProfessionalReportDraft['status']
 
 const SECTION_ORDER: ReportSectionId[] = [
   'sales',
@@ -274,24 +275,25 @@ export function ProfessionalReportReview({ initialPeriod, report, error, savedDr
     })
   }
 
-  async function saveDraft() {
+  async function saveDraft(requestedStatus?: DraftSaveStatus) {
     if (!report || isSaving) return
 
     setIsSaving(true)
     setSaveState(null)
 
+    const status: DraftSaveStatus = requestedStatus ?? (criticalIssues === 0 ? 'REVIEWED' : 'DRAFT')
     const response = await saveProfessionalReportDraft({
       period: {
         from: report.period.from,
         to: report.period.to,
       },
       narrativeOverrides: draftNarratives,
-      status: criticalIssues === 0 ? 'REVIEWED' : 'DRAFT',
+      status,
     })
 
     if (response.success && response.data) {
       setSavedDrafts(current => [response.data!, ...current.filter(draft => draft.id !== response.data!.id)])
-      setSaveState({ type: 'success', message: `Version ${response.data.version} guardada.` })
+      setSaveState({ type: 'success', message: `Version ${response.data.version} guardada como ${DRAFT_STATUS_COPY[response.data.status].toLowerCase()}.` })
     } else {
       setSaveState({ type: 'error', message: response.error || 'No se pudo guardar la version.' })
     }
@@ -491,10 +493,16 @@ export function ProfessionalReportReview({ initialPeriod, report, error, savedDr
                       El guardado regenera los datos en servidor y conserva tus textos revisados para exportacion.
                     </p>
                   </div>
-                  <Button onClick={saveDraft} disabled={isSaving}>
-                    <Save className="h-4 w-4" />
-                    {isSaving ? 'Guardando' : 'Guardar version'}
-                  </Button>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button onClick={() => saveDraft()} disabled={isSaving} variant="outline">
+                      <Save className="h-4 w-4" />
+                      {isSaving ? 'Guardando' : 'Guardar revision'}
+                    </Button>
+                    <Button onClick={() => saveDraft('READY')} disabled={isSaving || criticalIssues > 0}>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Guardar listo para publicar
+                    </Button>
+                  </div>
                 </div>
 
                 {saveState && (

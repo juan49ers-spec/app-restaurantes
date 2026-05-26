@@ -109,7 +109,7 @@ describe('ProfessionalReportReview', () => {
     expect(push).toHaveBeenCalledWith('/reports?from=2026-03-01&to=2026-03-31')
   })
 
-  it('saves a server-side version and exposes the export link', async () => {
+  it('saves a reviewed server-side version and exposes the export link', async () => {
     const report = buildProfessionalRestaurantReport(input)
     saveProfessionalReportDraft.mockResolvedValueOnce({
       success: true,
@@ -137,7 +137,7 @@ describe('ProfessionalReportReview', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Guardar version/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Guardar revision/i }))
 
     await waitFor(() => {
       expect(saveProfessionalReportDraft).toHaveBeenCalledWith({
@@ -147,11 +147,53 @@ describe('ProfessionalReportReview', () => {
       })
     })
 
-    expect(await screen.findByText('Version 1 guardada.')).toBeInTheDocument()
+    expect(await screen.findByText('Version 1 guardada como revisado.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Exportar/i })).toHaveAttribute(
       'href',
       '/reports/print/11111111-1111-4111-8111-111111111111'
     )
+  })
+
+  it('saves a READY version when the report is ready to publish', async () => {
+    const report = buildProfessionalRestaurantReport(input)
+    saveProfessionalReportDraft.mockResolvedValueOnce({
+      success: true,
+      data: {
+        id: '22222222-2222-4222-8222-222222222222',
+        periodFrom: '2026-02-01',
+        periodTo: '2026-02-10',
+        version: 2,
+        status: 'READY',
+        schemaVersion: 'professional-report/v1',
+        createdAt: '2026-05-25T10:00:00.000Z',
+        updatedAt: '2026-05-25T10:00:00.000Z',
+        exportedAt: null,
+        publishedAt: null,
+        publishedBy: null,
+      },
+    })
+
+    render(
+      <ProfessionalReportReview
+        initialPeriod={{ from: '2026-02-01', to: '2026-02-10' }}
+        report={report}
+        error={null}
+        savedDrafts={[]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar listo para publicar/i }))
+
+    await waitFor(() => {
+      expect(saveProfessionalReportDraft).toHaveBeenCalledWith({
+        period: { from: '2026-02-01', to: '2026-02-10' },
+        narrativeOverrides: expect.objectContaining({ sales: expect.any(String) }),
+        status: 'READY',
+      })
+    })
+
+    expect(await screen.findByText('Version 2 guardada como listo.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Publicar en portal/i })).toBeInTheDocument()
   })
 
   it('publishes a READY draft to the client portal', async () => {
