@@ -91,6 +91,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - La seccion de carta no debe presentarse como matriz BCG cerrada; para eso hace falta un contrato explicito de Menu Engineering/snapshots.
 - El guardado siempre regenera el informe en servidor antes de insertar el snapshot; no se persisten metricas enviadas por cliente.
 - Cada guardado crea una nueva version inmutable. No se sobrescriben versiones anteriores.
+- `saveProfessionalReportDraft` debe estar cubierto por tests de snapshot regenerado, bloqueo por restaurante no coincidente y retry por choque de version.
 - Si hay bloqueos criticos, la version se guarda como `DRAFT`; si no, como `REVIEWED`.
 - La exportacion actual es HTML imprimible/PDF de navegador, no generacion binaria server-side.
 - La seed demo de informes no debe exponerse como funcionalidad normal de cliente. Es herramienta de verificacion/dev.

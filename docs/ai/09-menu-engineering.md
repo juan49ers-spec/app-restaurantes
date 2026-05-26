@@ -33,11 +33,11 @@ Analizar la rentabilidad y popularidad de los platos del menú para tomar decisi
 **Server actions** (`actions/menu-engineering.ts`):
 
 - `createMenuReport({ name, dateFrom?, dateTo? })` — crea `menu_reports` en DRAFT y rellena `menu_report_items` con snapshots de todas las recetas activas. Si hay fechas, popula `quantity_sold` desde `daily_recipe_sales`.
-- `getMenuReports()` — lista.
-- `getMenuReport(id)` — detalle con items.
-- `updateReportItem(id, { quantity_sold })` — edita cantidad en grid.
-- `calculateMatrix(reportId)` — clasifica e inserta resultados en `menu_report_items.classification` + `avg_popularity` y `avg_margin` en el reporte.
-- `deleteReport(id)` — cascade.
+- `getMenuReports()` — lista solo reportes del restaurante activo resuelto en servidor.
+- `getMenuReport(id)` — detalle con items, filtrado por restaurante activo.
+- `updateReportItem(id, { quantity_sold })` — edita cantidad en grid tras comprobar que el item pertenece a un reporte del restaurante activo.
+- `calculateMatrix(reportId)` — comprueba propiedad del reporte, clasifica e inserta resultados en `menu_report_items.classification` + `avg_popularity` y `avg_margin`.
+- `deleteReport(id)` — borra solo si `menu_reports.restaurant_id` coincide con el restaurante activo.
 
 **Cálculo (vive en `src/lib/menu-engineering.ts`):**
 
@@ -69,6 +69,7 @@ Clasificación:
 - **Clasificación es relativa al propio reporte:** un plato puede ser STAR en un análisis y PLOWHORSE en otro solo por cambiar el mix de items considerados.
 - **Una sola fórmula BCG:** libreria, server action y simulador cliente usan `calculateMenuEngineeringAnalysis()`.
 - **Persistencia de items calculados:** `calculateMatrix` actualiza los items con un `upsert` masivo por `id`, incluyendo las columnas obligatorias del snapshot, y valida el error de escritura antes de marcar el reporte como `ANALYZED`.
+- **Seguridad multi-tenant:** las actions de lectura/escritura filtran por `restaurant_id` resuelto en servidor. `menu_reports` y `menu_report_items` tienen RLS reproducible desde `20260526083000_secure_menu_engineering_rls.sql`.
 - **`avg_popularity` y `avg_margin`** se persisten en `menu_reports` al calcular. Si re-calculas, se sobreescriben.
 - Visible en sidebar solo si `active_addons.includes('operativa')`.
 
@@ -91,7 +92,7 @@ Clasificación:
 - **Recetas activas vs inactivas:** el reporte se crea desde recetas activas. Si una se desactiva después, sigue en el reporte (snapshot).
 - **Daily recipe sales sin datos:** la pre-carga retorna 0 para esas recetas.
 - **Simulación en vivo no persiste:** si el usuario simula y se va sin guardar, el reporte queda con cantidades originales.
-- **Concurrencia:** dos usuarios calculando matriz al mismo tiempo pueden sobreescribirse mutuamente.
+- **Concurrencia dentro del mismo restaurante:** dos usuarios calculando la misma matriz al mismo tiempo pueden sobreescribirse mutuamente.
 - **Umbral visual:** la pantalla muestra `avg_popularity * 100`; internamente se conserva como decimal para evitar conversiones dobles.
 
 ## 7. Al añadir/modificar una función aquí

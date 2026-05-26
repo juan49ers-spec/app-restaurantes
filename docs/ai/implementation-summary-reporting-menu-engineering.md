@@ -135,6 +135,20 @@ Ahora:
 - `avg_popularity` se define como `1 / numero_de_items`, guardado como decimal.
 - El caso frontera entre 25% y 17,5% queda cubierto con tests.
 
+## Revisión externa y remediación de seguridad
+
+Una revisión independiente de Claude detectó correctamente que Menu Engineering cerraba la fórmula BCG, pero mantenía riesgos previos de multi-tenancy en varias actions.
+
+Se corrigió:
+
+- `updateReportItem` comprueba que el item pertenece a un reporte del restaurante activo antes de actualizar.
+- `deleteReport` filtra por `id` y `restaurant_id`.
+- `calculateMatrix` valida propiedad del reporte antes de leer items y filtra el update final por restaurante.
+- `getMenuReports` y `getMenuReport` usan `getUserRestaurant()` y filtran por restaurante activo.
+- Se añadió migración RLS para `menu_reports` y `menu_report_items`.
+- Se añadieron tests de seguridad para estas actions.
+- Se añadieron tests a `saveProfessionalReportDraft` para snapshot regenerado, sanitización, pertenencia y retry por versión duplicada.
+
 ## Cambios de infraestructura y robustez
 
 - `tsconfig.typecheck.json` para typecheck estable.
@@ -152,6 +166,10 @@ Ahora:
 - `npm test` correcto: 29 archivos, 304 tests.
 - `npm run build` correcto.
 - Browser real en `http://localhost:3000/menu-engineering` correcto, sin errores de consola.
+
+Verificación posterior a la revisión externa:
+
+- Tests focales de Menu Engineering y reporting actions correctos.
 
 Nota sobre un timeout:
 

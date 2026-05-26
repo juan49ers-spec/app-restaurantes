@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabaseServer"
 import { calculateMenuEngineeringAnalysis } from "@/lib/menu-engineering"
 import { safeAction } from "./safe-action"
+import { getUserRestaurant } from "./utils"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
 
@@ -17,6 +18,25 @@ const UpdateItemInput = z.object({
     item_id: z.string().uuid(),
     quantity_sold: z.number().min(0),
 })
+
+async function assertOwnedMenuReport(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    reportId: string,
+    restaurantId: string
+) {
+    const { data: report, error } = await supabase
+        .from('menu_reports')
+        .select('id, restaurant_id')
+        .eq('id', reportId)
+        .eq('restaurant_id', restaurantId)
+        .single()
+
+    if (error || !report) {
+        throw new Error('Menu report not found')
+    }
+
+    return report
+}
 
 export const createMenuReport = safeAction(CreateReportInput, async (data, user) => {
     const supabase = await createClient()
@@ -85,29 +105,49 @@ export const createMenuReport = safeAction(CreateReportInput, async (data, user)
     return report
 })
 
-export const updateReportItem = safeAction(UpdateItemInput, async (data) => {
+export const updateReportItem = safeAction(UpdateItemInput, async (data, ctx) => {
     const supabase = await createClient()
+
+    const { data: item, error: itemError } = await supabase
+        .from('menu_report_items')
+        .select('id, report_id')
+        .eq('id', data.item_id)
+        .single()
+
+    if (itemError || !item) {
+        throw new Error('Menu report item not found')
+    }
+
+    await assertOwnedMenuReport(supabase, item.report_id, ctx.restaurant_id)
 
     const { error } = await supabase
         .from('menu_report_items')
         .update({ quantity_sold: data.quantity_sold })
         .eq('id', data.item_id)
+        .eq('report_id', item.report_id)
 
     if (error) throw new Error(error.message)
 
     return { success: true }
 })
 
-export const deleteReport = safeAction(z.object({ id: z.string().uuid() }), async (data) => {
+export const deleteReport = safeAction(z.object({ id: z.string().uuid() }), async (data, ctx) => {
     const supabase = await createClient()
-    const { error } = await supabase.from('menu_reports').delete().eq('id', data.id)
+    const { error } = await supabase
+        .from('menu_reports')
+        .delete()
+        .eq('id', data.id)
+        .eq('restaurant_id', ctx.restaurant_id)
+
     if (error) throw new Error(error.message)
     revalidatePath('/menu-engineering')
     return { success: true }
 })
 
-export const calculateMatrix = safeAction(z.object({ reportId: z.string().uuid() }), async (data) => {
+export const calculateMatrix = safeAction(z.object({ reportId: z.string().uuid() }), async (data, ctx) => {
     const supabase = await createClient()
+
+    await assertOwnedMenuReport(supabase, data.reportId, ctx.restaurant_id)
 
     // 1. Fetch Items
     const { data: items, error: itemsError } = await supabase
@@ -156,6 +196,7 @@ export const calculateMatrix = safeAction(z.object({ reportId: z.string().uuid()
             avg_margin: analysis.thresholds.avgContributionMargin
         })
         .eq('id', data.reportId)
+        .eq('restaurant_id', ctx.restaurant_id)
 
     if (updateReportError) {
         throw new Error(updateReportError.message)
@@ -166,67 +207,49 @@ export const calculateMatrix = safeAction(z.object({ reportId: z.string().uuid()
 })
 
 export async function getMenuReports() {
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return []
+
     const supabase = await createClient()
-    const { data: user } = await supabase.auth.getUser()
-    if (!user) return []
-
-    // Get restaurant_id
-    const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('id')
-        .eq('owner_id', user.user?.id)
-        .single()
-
-    if (!restaurant) return []
-
     const { data } = await supabase
         .from('menu_reports')
         .select('*')
-        .eq('restaurant_id', restaurant.id)
+        .eq('restaurant_id', restaurantId)
         .order('created_at', { ascending: false })
 
-    if (data) {
-        console.log("getMenuReports found:", data.length, "reports")
-        return data
-    }
-    console.log("getMenuReports found 0 reports")
-    return []
+    return data || []
 }
 
 export async function getMenuReport(id: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return null
 
-    console.log(`getMenuReport: Fetching for User ${user.id}, Report ${id}`)
+    const supabase = await createClient()
 
     const { data: report, error } = await supabase
         .from('menu_reports')
         .select('*, items:menu_report_items(*, recipe:recipes(name))')
         .eq('id', id)
+        .eq('restaurant_id', restaurantId)
         .single()
 
     if (error) {
-        console.error("getMenuReport JOIN Error:", JSON.stringify(error, null, 2))
-
         // Fallback: Try fetching just the report to see if it exists
         const { data: simpleReport, error: simpleError } = await supabase
             .from('menu_reports')
             .select('*')
             .eq('id', id)
+            .eq('restaurant_id', restaurantId)
             .single()
 
         if (simpleError) {
-            console.error("getMenuReport SIMPLE Error:", JSON.stringify(simpleError, null, 2))
             return null
         }
 
-        console.warn("Report exists but JOIN failed. Returning report without items.")
         return simpleReport
     }
 
     if (!report) {
-        console.warn("getMenuReport: Report not found for ID", id)
         return null
     }
 

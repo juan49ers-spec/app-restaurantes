@@ -84,6 +84,7 @@ Tabla de persistencia desde Fase 3: `professional_report_drafts`.
 - Los datos demo se consideran herramienta de QA/dev, no dato operativo real ni importacion de cliente.
 - El cliente no envia metricas para persistir. Al guardar, el servidor regenera el informe desde Supabase y guarda ese snapshot.
 - Cada guardado crea una version nueva; no se sobreescriben snapshots.
+- El guardado queda cubierto por tests de regeneracion server-side, saneamiento de narrativa, verificacion de pertenencia y retry por version duplicada.
 - La exportacion visible debe abrir una version guardada. No debe exportar estado local sin snapshot.
 - La salida actual es imprimible por navegador; si se anade PDF server-side, debe consumir el mismo snapshot.
 - Si existen bloqueos criticos, las conclusiones deben hablar de calidad de dato antes que de decisiones comerciales.

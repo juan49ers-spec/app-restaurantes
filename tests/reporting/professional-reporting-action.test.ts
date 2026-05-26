@@ -7,16 +7,26 @@ const RESTAURANT_ID = '550e8400-e29b-41d4-a716-446655440000'
 let mockRestaurantId: string | null = RESTAURANT_ID
 let tableResults: Record<string, QueryResult> = {}
 let calls: Array<{ table: string; filters: Array<[string, string, unknown]>; select?: string }> = []
+let insertedDrafts: Record<string, unknown>[] = []
+let draftInsertErrors: Array<{ message: string; code?: string } | null> = []
 
 class MockQuery {
   private filters: Array<[string, string, unknown]> = []
   private selectValue?: string
 
-  constructor(private readonly table: string) {}
+  constructor(
+    private readonly table: string,
+    private readonly operation: 'select' | 'insert' | null = null,
+    private readonly insertValue?: Record<string, unknown>
+  ) {}
 
   select(value?: string) {
     this.selectValue = value
     return this
+  }
+
+  insert(value: Record<string, unknown>) {
+    return new MockQuery(this.table, 'insert', value)
   }
 
   eq(column: string, value: unknown) {
@@ -56,12 +66,44 @@ class MockQuery {
 
   private resolve(): QueryResult {
     calls.push({ table: this.table, filters: this.filters, select: this.selectValue })
+
+    if (this.table === 'professional_report_drafts' && this.operation === 'insert') {
+      const nextError = draftInsertErrors.shift()
+      if (nextError) {
+        return { data: null, error: nextError }
+      }
+
+      const inserted = this.insertValue ?? {}
+      insertedDrafts.push(inserted)
+
+      return {
+        data: {
+          id: 'draft-1',
+          period_from: inserted.period_from,
+          period_to: inserted.period_to,
+          version: inserted.version,
+          status: inserted.status,
+          schema_version: inserted.schema_version,
+          created_at: '2026-02-28T10:00:00.000Z',
+          updated_at: '2026-02-28T10:00:00.000Z',
+          exported_at: null,
+        },
+        error: null,
+      }
+    }
+
     return tableResults[this.table] ?? { data: [], error: null }
   }
 }
 
 const mockSupabase = {
   from: vi.fn((table: string) => new MockQuery(table)),
+  auth: {
+    getUser: vi.fn(async () => ({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    })),
+  },
 }
 
 vi.mock('@/lib/supabaseServer', () => ({
@@ -81,6 +123,8 @@ describe('professional-reporting server actions', () => {
     vi.clearAllMocks()
     mockRestaurantId = RESTAURANT_ID
     calls = []
+    insertedDrafts = []
+    draftInsertErrors = []
     tableResults = {
       restaurants: { data: { id: RESTAURANT_ID, name: 'Demo Restaurante' }, error: null },
       daily_sales: {
@@ -138,6 +182,10 @@ describe('professional-reporting server actions', () => {
         data: [{ id: 'recipe-1', name: 'Plato rentable', selling_price: 20, current_cost: 8 }],
         error: null,
       },
+      professional_report_drafts: {
+        data: null,
+        error: null,
+      },
     }
   })
 
@@ -181,5 +229,71 @@ describe('professional-reporting server actions', () => {
 
     expect(result).toEqual({ success: false, error: 'No hay restaurante activo para generar el informe.' })
     expect(mockSupabase.from).not.toHaveBeenCalled()
+  })
+
+  it('saves a regenerated server-side snapshot with sanitized narrative overrides', async () => {
+    tableResults.professional_report_drafts = {
+      data: { version: 2 },
+      error: null,
+    }
+    const { saveProfessionalReportDraft } = await import('@/app/actions/professional-reporting')
+
+    const result = await saveProfessionalReportDraft({
+      period: { from: '2026-02-01', to: '2026-02-28' },
+      status: 'REVIEWED',
+      narrativeOverrides: {
+        sales: '  Ventas revisadas  ',
+        invalid_section: 'No debe guardarse',
+      },
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.version).toBe(3)
+    expect(insertedDrafts).toHaveLength(1)
+    expect(insertedDrafts[0]).toEqual(expect.objectContaining({
+      restaurant_id: RESTAURANT_ID,
+      period_from: '2026-02-01',
+      period_to: '2026-02-28',
+      version: 3,
+      status: 'REVIEWED',
+      created_by: 'user-1',
+    }))
+    expect(insertedDrafts[0].narrative_overrides).toEqual({
+      sales: 'Ventas revisadas',
+    })
+    expect((insertedDrafts[0].report_snapshot as { restaurant: { id: string } }).restaurant.id).toBe(RESTAURANT_ID)
+  })
+
+  it('does not save when regenerated report belongs to a different restaurant', async () => {
+    tableResults.restaurants = { data: { id: 'other-restaurant', name: 'Otro Restaurante' }, error: null }
+    const { saveProfessionalReportDraft } = await import('@/app/actions/professional-reporting')
+
+    const result = await saveProfessionalReportDraft({
+      period: { from: '2026-02-01', to: '2026-02-28' },
+      status: 'REVIEWED',
+      narrativeOverrides: {},
+    })
+
+    expect(result).toEqual({ success: false, error: 'El informe no pertenece al restaurante activo.' })
+    expect(insertedDrafts).toHaveLength(0)
+  })
+
+  it('retries once when the next draft version collides', async () => {
+    tableResults.professional_report_drafts = {
+      data: { version: 1 },
+      error: null,
+    }
+    draftInsertErrors = [{ message: 'duplicate key', code: '23505' }, null]
+    const { saveProfessionalReportDraft } = await import('@/app/actions/professional-reporting')
+
+    const result = await saveProfessionalReportDraft({
+      period: { from: '2026-02-01', to: '2026-02-28' },
+      status: 'DRAFT',
+      narrativeOverrides: {},
+    })
+
+    expect(result.success).toBe(true)
+    expect(insertedDrafts).toHaveLength(1)
+    expect(calls.filter(call => call.table === 'professional_report_drafts' && call.select === 'version')).toHaveLength(2)
   })
 })

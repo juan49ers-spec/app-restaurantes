@@ -121,9 +121,6 @@ export function MenuEngineeringProvider({
         if (initialItems.length > 0) {
             const itemsCopy = JSON.parse(JSON.stringify(initialItems))
             setSimulatedItems(itemsCopy)
-            // originalItems is a state, we should probably update it too if we want a new "base"
-            // However, useState for originalItems doesn't have a setter in the code above (it was using [originalItems])
-            // I should change it to [originalItems, setOriginalItems]
         }
     }, [initialItems])
 
@@ -213,9 +210,11 @@ export function MenuEngineeringProvider({
         const itemMap = new Map(simulatedItems.map(i => [i.id, i]))
 
         updates.forEach(u => {
-            const item = itemMap.get(u.id)
+            const existing = itemMap.get(u.id)
+            const item = existing ? { ...existing } : null
             if (item) {
                 item[u.field] = u.value
+                itemMap.set(u.id, item)
             }
         })
 
