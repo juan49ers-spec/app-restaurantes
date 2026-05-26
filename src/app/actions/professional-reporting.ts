@@ -9,6 +9,7 @@ import type {
     ExpenseReportRow,
     InvoiceReportRow,
     DailyRecipeSalesReportRow,
+    MenuEngineeringReportRow,
     MonthlyTargetReportRow,
     ProfessionalRestaurantReport,
     RecipeReportRow,
@@ -33,6 +34,7 @@ const REPORT_SECTION_IDS = [
     'staff',
     'suppliers',
     'menu_performance',
+    'menu_engineering',
     'profitability',
     'recommendations',
     'data_appendix',
@@ -92,6 +94,50 @@ function sanitizeNarrativeOverrides(raw: Record<string, string>) {
     )
 }
 
+function mapMenuEngineeringReport(raw: unknown): MenuEngineeringReportRow | null {
+    if (!raw || typeof raw !== 'object') return null
+
+    const row = raw as {
+        id?: string
+        name?: string
+        date_from?: string | null
+        date_to?: string | null
+        avg_popularity?: number | null
+        avg_margin?: number | null
+        items?: Array<{
+            id?: string
+            quantity_sold?: number | null
+            contribution_margin?: number | null
+            total_sales?: number | null
+            total_profit?: number | null
+            popularity_pct?: number | null
+            classification?: MenuEngineeringReportRow['items'][number]['classification']
+            recipe?: { name?: string | null } | null
+        }>
+    }
+
+    if (!row.id || !row.name) return null
+
+    return {
+        id: row.id,
+        name: row.name,
+        date_from: row.date_from,
+        date_to: row.date_to,
+        avg_popularity: row.avg_popularity,
+        avg_margin: row.avg_margin,
+        items: (row.items || []).map(item => ({
+            id: item.id || '',
+            name: item.recipe?.name || 'Producto sin nombre',
+            classification: item.classification,
+            quantity_sold: item.quantity_sold,
+            contribution_margin: item.contribution_margin,
+            total_sales: item.total_sales,
+            total_profit: item.total_profit,
+            popularity_pct: item.popularity_pct,
+        })),
+    }
+}
+
 function mapDraftRow(row: {
     id: string
     period_from: string
@@ -145,6 +191,7 @@ export async function getProfessionalReportDraft(
         invoicesRes,
         recipeSalesRes,
         recipesRes,
+        menuEngineeringReportRes,
     ] = await Promise.all([
         supabase
             .from('restaurants')
@@ -201,6 +248,16 @@ export async function getProfessionalReportDraft(
             .from('recipes')
             .select('id, name, selling_price, current_cost')
             .eq('restaurant_id', restaurantId),
+        supabase
+            .from('menu_reports')
+            .select('id, name, date_from, date_to, avg_popularity, avg_margin, items:menu_report_items(id, quantity_sold, contribution_margin, total_sales, total_profit, popularity_pct, classification, recipe:recipes(name))')
+            .eq('restaurant_id', restaurantId)
+            .eq('status', 'ANALYZED')
+            .gte('date_from', from)
+            .lte('date_to', to)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
     ])
 
     const firstError = [
@@ -214,6 +271,7 @@ export async function getProfessionalReportDraft(
         invoicesRes.error,
         recipeSalesRes.error,
         recipesRes.error,
+        menuEngineeringReportRes.error,
     ].find(Boolean)
 
     if (firstError) {
@@ -243,6 +301,7 @@ export async function getProfessionalReportDraft(
         invoices: (invoicesRes.data || []) as InvoiceReportRow[],
         recipeSales: (recipeSalesRes.data || []) as DailyRecipeSalesReportRow[],
         recipes: (recipesRes.data || []) as RecipeReportRow[],
+        menuEngineeringReport: mapMenuEngineeringReport(menuEngineeringReportRes.data),
     })
 
     return { success: true, data: report }

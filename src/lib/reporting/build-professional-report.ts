@@ -10,6 +10,8 @@ import type {
   ReportMetric,
   ReportSectionId,
   SectionQuality,
+  MenuEngineeringClassification,
+  MenuEngineeringReportItemRow,
 } from './types'
 
 const COGS_CATEGORIES = new Set<string>(EXPENSE_GROUPS.COGS)
@@ -364,6 +366,108 @@ function buildMenuPerformanceSection(input: ProfessionalReportInput, sales: Prof
   }
 }
 
+function countByClassification(items: MenuEngineeringReportItemRow[], classification: MenuEngineeringClassification) {
+  return items.filter(item => item.classification === classification).length
+}
+
+function topItem(
+  items: MenuEngineeringReportItemRow[],
+  classification: MenuEngineeringClassification,
+  valueKey: 'total_profit' | 'quantity_sold' = 'total_profit',
+) {
+  return [...items]
+    .filter(item => item.classification === classification)
+    .sort((a, b) => Number(b[valueKey] || 0) - Number(a[valueKey] || 0))[0] ?? null
+}
+
+function buildMenuEngineeringSection(input: ProfessionalReportInput): ProfessionalReportSection {
+  const report = input.menuEngineeringReport
+
+  if (!report) {
+    const issues = [
+      issue(
+        'menu_engineering.no_analyzed_report',
+        'menu_engineering',
+        'PARTIAL',
+        'warning',
+        'No hay matriz BCG analizada para este periodo; las recomendaciones de carta se limitan al ranking descriptivo.',
+        ['menu_engineering.report'],
+      ),
+    ]
+
+    return {
+      id: 'menu_engineering',
+      title: 'Ingeniería de carta',
+      quality: buildQuality('menu_engineering', issues, [evidence('menu_engineering.report', ['menu_reports', 'menu_report_items'], 0, 'Sin reporte ANALYZED para el periodo.', 'not_available')]),
+      metrics: [
+        { id: 'bcg_report_name', label: 'Reporte BCG usado', value: null, unit: 'text', kind: 'not_available', sourceIds: ['menu_engineering.report'] },
+        { id: 'bcg_item_count', label: 'Productos analizados', value: null, unit: 'count', kind: 'not_available', sourceIds: ['menu_engineering.report'] },
+        { id: 'bcg_star_count', label: 'Estrellas', value: null, unit: 'count', kind: 'not_available', sourceIds: ['menu_engineering.report'] },
+        { id: 'bcg_plowhorse_count', label: 'Vacas', value: null, unit: 'count', kind: 'not_available', sourceIds: ['menu_engineering.report'] },
+        { id: 'bcg_puzzle_count', label: 'Enigmas', value: null, unit: 'count', kind: 'not_available', sourceIds: ['menu_engineering.report'] },
+        { id: 'bcg_dog_count', label: 'Baja prioridad', value: null, unit: 'count', kind: 'not_available', sourceIds: ['menu_engineering.report'] },
+      ],
+      narrative: ['No se incorpora una lectura BCG profesional hasta que exista una matriz Menu Engineering calculada y guardada para el periodo.'],
+    }
+  }
+
+  const items = report.items ?? []
+  const classifiedItems = items.filter(item => item.classification)
+  const issues: DataQualityIssue[] = []
+
+  if (items.length === 0 || classifiedItems.length !== items.length) {
+    issues.push(issue(
+      'menu_engineering.incomplete_snapshot',
+      'menu_engineering',
+      'PARTIAL',
+      'warning',
+      'La matriz BCG existe, pero no todos sus productos tienen clasificación calculada.',
+      ['menu_engineering.report'],
+    ))
+  }
+
+  const topStar = topItem(items, 'STAR')
+  const priorityPuzzle = topItem(items, 'PUZZLE')
+  const plowhorse = topItem(items, 'PLOWHORSE', 'quantity_sold')
+
+  const metrics: ReportMetric[] = [
+    { id: 'bcg_report_name', label: 'Reporte BCG usado', value: report.name, unit: 'text', kind: 'actual', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_item_count', label: 'Productos analizados', value: items.length, unit: 'count', kind: 'actual', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_avg_popularity_pct', label: 'Umbral popularidad', value: report.avg_popularity !== null && report.avg_popularity !== undefined ? round(report.avg_popularity * 100, 2) : null, unit: 'pct', kind: report.avg_popularity !== null && report.avg_popularity !== undefined ? 'derived' : 'not_available', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_avg_margin', label: 'Umbral margen contribución', value: report.avg_margin ?? null, unit: 'eur', kind: report.avg_margin !== null && report.avg_margin !== undefined ? 'derived' : 'not_available', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_star_count', label: 'Estrellas', value: countByClassification(items, 'STAR'), unit: 'count', kind: 'derived', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_plowhorse_count', label: 'Vacas', value: countByClassification(items, 'PLOWHORSE'), unit: 'count', kind: 'derived', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_puzzle_count', label: 'Enigmas', value: countByClassification(items, 'PUZZLE'), unit: 'count', kind: 'derived', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_dog_count', label: 'Baja prioridad', value: countByClassification(items, 'DOG'), unit: 'count', kind: 'derived', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_top_star', label: 'Estrella principal', value: topStar?.name ?? null, unit: 'text', kind: topStar ? 'derived' : 'not_available', sourceIds: ['menu_engineering.report'] },
+    { id: 'bcg_priority_puzzle', label: 'Enigma prioritario', value: priorityPuzzle?.name ?? null, unit: 'text', kind: priorityPuzzle ? 'derived' : 'not_available', sourceIds: ['menu_engineering.report'] },
+  ]
+
+  const narrative = [
+    `La matriz BCG "${report.name}" analiza ${items.length} productos con snapshots de precio y coste del reporte.`,
+  ]
+
+  if (topStar) {
+    narrative.push(`${topStar.name} aparece como STAR: combina popularidad y margen por encima del umbral del propio reporte.`)
+  }
+
+  if (priorityPuzzle) {
+    narrative.push(`${priorityPuzzle.name} aparece como PUZZLE: tiene margen alto, pero necesita revisión comercial antes de invertir en visibilidad.`)
+  }
+
+  if (plowhorse) {
+    narrative.push(`${plowhorse.name} aparece como PLOWHORSE: vende volumen, pero conviene revisar coste, precio o tamaño de ración antes de escalarlo.`)
+  }
+
+  return {
+    id: 'menu_engineering',
+    title: 'Ingeniería de carta',
+    quality: buildQuality('menu_engineering', issues, [evidence('menu_engineering.report', ['menu_reports', 'menu_report_items'], items.length)]),
+    metrics,
+    narrative,
+  }
+}
+
 function buildProfitabilitySection(input: ProfessionalReportInput, sales: ProfessionalReportSection, costs: ProfessionalReportSection, staff: ProfessionalReportSection): ProfessionalReportSection {
   const revenue = Number(sales.metrics.find(metric => metric.id === 'revenue_total')?.value || 0)
   const expenses = Number(costs.metrics.find(metric => metric.id === 'expenses_total')?.value || 0)
@@ -489,10 +593,11 @@ export function buildProfessionalRestaurantReport(input: ProfessionalReportInput
   const staff = buildStaffSection(input)
   const suppliers = buildSuppliersSection(input)
   const menuPerformance = buildMenuPerformanceSection(input, sales)
+  const menuEngineering = buildMenuEngineeringSection(input)
   const profitability = buildProfitabilitySection(input, sales, costs, staff)
-  const recommendations = buildRecommendationsSection([sales, costs, staff, suppliers, menuPerformance, profitability])
-  const dataAppendix = buildDataAppendixSection(input, [sales, costs, staff, suppliers, menuPerformance, profitability])
-  const sections = [sales, costs, staff, suppliers, menuPerformance, profitability, recommendations, dataAppendix]
+  const recommendations = buildRecommendationsSection([sales, costs, staff, suppliers, menuPerformance, menuEngineering, profitability])
+  const dataAppendix = buildDataAppendixSection(input, [sales, costs, staff, suppliers, menuPerformance, menuEngineering, profitability])
+  const sections = [sales, costs, staff, suppliers, menuPerformance, menuEngineering, profitability, recommendations, dataAppendix]
   const issues = sections.flatMap(section => section.quality.issues)
   const status = globalStatus(sections)
   const confidence = Math.max(0, Math.round(sum(sections.map(section => section.quality.confidence)) / sections.length))

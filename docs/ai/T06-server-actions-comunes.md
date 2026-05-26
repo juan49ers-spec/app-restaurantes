@@ -114,7 +114,7 @@ type ActionResponse<T> = {
 - **Lecturas:** `get*`, `fetch*`. Ej: `getDailySales`, `getRecipes`, `getSupplierItems`.
 - **Escrituras:** `upsert*`, `create*`, `update*`, `delete*`. Ej: `upsertDailySales`, `createSupplier`, `updateInvoice`, `deleteRecipe`.
 - **Agregaciones complejas:** sufijo `Data`. Ej: `getExpenseDashboardData`, `getResultsDashboardData`.
-- **Informes profesionales:** `getProfessionalReportDraft(period)` carga datos del restaurante activo y delega el cálculo a `src/lib/reporting/`.
+- **Informes profesionales:** `getProfessionalReportDraft(period)` carga datos del restaurante activo, incluido el snapshot BCG `ANALYZED` si existe para el periodo, y delega el cálculo a `src/lib/reporting/`.
 - **Versiones de informes:** `saveProfessionalReportDraft({ period, narrativeOverrides, status })` regenera el informe en servidor y crea un snapshot nuevo en `professional_report_drafts`.
 - **Historial/exportacion:** `getProfessionalReportDraftHistory(period)`, `getSavedProfessionalReportDraft(id)` y `markProfessionalReportDraftExported(id)` siempre filtran por restaurante activo.
 - **Seed demo reporting:** `seedProfessionalReportDemoData()` resuelve el restaurante en servidor y solo debe usarse como herramienta QA/dev; no acepta `restaurant_id`.

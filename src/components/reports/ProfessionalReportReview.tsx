@@ -55,6 +55,7 @@ const SECTION_ORDER: ReportSectionId[] = [
   'staff',
   'suppliers',
   'menu_performance',
+  'menu_engineering',
   'profitability',
   'recommendations',
   'data_appendix',

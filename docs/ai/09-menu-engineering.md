@@ -65,6 +65,7 @@ Clasificación:
 ## 4. Reglas de negocio y restricciones
 
 - **Snapshots inmutables:** `cost_per_unit` y `price_per_unit` se congelan al crear el reporte. Si después cambias el precio en `/recipes`, el reporte NO se actualiza — refleja el momento del análisis. Útil para auditoría.
+- **Uso en informes profesionales:** `/reports` puede consumir un reporte `ANALYZED` como snapshot BCG si su rango `date_from/date_to` queda contenido en el periodo del informe. Reporting no recalcula BCG por su cuenta.
 - **No se puede calcular si `totalSold = 0`:** los promedios serían indefinidos. La action debe rehusarlo (validar).
 - **Clasificación es relativa al propio reporte:** un plato puede ser STAR en un análisis y PLOWHORSE en otro solo por cambiar el mix de items considerados.
 - **Una sola fórmula BCG:** libreria, server action y simulador cliente usan `calculateMenuEngineeringAnalysis()`.
@@ -80,6 +81,7 @@ Clasificación:
   - `/recipes` — cambios de coste/precio NO afectan reportes ya creados (snapshots).
   - `/stock` — `daily_recipe_sales` se rellena allí cuando el usuario registra ventas por receta.
   - `/financial-control` — `total_sales` del reporte debería cuadrar con `revenue_total` del mismo rango (no se cruza automáticamente).
+  - `/reports` — consume snapshots `ANALYZED` para la seccion `menu_engineering`, sin recalcular ni aceptar datos de cliente.
 - **Transversales:**
   - [T04](./T04-financial-math.md) — fórmula completa de clasificación.
   - [T02](./T02-base-de-datos.md) — esquema `MenuReportItemSchema`.

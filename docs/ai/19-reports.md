@@ -78,6 +78,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - Cuando hay `monthly_targets`, muestra cumplimiento de objetivo como KPI ejecutivo.
 - Cuando hay ventas diarias, incluye lectura de dia fuerte, dia debil y brecha semanal acotada: `weekday_spread_pct = (dia_fuerte - dia_debil) / dia_fuerte`. El texto debe leerse como "el dia debil queda X% por debajo del fuerte", no como crecimiento sobre el dia debil.
 - Cuando hay `daily_recipe_sales`, incorpora una seccion de carta con unidades vendidas, venta estimada, coste estimado, margen bruto estimado, producto lider por margen y producto con menor margen porcentual.
+- Cuando hay un `menu_reports` ANALYZED cuyo rango queda contenido en el periodo, incorpora una seccion de Ingenieria de carta con snapshot BCG: conteo por STAR/PLOWHORSE/PUZZLE/DOG, umbrales y productos prioritarios.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -89,7 +90,8 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - Las comparativas contra objetivo solo aparecen si el objetivo existe y es mayor que 0.
 - La lectura semanal solo usa dias con venta registrada; no interpreta ausencias como ventas cero salvo que exista fila fuente.
 - La lectura de carta usa `daily_recipe_sales` + `recipes.current_cost/selling_price`. Si faltan ventas por receta, queda como `PARTIAL` y no como bloqueo critico.
-- La seccion de carta no debe presentarse como matriz BCG cerrada; para eso hace falta un contrato explicito de Menu Engineering/snapshots.
+- La seccion descriptiva de carta (`menu_performance`) no recalcula BCG. La seccion `menu_engineering` solo presenta BCG si existe un snapshot Menu Engineering `ANALYZED` del restaurante activo y contenido en el periodo del informe.
+- Si no hay snapshot BCG, `menu_engineering` queda `PARTIAL` con warning. No bloquea rentabilidad ni exportacion; simplemente impide afirmar recomendaciones BCG.
 - El guardado siempre regenera el informe en servidor antes de insertar el snapshot; no se persisten metricas enviadas por cliente.
 - Cada guardado crea una nueva version inmutable. No se sobrescriben versiones anteriores.
 - `saveProfessionalReportDraft` debe estar cubierto por tests de snapshot regenerado, bloqueo por restaurante no coincidente y retry por choque de version.
@@ -121,6 +123,8 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - Si no existen objetivos mensuales, el informe vuelve a umbrales profesionales por defecto solo en la capa ejecutiva.
 - Si no hay ventas por receta, el informe puede seguir siendo revisable, pero la carta queda incompleta.
 - Si ventas por receta y ventas diarias no cuadran, se muestra cobertura de carta contra ventas diarias para evitar conclusiones falsas de mix.
+- Si no hay reporte Menu Engineering analizado para el periodo, el informe muestra la ausencia como incidencia parcial, no genera cuadrantes desde datos actuales.
+- Si existe reporte BCG pero faltan clasificaciones en items, la seccion queda parcial.
 - La seed demo borra y recrea solo filas marcadas como demo. No debe borrar datos reales del restaurante ni ventas por receta asociadas a recetas reales.
 
 ## 7. Al anadir/modificar una funcion aqui

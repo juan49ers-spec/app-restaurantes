@@ -182,6 +182,29 @@ describe('professional-reporting server actions', () => {
         data: [{ id: 'recipe-1', name: 'Plato rentable', selling_price: 20, current_cost: 8 }],
         error: null,
       },
+      menu_reports: {
+        data: {
+          id: 'menu-report-1',
+          name: 'BCG febrero',
+          date_from: '2026-02-01',
+          date_to: '2026-02-28',
+          avg_popularity: 0.5,
+          avg_margin: 10,
+          items: [
+            {
+              id: 'item-1',
+              quantity_sold: 10,
+              contribution_margin: 12,
+              total_sales: 200,
+              total_profit: 120,
+              popularity_pct: 0.5,
+              classification: 'STAR',
+              recipe: { name: 'Plato rentable' },
+            },
+          ],
+        },
+        error: null,
+      },
       professional_report_drafts: {
         data: null,
         error: null,
@@ -197,6 +220,8 @@ describe('professional-reporting server actions', () => {
     expect(result.success).toBe(true)
     expect(result.data?.restaurant.id).toBe(RESTAURANT_ID)
     expect(result.data?.sections.map(section => section.id)).toContain('menu_performance')
+    expect(result.data?.sections.map(section => section.id)).toContain('menu_engineering')
+    expect(result.data?.sections.find(section => section.id === 'menu_engineering')?.metrics.find(metric => metric.id === 'bcg_report_name')?.value).toBe('BCG febrero')
     expect(calls.map(call => call.table)).toEqual(expect.arrayContaining([
       'restaurants',
       'daily_sales',
@@ -208,8 +233,16 @@ describe('professional-reporting server actions', () => {
       'invoices',
       'daily_recipe_sales',
       'recipes',
+      'menu_reports',
     ]))
     expect(calls.every(call => call.filters.some(filter => filter[1] !== 'restaurant_id' || filter[2] === RESTAURANT_ID))).toBe(true)
+    const menuReportCall = calls.find(call => call.table === 'menu_reports')
+    expect(menuReportCall?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['eq', 'status', 'ANALYZED'],
+      ['gte', 'date_from', '2026-02-01'],
+      ['lte', 'date_to', '2026-02-28'],
+    ]))
   })
 
   it('returns a clean validation error for invalid periods', async () => {

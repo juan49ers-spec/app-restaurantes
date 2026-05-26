@@ -196,8 +196,8 @@ function buildChapters(): PresentationChapter[] {
       id: 'menu',
       label: 'IV',
       title: 'Carta',
-      subtitle: 'Mix vendido, margen por producto y cobertura de datos',
-      sectionIds: ['menu_performance'],
+      subtitle: 'Mix vendido, margen por producto e ingeniería BCG',
+      sectionIds: ['menu_performance', 'menu_engineering'],
     },
     {
       id: 'suppliers',
@@ -237,6 +237,7 @@ function buildBusinessConclusions(report: ProfessionalRestaurantReport): Present
   const costs = section(report, 'costs')
   const profitability = section(report, 'profitability')
   const suppliers = section(report, 'suppliers')
+  const menuEngineering = section(report, 'menu_engineering')
 
   const revenue = numericMetric(sales, 'revenue_total')
   const netProfit = numericMetric(profitability, 'net_profit')
@@ -245,6 +246,8 @@ function buildBusinessConclusions(report: ProfessionalRestaurantReport): Present
   const cogsPct = pct(numericMetric(costs, 'cogs_expenses'), revenue)
   const targetCompletion = numericMetric(profitability, 'revenue_target_completion_pct')
   const supplierSpend = numericMetric(suppliers, 'completed_invoice_spend')
+  const topStar = metric(menuEngineering, 'bcg_top_star')?.value
+  const priorityPuzzle = metric(menuEngineering, 'bcg_priority_puzzle')?.value
 
   const conclusions: PresentationConclusion[] = [
     {
@@ -267,6 +270,19 @@ function buildBusinessConclusions(report: ProfessionalRestaurantReport): Present
       body: `El periodo alcanza el ${targetCompletion}% del objetivo de ventas configurado. Esta lectura permite separar rendimiento real de sensacion operativa.`,
       tone: targetCompletion >= 100 ? 'positive' : 'warning',
       sourceIds: ['daily_sales.revenue', 'monthly_targets.targets'],
+    })
+  }
+
+  if (typeof topStar === 'string' || typeof priorityPuzzle === 'string') {
+    conclusions.push({
+      id: 'menu-engineering-read',
+      order: conclusions.length + 1,
+      title: 'Carta priorizada por matriz BCG',
+      body: typeof priorityPuzzle === 'string'
+        ? `${priorityPuzzle} merece revisión comercial: tiene margen alto, pero necesita más tracción antes de convertirlo en apuesta de carta.`
+        : `${topStar} funciona como referencia de carta: combina margen y demanda por encima del umbral del reporte.`,
+      tone: 'neutral',
+      sourceIds: ['menu_engineering.report'],
     })
   }
 

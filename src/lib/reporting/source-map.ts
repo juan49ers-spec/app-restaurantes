@@ -81,4 +81,12 @@ export const PROFESSIONAL_REPORT_SOURCE_MAP: ReportSourceRef[] = [
     kind: 'actual',
     requiredFor: ['menu_performance'],
   },
+  {
+    id: 'menu_engineering.report',
+    label: 'Matriz BCG guardada',
+    tables: ['menu_reports', 'menu_report_items'],
+    calculation: 'Ultimo reporte Menu Engineering ANALYZED del restaurante cuyo rango esta contenido en el periodo del informe.',
+    kind: 'derived',
+    requiredFor: ['menu_engineering'],
+  },
 ]

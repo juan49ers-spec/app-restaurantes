@@ -59,7 +59,7 @@
 | `notifications` | `restaurant_id`, `type`, `severity`, `title`, `body`, `entity_id`, `read`, `read_at`, `created_at` | Notificaciones in-app. Limpieza automática >30 días. |
 | `broadcasts` | `id`, `title`, `body`, `severity`, `active_from`, `active_until`, `created_by` | Anuncios globales del super-admin. **Sin `restaurant_id`** (sistema). |
 | `scenarios` | `id`, `user_id`, `name`, `base_revenue`, `base_expenses`, `adjustments` (JSONB) | Simulaciones what-if del simulador financiero. |
-| `professional_report_drafts` | `restaurant_id`, `period_from`, `period_to`, `version`, `status`, `schema_version`, `report_snapshot` (JSONB), `narrative_overrides` (JSONB), `exported_at` | Versiones guardadas de informes profesionales. Snapshot inmutable para exportacion. Desde Fase 6 puede incluir la seccion `menu_performance` derivada de `daily_recipe_sales` + `recipes`. |
+| `professional_report_drafts` | `restaurant_id`, `period_from`, `period_to`, `version`, `status`, `schema_version`, `report_snapshot` (JSONB), `narrative_overrides` (JSONB), `exported_at` | Versiones guardadas de informes profesionales. Snapshot inmutable para exportacion. Desde Fase 6 puede incluir `menu_performance`; desde Fase 8 puede incluir `menu_engineering` derivado de un snapshot BCG `ANALYZED`. |
 | `menu_reports` / `menu_report_items` | `menu_reports.restaurant_id`, snapshots de coste/precio/cantidad en items | Informes BCG de Menu Engineering. Desde `20260526083000_secure_menu_engineering_rls.sql` ambos tienen RLS: `menu_reports` filtra por restaurante propietario y `menu_report_items` hereda permisos por su reporte padre. |
 | `ingestion_buffer` | items extraídos por OCR pendientes de mapear | Cola intermedia entre OCR y `invoice_items` confirmados. |
 

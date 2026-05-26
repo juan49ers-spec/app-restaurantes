@@ -15,6 +15,7 @@ const baseInput: ProfessionalReportInput = {
   invoices: [],
   recipeSales: [],
   recipes: [],
+  menuEngineeringReport: null,
 }
 
 describe('buildProfessionalRestaurantReport', () => {
@@ -383,6 +384,95 @@ describe('buildProfessionalRestaurantReport', () => {
     expect(report.sourceMap.map(source => source.id)).toContain('daily_recipe_sales.quantity')
   })
 
+  it('adds a professional BCG section from an analyzed Menu Engineering snapshot', () => {
+    const report = buildProfessionalRestaurantReport({
+      ...baseInput,
+      sales: [
+        {
+          date: '2026-02-01',
+          revenue_total: 800,
+          revenue_dine_in: 800,
+          revenue_takeout: 0,
+          revenue_delivery: 0,
+          base_10: 0,
+          base_21: 0,
+          tax_10: 0,
+          tax_21: 0,
+          total_covers: 40,
+          labor_hours: 10,
+          cost_of_goods: 0,
+          labor_cost: 0,
+          day_status: 'CLOSED',
+        },
+      ],
+      expenses: [
+        { expense_date: '2026-02-01', category: 'PROVEEDORES_COMIDA', amount: 240 },
+      ],
+      menuEngineeringReport: {
+        id: 'menu-report-1',
+        name: 'BCG febrero',
+        date_from: '2026-02-01',
+        date_to: '2026-02-10',
+        avg_popularity: 0.25,
+        avg_margin: 8.5,
+        items: [
+          { id: 'item-1', name: 'Tortilla', classification: 'STAR', quantity_sold: 40, contribution_margin: 12, total_sales: 800, total_profit: 480, popularity_pct: 0.4 },
+          { id: 'item-2', name: 'Croqueta', classification: 'PLOWHORSE', quantity_sold: 30, contribution_margin: 3, total_sales: 300, total_profit: 90, popularity_pct: 0.3 },
+          { id: 'item-3', name: 'Pulpo', classification: 'PUZZLE', quantity_sold: 10, contribution_margin: 18, total_sales: 250, total_profit: 180, popularity_pct: 0.1 },
+          { id: 'item-4', name: 'Ensalada', classification: 'DOG', quantity_sold: 5, contribution_margin: 2, total_sales: 50, total_profit: 10, popularity_pct: 0.05 },
+        ],
+      },
+    })
+
+    const menuEngineering = report.sections.find(section => section.id === 'menu_engineering')
+
+    expect(menuEngineering?.quality.status).toBe('OK')
+    expect(menuEngineering?.metrics.find(metric => metric.id === 'bcg_report_name')?.value).toBe('BCG febrero')
+    expect(menuEngineering?.metrics.find(metric => metric.id === 'bcg_star_count')?.value).toBe(1)
+    expect(menuEngineering?.metrics.find(metric => metric.id === 'bcg_plowhorse_count')?.value).toBe(1)
+    expect(menuEngineering?.metrics.find(metric => metric.id === 'bcg_puzzle_count')?.value).toBe(1)
+    expect(menuEngineering?.metrics.find(metric => metric.id === 'bcg_dog_count')?.value).toBe(1)
+    expect(menuEngineering?.metrics.find(metric => metric.id === 'bcg_top_star')?.value).toBe('Tortilla')
+    expect(menuEngineering?.metrics.find(metric => metric.id === 'bcg_priority_puzzle')?.value).toBe('Pulpo')
+    expect(menuEngineering?.narrative.join(' ')).toContain('Tortilla aparece como STAR')
+    expect(report.sourceMap.map(source => source.id)).toContain('menu_engineering.report')
+  })
+
+  it('keeps the report usable but marks BCG as partial when there is no analyzed Menu Engineering snapshot', () => {
+    const report = buildProfessionalRestaurantReport({
+      ...baseInput,
+      sales: [
+        {
+          date: '2026-02-01',
+          revenue_total: 1000,
+          revenue_dine_in: 1000,
+          revenue_takeout: 0,
+          revenue_delivery: 0,
+          base_10: 0,
+          base_21: 0,
+          tax_10: 0,
+          tax_21: 0,
+          total_covers: 40,
+          labor_hours: 12,
+          cost_of_goods: 0,
+          labor_cost: 0,
+          day_status: 'CLOSED',
+        },
+      ],
+      expenses: [
+        { expense_date: '2026-02-01', category: 'PROVEEDORES_COMIDA', amount: 300 },
+      ],
+      menuEngineeringReport: null,
+    })
+
+    const menuEngineering = report.sections.find(section => section.id === 'menu_engineering')
+
+    expect(menuEngineering?.quality.status).toBe('PARTIAL')
+    expect(menuEngineering?.quality.issues.map(issue => issue.id)).toContain('menu_engineering.no_analyzed_report')
+    expect(menuEngineering?.metrics.find(metric => metric.id === 'bcg_report_name')?.kind).toBe('not_available')
+    expect(report.executiveSummary.blockingIssues.map(issue => issue.id)).not.toContain('menu_engineering.no_analyzed_report')
+  })
+
   it('does not block the full report when recipe sales are not available', () => {
     const report = buildProfessionalRestaurantReport({
       ...baseInput,
@@ -430,5 +520,48 @@ describe('buildProfessionalRestaurantReport', () => {
     expect(menu?.quality.issues[0]?.severity).toBe('warning')
     expect(report.quality.status).toBe('PARTIAL')
     expect(report.executiveSummary.blockingIssues.map(issue => issue.id)).not.toContain('menu.no_recipe_sales')
+  })
+
+  it('adds Menu Engineering to the professional presentation chapter without recalculating metrics', () => {
+    const report = buildProfessionalRestaurantReport({
+      ...baseInput,
+      sales: Array.from({ length: 10 }, (_, index) => ({
+        date: `2026-02-${String(index + 1).padStart(2, '0')}`,
+        revenue_total: 1000,
+        revenue_dine_in: 1000,
+        revenue_takeout: 0,
+        revenue_delivery: 0,
+        base_10: 0,
+        base_21: 0,
+        tax_10: 0,
+        tax_21: 0,
+        total_covers: 40,
+        labor_hours: 16,
+        cost_of_goods: 0,
+        labor_cost: 0,
+        day_status: 'CLOSED',
+      })),
+      expenses: [
+        { expense_date: '2026-02-02', category: 'PROVEEDORES_COMIDA', amount: 2800 },
+      ],
+      menuEngineeringReport: {
+        id: 'menu-report-1',
+        name: 'BCG febrero',
+        date_from: '2026-02-01',
+        date_to: '2026-02-10',
+        avg_popularity: 0.5,
+        avg_margin: 10,
+        items: [
+          { id: 'item-1', name: 'Tortilla', classification: 'STAR', quantity_sold: 40, contribution_margin: 12, total_sales: 800, total_profit: 480, popularity_pct: 0.67 },
+          { id: 'item-2', name: 'Pulpo', classification: 'PUZZLE', quantity_sold: 20, contribution_margin: 18, total_sales: 500, total_profit: 360, popularity_pct: 0.33 },
+        ],
+      },
+    })
+
+    const presentation = buildProfessionalReportPresentation(report)
+    const menuChapter = presentation.chapters.find(chapter => chapter.id === 'menu')
+
+    expect(menuChapter?.sectionIds).toEqual(['menu_performance', 'menu_engineering'])
+    expect(presentation.conclusions.map(conclusion => conclusion.id)).toContain('menu-engineering-read')
   })
 })

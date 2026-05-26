@@ -18,7 +18,9 @@ Desde Fase 5, la seccion de ventas incluye diagnostico por dia de semana cuando 
 
 Desde Fase 6, el informe incluye una seccion de carta (`menu_performance`) alimentada por `daily_recipe_sales` y `recipes`. Esta seccion calcula unidades vendidas, venta estimada por receta, coste estimado, margen bruto estimado, producto lider y producto con menor margen porcentual. No es todavia una matriz BCG dentro del informe.
 
-Desde Fase 7, Menu Engineering ya tiene una formula BCG unica en libreria, action y simulador. Reporting mantiene por ahora la carta como ranking descriptivo; elevar STAR/PLOWHORSE/PUZZLE/DOG al informe requiere una decision de producto sobre como presentar snapshots historicos y recomendaciones.
+Desde Fase 7, Menu Engineering ya tiene una formula BCG unica en libreria, action y simulador.
+
+Desde Fase 8, Reporting incorpora `menu_engineering` como seccion separada de la carta descriptiva. Esta seccion no recalcula BCG: consume el ultimo `menu_reports` con `status=ANALYZED` del restaurante activo cuyo `date_from/date_to` queda dentro del periodo del informe. Si no existe snapshot, la seccion queda `PARTIAL` y no inventa cuadrantes.
 
 ## 3. Flujo técnico de datos
 
@@ -49,7 +51,7 @@ Desde Fase 7, Menu Engineering ya tiene una formula BCG unica en libreria, actio
 - Guarda versiones con `saveProfessionalReportDraft(input)`.
 - Abre snapshots guardados con `getSavedProfessionalReportDraft(id)`.
 
-Tablas consultadas: `restaurants`, `daily_sales`, `operating_expenses`, `monthly_targets`, `employees`, `shifts`, `suppliers`, `invoices`, `daily_recipe_sales`, `recipes`.
+Tablas consultadas: `restaurants`, `daily_sales`, `operating_expenses`, `monthly_targets`, `employees`, `shifts`, `suppliers`, `invoices`, `daily_recipe_sales`, `recipes`, `menu_reports`, `menu_report_items`.
 
 Tabla de persistencia desde Fase 3: `professional_report_drafts`.
 
@@ -81,7 +83,8 @@ Tabla de persistencia desde Fase 3: `professional_report_drafts`.
 - La lectura de carta se calcula solo con recetas vendidas en `daily_recipe_sales` y con PVP/coste actuales de `recipes`.
 - Si faltan ventas por receta, `menu_performance` queda `PARTIAL` con severidad `warning`; no debe bloquear conclusiones financieras si ventas/gastos existen.
 - La cobertura de carta contra ventas diarias debe mostrarse cuando sea calculable para detectar capturas incompletas.
-- No llamar BCG, STAR/PLOWHORSE/PUZZLE/DOG ni recomendaciones de ingeniería de menú a esta seccion hasta decidir explicitamente como se van a presentar snapshots historicos y recomendaciones dentro del informe final.
+- BCG vive en `menu_engineering`, no en `menu_performance`. Solo se presenta desde snapshot Menu Engineering ya calculado, con `sourceIds=['menu_engineering.report']`.
+- Las recomendaciones BCG deben ser prudentes: STAR como referencia, PUZZLE como producto a revisar comercialmente, PLOWHORSE como volumen con margen a optimizar. No presentar DOG como orden automatica de eliminacion.
 - Los datos demo se consideran herramienta de QA/dev, no dato operativo real ni importacion de cliente.
 - El cliente no envia metricas para persistir. Al guardar, el servidor regenera el informe desde Supabase y guarda ese snapshot.
 - Cada guardado crea una version nueva; no se sobreescriben snapshots.
@@ -114,6 +117,7 @@ Tabla de persistencia desde Fase 3: `professional_report_drafts`.
 - La Fase 6.5 incorpora seed demo completa, tests de server action y pulido de exportacion imprimible.
 - La Fase 7 unifica la formula BCG de Menu Engineering, pero reporting aun no incorpora esos cuadrantes en el entregable profesional.
 - La Fase 7.2 cierra deuda menor de formulas y QA: `getStats().avgMargin` vuelve a margen ponderado, la brecha semanal queda acotada, el endpoint demo distingue auth/rate limit y se cubren edge cases de Menu Engineering.
+- La Fase 8 incorpora BCG al informe profesional como snapshot trazable, no como recalculo en UI.
 - Si dos guardados simultaneos chocan por version, la action reintenta una vez.
 
 ## 7. Al añadir/modificar reporting

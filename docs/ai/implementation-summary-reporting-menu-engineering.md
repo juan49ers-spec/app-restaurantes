@@ -162,6 +162,19 @@ Logros principales:
 - Endpoint demo de reporting con autenticación HTTP y límite por usuario/IP.
 - `safe-action.ts` migra el catch general a logger estructurado.
 
+## Fase 8 — BCG dentro del informe profesional
+
+Se incorporó Menu Engineering al entregable profesional sin recalcular datos en cliente ni inventar cuadrantes.
+
+Logros principales:
+
+- Nueva sección `menu_engineering` en el contrato `ProfessionalRestaurantReport`.
+- Nueva fuente trazable `menu_engineering.report`.
+- `getProfessionalReportDraft(period)` carga el último `menu_reports` `ANALYZED` del restaurante activo cuyo rango queda contenido en el periodo.
+- Métricas de snapshot: productos analizados, umbrales, conteo por cuadrante, STAR principal y PUZZLE prioritario.
+- La capa de presentación incluye BCG dentro del capítulo "Carta" y añade conclusión ejecutiva prudente cuando hay snapshot.
+- Si no hay BCG analizado, la sección queda `PARTIAL` y no bloquea el informe.
+
 ## Cambios de infraestructura y robustez
 
 - `tsconfig.typecheck.json` para typecheck estable.
@@ -184,6 +197,7 @@ Verificación posterior a la revisión externa:
 
 - Tests focales de Menu Engineering y reporting actions correctos.
 - Fase 7.2 verificada con `npx eslint --max-warnings=0`, `npm run typecheck`, `npm test` (30 archivos, 314 tests) y `npm run build`.
+- Fase 8 verificada con `npx eslint --max-warnings=0`, `npm run typecheck`, `npm test` (30 archivos, 317 tests) y `npm run build`.
 
 Nota sobre un timeout:
 
@@ -200,14 +214,14 @@ La aplicación ya tiene:
 - Dataset demo para verificar informes completos.
 - Menu Engineering con fórmula única y testeada.
 - Reservas menores principales cerradas antes de incorporar BCG al informe profesional.
+- Informe profesional con snapshot BCG trazable cuando existe un reporte Menu Engineering analizado del periodo.
 
 ## Decisiones pendientes
 
-1. Decidir si los cuadrantes BCG entran en el informe profesional.
-2. Diseñar cómo explicar BCG al cliente sin sobreprometer precisión.
-3. Migrar `saveScenario` a server action si se quiere eliminar por completo la lectura client-side residual de `restaurant_id`.
-4. Mejorar experiencia visual del informe final si se quiere acercar más al ejemplo externo de consultoría.
-5. Valorar exportación PDF server-side si el HTML imprimible no cubre el estándar final esperado.
+1. Añadir BCG a la seed demo con tests específicos del flujo completo.
+2. Migrar `saveScenario` a server action si se quiere eliminar por completo la lectura client-side residual de `restaurant_id`.
+3. Mejorar experiencia visual del informe final si se quiere acercar más al ejemplo externo de consultoría.
+4. Valorar exportación PDF server-side si el HTML imprimible no cubre el estándar final esperado.
 
 ## Archivos de referencia
 
@@ -225,3 +239,4 @@ La aplicación ya tiene:
 - `docs/ai/phase-7-menu-engineering-cierre.md`
 - `docs/ai/phase-7-1-security-review-remediation.md`
 - `docs/ai/phase-7-2-analytical-cleanup.md`
+- `docs/ai/phase-8-menu-engineering-reporting.md`

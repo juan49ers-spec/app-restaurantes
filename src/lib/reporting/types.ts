@@ -7,6 +7,7 @@ export type ReportSectionId =
   | 'staff'
   | 'suppliers'
   | 'menu_performance'
+  | 'menu_engineering'
   | 'profitability'
   | 'recommendations'
   | 'data_appendix'
@@ -177,6 +178,29 @@ export interface RecipeReportRow {
   current_cost?: number | null
 }
 
+export type MenuEngineeringClassification = 'STAR' | 'PLOWHORSE' | 'PUZZLE' | 'DOG'
+
+export interface MenuEngineeringReportItemRow {
+  id: string
+  name: string
+  classification?: MenuEngineeringClassification | null
+  quantity_sold?: number | null
+  contribution_margin?: number | null
+  total_sales?: number | null
+  total_profit?: number | null
+  popularity_pct?: number | null
+}
+
+export interface MenuEngineeringReportRow {
+  id: string
+  name: string
+  date_from?: string | null
+  date_to?: string | null
+  avg_popularity?: number | null
+  avg_margin?: number | null
+  items: MenuEngineeringReportItemRow[]
+}
+
 export interface ProfessionalReportInput {
   restaurant: RestaurantIdentity
   period: ReportPeriod
@@ -189,5 +213,6 @@ export interface ProfessionalReportInput {
   invoices: InvoiceReportRow[]
   recipeSales: DailyRecipeSalesReportRow[]
   recipes: RecipeReportRow[]
+  menuEngineeringReport?: MenuEngineeringReportRow | null
   generatedAt?: string
 }
