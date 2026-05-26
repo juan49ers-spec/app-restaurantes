@@ -9,6 +9,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setupTests.ts'],
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    teardownTimeout: 10000,
+    slowTestThreshold: 1000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
