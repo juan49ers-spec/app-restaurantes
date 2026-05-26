@@ -6,6 +6,8 @@ import type { ProfessionalReportInput } from '@/lib/reporting'
 
 const push = vi.fn()
 const saveProfessionalReportDraft = vi.fn()
+const publishReportDraft = vi.fn()
+const unpublishReportDraft = vi.fn()
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
@@ -13,6 +15,11 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/app/actions/professional-reporting', () => ({
   saveProfessionalReportDraft: (...args: unknown[]) => saveProfessionalReportDraft(...args),
+}))
+
+vi.mock('@/app/actions/portal', () => ({
+  publishReportDraft: (...args: unknown[]) => publishReportDraft(...args),
+  unpublishReportDraft: (...args: unknown[]) => unpublishReportDraft(...args),
 }))
 
 const input: ProfessionalReportInput = {
@@ -61,6 +68,8 @@ describe('ProfessionalReportReview', () => {
   beforeEach(() => {
     push.mockClear()
     saveProfessionalReportDraft.mockReset()
+    publishReportDraft.mockReset()
+    unpublishReportDraft.mockReset()
   })
 
   it('renders report quality, metrics and editable narrative', () => {
@@ -114,6 +123,8 @@ describe('ProfessionalReportReview', () => {
         createdAt: '2026-05-25T10:00:00.000Z',
         updatedAt: '2026-05-25T10:00:00.000Z',
         exportedAt: null,
+        publishedAt: null,
+        publishedBy: null,
       },
     })
 
@@ -141,5 +152,77 @@ describe('ProfessionalReportReview', () => {
       'href',
       '/reports/print/11111111-1111-4111-8111-111111111111'
     )
+  })
+
+  it('publishes a READY draft to the client portal', async () => {
+    const report = buildProfessionalRestaurantReport(input)
+    publishReportDraft.mockResolvedValueOnce({
+      success: true,
+      data: { id: '11111111-1111-4111-8111-111111111111', publishedAt: '2026-05-26T10:00:00.000Z' },
+    })
+
+    render(
+      <ProfessionalReportReview
+        initialPeriod={{ from: '2026-02-01', to: '2026-02-10' }}
+        report={report}
+        error={null}
+        savedDrafts={[{
+          id: '11111111-1111-4111-8111-111111111111',
+          periodFrom: '2026-02-01',
+          periodTo: '2026-02-10',
+          version: 1,
+          status: 'READY',
+          schemaVersion: 'professional-report/v1',
+          createdAt: '2026-05-25T10:00:00.000Z',
+          updatedAt: '2026-05-25T10:00:00.000Z',
+          exportedAt: null,
+          publishedAt: null,
+          publishedBy: null,
+        }]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Publicar en portal/i }))
+
+    await waitFor(() => {
+      expect(publishReportDraft).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111')
+    })
+    expect(await screen.findByText('Informe publicado en portal.')).toBeInTheDocument()
+  })
+
+  it('unpublishes an already published draft', async () => {
+    const report = buildProfessionalRestaurantReport(input)
+    unpublishReportDraft.mockResolvedValueOnce({
+      success: true,
+      data: { id: '11111111-1111-4111-8111-111111111111' },
+    })
+
+    render(
+      <ProfessionalReportReview
+        initialPeriod={{ from: '2026-02-01', to: '2026-02-10' }}
+        report={report}
+        error={null}
+        savedDrafts={[{
+          id: '11111111-1111-4111-8111-111111111111',
+          periodFrom: '2026-02-01',
+          periodTo: '2026-02-10',
+          version: 1,
+          status: 'READY',
+          schemaVersion: 'professional-report/v1',
+          createdAt: '2026-05-25T10:00:00.000Z',
+          updatedAt: '2026-05-25T10:00:00.000Z',
+          exportedAt: null,
+          publishedAt: '2026-05-26T10:00:00.000Z',
+          publishedBy: 'user-1',
+        }]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Despublicar/i }))
+
+    await waitFor(() => {
+      expect(unpublishReportDraft).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111')
+    })
+    expect(await screen.findByText('Informe despublicado del portal.')).toBeInTheDocument()
   })
 })

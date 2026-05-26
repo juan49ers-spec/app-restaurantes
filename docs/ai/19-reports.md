@@ -21,8 +21,9 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 7. Revisa la vista de informe final: KPIs destacados, capitulos, carta y conclusiones ejecutivas.
 8. Edita la narrativa de cada seccion.
 9. Pulsa "Guardar version". La action regenera los datos en servidor, guarda un snapshot y conserva las narrativas editadas.
-10. Desde "Versiones" abre "Exportar", que lleva a `/reports/print/[draftId]`.
-11. En la vista imprimible pulsa "Imprimir / guardar PDF" para usar el dialogo nativo del navegador.
+10. Cuando una version esta `READY`, puede publicarla en el portal cliente o despublicarla.
+11. Desde "Versiones" abre "Exportar", que lleva a `/reports/print/[draftId]`.
+12. En la vista imprimible pulsa "Imprimir / guardar PDF" para usar el dialogo nativo del navegador.
 
 ## 3. Flujo tecnico de datos
 
@@ -44,6 +45,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - Agrupa secciones en tabs.
 - Permite editar narrativa.
 - Guarda versiones mediante `saveProfessionalReportDraft`.
+- Publica o despublica versiones `READY` mediante `publishReportDraft` y `unpublishReportDraft`.
 - No envia `restaurant_id` ni calculos financieros desde cliente.
 
 **Print page:** `src/app/reports/print/[draftId]/page.tsx`
@@ -57,6 +59,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - Guarda snapshot JSONB completo de `ProfessionalRestaurantReport`.
 - Guarda `narrative_overrides` por seccion.
 - Versiona por `restaurant_id + period_from + period_to + version`.
+- `published_at` y `published_by` separan estado interno de visibilidad en portal cliente.
 - RLS limita filas al restaurante propietario.
 
 **Motor:** todo calculo viene de `src/lib/reporting/`; la UI no recalcula rentabilidad.
@@ -96,6 +99,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - Cada guardado crea una nueva version inmutable. No se sobrescriben versiones anteriores.
 - `saveProfessionalReportDraft` debe estar cubierto por tests de snapshot regenerado, bloqueo por restaurante no coincidente y retry por choque de version.
 - Si hay bloqueos criticos, la version se guarda como `DRAFT`; si no, como `REVIEWED`.
+- `READY` significa listo internamente. Solo `published_at IS NOT NULL` hace visible una version en `/portal`.
 - La exportacion actual es HTML imprimible/PDF de navegador, no generacion binaria server-side.
 - La seed demo de informes no debe exponerse como funcionalidad normal de cliente. Es herramienta de verificacion/dev. El endpoint devuelve `401` si no hay usuario autenticado, `403` si la seed no esta habilitada en el entorno y `429` si se excede el limite por usuario/IP.
 

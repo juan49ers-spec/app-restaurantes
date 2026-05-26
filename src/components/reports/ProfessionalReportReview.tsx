@@ -15,6 +15,7 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import { saveProfessionalReportDraft } from '@/app/actions/professional-reporting'
+import { publishReportDraft, unpublishReportDraft } from '@/app/actions/portal'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -298,6 +299,27 @@ export function ProfessionalReportReview({ initialPeriod, report, error, savedDr
     setIsSaving(false)
   }
 
+  async function togglePublishedDraft(draft: SavedProfessionalReportDraft) {
+    const response = draft.publishedAt
+      ? await unpublishReportDraft(draft.id)
+      : await publishReportDraft(draft.id)
+
+    if (!response.success) {
+      setSaveState({ type: 'error', message: response.error || 'No se pudo actualizar la publicación.' })
+      return
+    }
+
+    const publishedAt = draft.publishedAt ? null : new Date().toISOString()
+    setSavedDrafts(current => current.map(item => item.id === draft.id
+      ? { ...item, publishedAt }
+      : item
+    ))
+    setSaveState({
+      type: 'success',
+      message: publishedAt ? 'Informe publicado en portal.' : 'Informe despublicado del portal.',
+    })
+  }
+
   return (
     <div className="min-h-screen bg-slate-100/60 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -513,12 +535,19 @@ export function ProfessionalReportReview({ initialPeriod, report, error, savedDr
                           <p className="text-xs text-slate-500">
                             {new Date(draft.updatedAt).toLocaleString('es-ES')}
                           </p>
-                          <Button asChild size="sm" variant="outline">
-                            <a href={`/reports/print/${draft.id}`} target="_blank" rel="noreferrer">
-                              <ExternalLink className="h-4 w-4" />
-                              Exportar
-                            </a>
-                          </Button>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            {draft.status === 'READY' && (
+                              <Button size="sm" variant={draft.publishedAt ? 'secondary' : 'outline'} onClick={() => togglePublishedDraft(draft)}>
+                                {draft.publishedAt ? 'Despublicar' : 'Publicar en portal'}
+                              </Button>
+                            )}
+                            <Button asChild size="sm" variant="outline">
+                              <a href={`/reports/print/${draft.id}`} target="_blank" rel="noreferrer">
+                                <ExternalLink className="h-4 w-4" />
+                                Exportar
+                              </a>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))

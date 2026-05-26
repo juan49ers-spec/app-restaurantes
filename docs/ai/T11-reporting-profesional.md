@@ -55,6 +55,8 @@ Tablas consultadas: `restaurants`, `daily_sales`, `operating_expenses`, `monthly
 
 Tabla de persistencia desde Fase 3: `professional_report_drafts`.
 
+Desde Fase 9, la publicación al cliente es explícita: `status = READY` solo indica preparación interna; `published_at IS NOT NULL` indica visibilidad en `/portal`.
+
 **UI de revision:** `src/app/reports/page.tsx` + `src/components/reports/ProfessionalReportReview.tsx`.
 
 - La pagina carga el borrador por periodo.
@@ -90,6 +92,7 @@ Tabla de persistencia desde Fase 3: `professional_report_drafts`.
 - Cada guardado crea una version nueva; no se sobreescriben snapshots.
 - El guardado queda cubierto por tests de regeneracion server-side, saneamiento de narrativa, verificacion de pertenencia y retry por version duplicada.
 - La exportacion visible debe abrir una version guardada. No debe exportar estado local sin snapshot.
+- La publicación en portal solo puede hacerse sobre versiones guardadas. El portal consume snapshots publicados y no recalcula el informe.
 - La salida actual es imprimible por navegador; si se anade PDF server-side, debe consumir el mismo snapshot.
 - Si existen bloqueos criticos, las conclusiones deben hablar de calidad de dato antes que de decisiones comerciales.
 
