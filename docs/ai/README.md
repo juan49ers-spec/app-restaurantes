@@ -52,6 +52,7 @@ Cuando vayas a tocar una funcionalidad:
 | 17 | [Admin](./17-admin.md) | `/admin/*` | Panel super-admin: restaurantes, usuarios, billing, audit, impersonación. |
 | 18 | [Inventory](./18-inventory.md) | `/operations/inventory` | Conteo físico de inventario + informe de consumo real. |
 | 19 | [Reports](./19-reports.md) | `/reports` | Mesa de revision de informes profesionales. |
+| 20 | [Portal Cliente](./20-portal-cliente.md) | `/portal` | Área cliente para informes profesionales publicados. |
 
 ### Transversales (lo que no es una página pero atraviesa todo)
 
@@ -82,6 +83,7 @@ Cuando vayas a tocar una funcionalidad:
 - [Cierre Fase 7.1 — Remediacion de revision externa](./phase-7-1-security-review-remediation.md) — cierre de IDOR/RLS en Menu Engineering y tests de guardado de informes.
 - [Cierre Fase 7.2 — Limpieza analitica y QA menor](./phase-7-2-analytical-cleanup.md) — coherencia de margen ponderado, brecha semanal acotada y endpoint demo protegido.
 - [Cierre Fase 8 — BCG en informe profesional](./phase-8-menu-engineering-reporting.md) — integra snapshots Menu Engineering ANALYZED en el informe sin recalcular en UI.
+- [Cierre Fase 9 — Área cliente](./phase-9-client-portal.md) — portal autenticado para informes publicados, solicitudes de reunión y descarga PDF.
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 
