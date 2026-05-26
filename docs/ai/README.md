@@ -85,6 +85,10 @@ Cuando vayas a tocar una funcionalidad:
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 
+### Prompts de implementación
+
+- [Prompt Fase 9 — Área cliente](./prompts/phase-9-client-portal.md) — especificación operativa para construir `/portal`, publicación separada de informes y solicitud de reunión.
+
 ## Plantilla de archivo de página (para futuras adiciones)
 
 Si en el futuro se añade una página nueva, su archivo debe tener estas 7 secciones (ver [04 — Financial Control](./04-financial-control.md) como ejemplo canónico):

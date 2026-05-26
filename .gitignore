@@ -55,6 +55,7 @@ next-env.d.ts
 .agent/
 brain/
 .codex/
+.superpowers/
 
 # Local dev server logs
 dev-codex-localhost*.log
