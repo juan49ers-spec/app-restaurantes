@@ -1,31 +1,38 @@
 import Link from 'next/link'
-import { getPortalContext, getPublishedReportDetail, getPublishedReports } from '@/app/actions/portal'
+import { redirect } from 'next/navigation'
+import { getCurrentRestaurant } from '@/app/actions/user'
+import { formatPortalKpiValue } from '@/components/portal/format'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
 import { PortalReportSummary } from '@/components/portal/PortalReportSummary'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
+import { buildPortalContextFallback, getPortalContextForRestaurant, getPublishedReportDetailForRestaurant, getPublishedReportsForRestaurant } from '@/lib/portal'
 import { formatCurrency, formatPct } from '@/lib/utils'
-import type { PresentationKpi } from '@/lib/reporting'
-
-function formatKpiValue(kpi: PresentationKpi) {
-  if (kpi.value === null) return 'Sin dato'
-  if (typeof kpi.value === 'string') return kpi.value
-  if (kpi.unit === 'eur') return formatCurrency(kpi.value)
-  if (kpi.unit === 'pct') return formatPct(kpi.value)
-  if (kpi.unit === 'days') return `${kpi.value} días`
-  return new Intl.NumberFormat('es-ES').format(kpi.value)
-}
 
 export default async function PortalPage() {
+  const restaurant = await getCurrentRestaurant()
+  if (!restaurant) redirect('/login')
+  const restaurantWithConsultant = restaurant as typeof restaurant & {
+    consultant_name?: string | null
+    consultant_email?: string | null
+    consultant_logo_url?: string | null
+  }
+
   const [contextRes, reportsRes] = await Promise.all([
-    getPortalContext(),
-    getPublishedReports(),
+    getPortalContextForRestaurant(restaurant.id),
+    getPublishedReportsForRestaurant(restaurant.id),
   ])
-  const context = contextRes.data ?? null
+  const context = contextRes.data ?? buildPortalContextFallback({
+    restaurantId: restaurant.id,
+    restaurantName: restaurant.name,
+    consultantName: restaurantWithConsultant.consultant_name,
+    consultantEmail: restaurantWithConsultant.consultant_email,
+    consultantLogoUrl: restaurantWithConsultant.consultant_logo_url,
+  })
   const reports = reportsRes.data ?? []
   const latest = reports[0]
-  const detailRes = latest ? await getPublishedReportDetail(latest.id) : null
+  const detailRes = latest ? await getPublishedReportDetailForRestaurant(latest.id, restaurant.id) : null
   const detail = detailRes?.data ?? null
   const presentation = detail ? buildProfessionalReportPresentation(detail.report) : null
 
@@ -73,7 +80,7 @@ export default async function PortalPage() {
               <Link href={`/portal/reports/${latest.id}`}>Ver informe</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={`/reports/print/${latest.id}`}>Descargar PDF</Link>
+              <Link href={`/reports/print/${latest.id}`} target="_blank" rel="noreferrer">Descargar PDF</Link>
             </Button>
           </div>
         </div>
@@ -85,7 +92,7 @@ export default async function PortalPage() {
         {presentation.kpis.slice(0, 4).map(kpi => (
           <div key={kpi.id} className="min-h-32 rounded-lg border border-slate-200 bg-white p-4">
             <p className="text-xs font-semibold uppercase text-slate-500">{kpi.label}</p>
-            <p className="mt-3 text-2xl font-semibold text-slate-950">{formatKpiValue(kpi)}</p>
+            <p className="mt-3 text-2xl font-semibold text-slate-950">{formatPortalKpiValue(kpi)}</p>
             <p className="mt-2 text-xs leading-5 text-slate-500">{kpi.note}</p>
           </div>
         ))}

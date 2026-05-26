@@ -177,7 +177,7 @@ describe('portal server actions', () => {
         error: null,
       },
       monthly_targets: {
-        data: { revenue_target: 5000 },
+        data: { revenue_target: 6000 },
         error: null,
       },
     }
@@ -248,8 +248,8 @@ describe('portal server actions', () => {
       consultantLogoUrl: 'https://controlhub.es/logo.png',
       liveRevenue: expect.objectContaining({
         revenueActual: 2500,
-        revenueTarget: 5000,
-        completionPct: 0.5,
+        revenueTarget: 6000,
+        completionPct: 0.4167,
       }),
     }))
     expect(calls.find(call => call.table === 'daily_sales')?.filters).toContainEqual(['eq', 'restaurant_id', RESTAURANT_ID])

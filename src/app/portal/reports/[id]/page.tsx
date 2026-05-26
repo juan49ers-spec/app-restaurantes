@@ -1,32 +1,15 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
-import { getPortalContext, getPublishedReportDetail } from '@/app/actions/portal'
+import { notFound, redirect } from 'next/navigation'
+import { getCurrentRestaurant } from '@/app/actions/user'
+import { formatPortalKpiValue, formatPortalMetricValue } from '@/components/portal/format'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
 import { Button } from '@/components/ui/button'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
-import { formatCurrency, formatPct } from '@/lib/utils'
-import type { PresentationKpi, ProfessionalReportSection, ReportMetric } from '@/lib/reporting'
+import { buildPortalContextFallback, getPortalContextForRestaurant, getPublishedReportDetailForRestaurant } from '@/lib/portal'
+import type { ProfessionalReportSection } from '@/lib/reporting'
 
 interface PortalReportDetailPageProps {
   params: Promise<{ id: string }>
-}
-
-function formatKpiValue(kpi: PresentationKpi) {
-  if (kpi.value === null) return 'Sin dato'
-  if (typeof kpi.value === 'string') return kpi.value
-  if (kpi.unit === 'eur') return formatCurrency(kpi.value)
-  if (kpi.unit === 'pct') return formatPct(kpi.value)
-  if (kpi.unit === 'days') return `${kpi.value} días`
-  return new Intl.NumberFormat('es-ES').format(kpi.value)
-}
-
-function formatMetricValue(metric: ReportMetric) {
-  if (metric.value === null || metric.kind === 'not_available') return 'Sin dato'
-  if (typeof metric.value === 'string') return metric.value
-  if (metric.unit === 'eur') return formatCurrency(metric.value)
-  if (metric.unit === 'pct') return formatPct(metric.value)
-  if (metric.unit === 'days') return `${metric.value} días`
-  return new Intl.NumberFormat('es-ES').format(metric.value)
 }
 
 function sectionNarrative(section: ProfessionalReportSection, overrides: Record<string, string>) {
@@ -37,9 +20,17 @@ function sectionNarrative(section: ProfessionalReportSection, overrides: Record<
 
 export default async function PortalReportDetailPage({ params }: PortalReportDetailPageProps) {
   const { id } = await params
+  const restaurant = await getCurrentRestaurant()
+  if (!restaurant) redirect('/login')
+  const restaurantWithConsultant = restaurant as typeof restaurant & {
+    consultant_name?: string | null
+    consultant_email?: string | null
+    consultant_logo_url?: string | null
+  }
+
   const [detailRes, contextRes] = await Promise.all([
-    getPublishedReportDetail(id),
-    getPortalContext(),
+    getPublishedReportDetailForRestaurant(id, restaurant.id),
+    getPortalContextForRestaurant(restaurant.id),
   ])
 
   if (!detailRes.success || !detailRes.data) {
@@ -49,13 +40,20 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
   const draft = detailRes.data
   const report = draft.report
   const presentation = buildProfessionalReportPresentation(report)
+  const context = contextRes.data ?? buildPortalContextFallback({
+    restaurantId: restaurant.id,
+    restaurantName: restaurant.name,
+    consultantName: restaurantWithConsultant.consultant_name,
+    consultantEmail: restaurantWithConsultant.consultant_email,
+    consultantLogoUrl: restaurantWithConsultant.consultant_logo_url,
+  })
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-6">
         <header className="rounded-lg border border-slate-200 bg-white p-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            {contextRes.data?.consultantName ?? 'Informe publicado'}
+            {context.consultantName ?? 'Informe publicado'}
           </p>
           <h1 className="mt-3 text-3xl font-semibold text-slate-950">{presentation.title}</h1>
           <p className="mt-2 text-sm text-slate-600">{presentation.periodLabel} · Versión {draft.version}</p>
@@ -64,7 +62,7 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
               <Link href="/portal">Volver al portal</Link>
             </Button>
             <Button asChild>
-              <Link href={`/reports/print/${draft.id}`}>Descargar PDF</Link>
+              <Link href={`/reports/print/${draft.id}`} target="_blank" rel="noreferrer">Descargar PDF</Link>
             </Button>
           </div>
         </header>
@@ -73,7 +71,7 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
           {presentation.kpis.map(kpi => (
             <div key={kpi.id} className="rounded-lg border border-slate-200 bg-white p-4">
               <p className="text-xs font-semibold uppercase text-slate-500">{kpi.label}</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">{formatKpiValue(kpi)}</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-950">{formatPortalKpiValue(kpi)}</p>
               <p className="mt-2 text-xs leading-5 text-slate-500">{kpi.note}</p>
             </div>
           ))}
@@ -120,7 +118,7 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
                     {section.metrics.map(metric => (
                       <div key={metric.id} className="rounded-md border border-slate-200 p-3">
                         <p className="text-xs font-medium text-slate-500">{metric.label}</p>
-                        <p className="mt-2 text-lg font-semibold text-slate-950">{formatMetricValue(metric)}</p>
+                        <p className="mt-2 text-lg font-semibold text-slate-950">{formatPortalMetricValue(metric)}</p>
                       </div>
                     ))}
                   </div>

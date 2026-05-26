@@ -23,9 +23,9 @@ No sustituye la mesa interna de `/reports`; solo muestra versiones ya publicadas
 
 **Layout:** `src/app/portal/layout.tsx`
 
-- Usa `getCurrentRestaurant()`.
+- Usa `getCurrentRestaurant()` para validar restaurante activo y mostrar identidad del consultor.
 - Si no hay restaurante, redirige a `/login`.
-- Renderiza una cabecera limpia sin sidebar operativo.
+- Renderiza una cabecera limpia sin sidebar operativo, con nombre/logo del consultor cuando existen.
 
 **Actions:** `src/app/actions/portal.ts`
 
@@ -34,6 +34,12 @@ No sustituye la mesa interna de `/reports`; solo muestra versiones ya publicadas
 - `getPortalContext()` carga restaurante, datos del consultor y ventas acumuladas del mes vs objetivo.
 - `requestConsultantMeeting(input)` crea una fila `portal_meeting_requests`.
 - `publishReportDraft(id)` y `unpublishReportDraft(id)` se usan desde la mesa interna.
+
+**Consultas server-side:** `src/lib/portal.ts`
+
+- Las páginas del portal usan helpers `*ForRestaurant(restaurantId)` después de resolver `getCurrentRestaurant()` en servidor.
+- Las actions públicas siguen resolviendo `restaurant_id` con `getUserRestaurant()` y delegan en esos helpers para no duplicar queries.
+- Si el contexto vivo falla, las páginas conservan identidad de restaurante/consultor desde `getCurrentRestaurant()` y solo omiten el dato vivo.
 
 **Persistencia:**
 
@@ -47,8 +53,11 @@ No sustituye la mesa interna de `/reports`; solo muestra versiones ya publicadas
 - `READY` no implica visibilidad; la visibilidad depende de `published_at`.
 - El detalle del portal consume `report_snapshot`; no recalcula el informe.
 - El dato vivo solo muestra ventas acumuladas del mes actual contra objetivo mensual.
+- El porcentaje del dato vivo se devuelve redondeado a 4 decimales para evitar artefactos de coma flotante.
 - Si no hay objetivo mensual, no se muestra la card de dato vivo.
+- Si falla la carga del dato vivo, no debe romper ni vaciar el portal.
 - La solicitud de reunión no envía email en esta fase; solo crea registro interno.
+- Los enlaces PDF desde el portal abren la vista imprimible en una pestaña nueva para no sacar al cliente del área limpia.
 - `restaurant_id` nunca viaja desde cliente.
 
 ## 5. Dependencias e implicaciones cruzadas
@@ -58,6 +67,7 @@ No sustituye la mesa interna de `/reports`; solo muestra versiones ya publicadas
 - **Financial Control:** aporta ventas diarias y objetivos mensuales para el dato vivo.
 - **Base de datos:** depende de `professional_report_drafts`, `restaurants` y `portal_meeting_requests`.
 - **Layout:** `AppLayout` exime `/portal` para no mostrar sidebar operativo.
+- **Consultas compartidas:** `src/lib/portal.ts` mantiene el mapper de informes publicados y el contexto vivo reutilizable por pages y actions.
 
 ## 6. Casos límite y errores conocidos
 
@@ -75,3 +85,4 @@ No sustituye la mesa interna de `/reports`; solo muestra versiones ya publicadas
 4. No recalcular informes desde páginas del portal.
 5. Mantener PDF basado en snapshot guardado.
 6. Añadir tests de action para cualquier cambio de publicación o reunión.
+7. Si una página server necesita leer portal, resolver restaurante en servidor y usar `src/lib/portal.ts`, no llamar a una mutación/action como data loader.

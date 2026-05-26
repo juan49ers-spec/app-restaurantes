@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { PublishedReportSummary } from '@/app/actions/portal'
+import { formatPortalDate } from '@/components/portal/format'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
@@ -9,7 +10,7 @@ export function PortalReportSummary({ report }: { report: PublishedReportSummary
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-slate-950">
-            {report.periodFrom} a {report.periodTo}
+            {formatPortalDate(report.periodFrom)} a {formatPortalDate(report.periodTo)}
           </p>
           <p className="mt-1 text-xs text-slate-500">
             Versión {report.version} · Publicado {new Date(report.publishedAt).toLocaleDateString('es-ES')}
@@ -24,7 +25,7 @@ export function PortalReportSummary({ report }: { report: PublishedReportSummary
           <Link href={`/portal/reports/${report.id}`}>Ver informe</Link>
         </Button>
         <Button asChild size="sm" variant="ghost">
-          <Link href={`/reports/print/${report.id}`}>PDF</Link>
+          <Link href={`/reports/print/${report.id}`} target="_blank" rel="noreferrer">PDF</Link>
         </Button>
       </div>
     </div>
