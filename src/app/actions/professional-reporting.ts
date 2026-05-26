@@ -66,6 +66,8 @@ export interface SavedProfessionalReportDraft {
     createdAt: string
     updatedAt: string
     exportedAt: string | null
+    publishedAt: string | null
+    publishedBy: string | null
 }
 
 export interface SavedProfessionalReportDraftDetail extends SavedProfessionalReportDraft {
@@ -148,6 +150,8 @@ function mapDraftRow(row: {
     created_at: string
     updated_at: string
     exported_at: string | null
+    published_at?: string | null
+    published_by?: string | null
 }): SavedProfessionalReportDraft {
     return {
         id: row.id,
@@ -159,6 +163,8 @@ function mapDraftRow(row: {
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         exportedAt: row.exported_at,
+        publishedAt: row.published_at ?? null,
+        publishedBy: row.published_by ?? null,
     }
 }
 
@@ -323,7 +329,7 @@ export async function getProfessionalReportDraftHistory(
     const supabase = await createClient()
     let query = supabase
         .from('professional_report_drafts')
-        .select('id, period_from, period_to, version, status, schema_version, created_at, updated_at, exported_at')
+        .select('id, period_from, period_to, version, status, schema_version, created_at, updated_at, exported_at, published_at, published_by')
         .eq('restaurant_id', restaurantId)
         .order('updated_at', { ascending: false })
         .limit(12)
@@ -407,7 +413,7 @@ export async function saveProfessionalReportDraft(
                 narrative_overrides: sanitizeNarrativeOverrides(parsed.data.narrativeOverrides),
                 created_by: user.id,
             })
-            .select('id, period_from, period_to, version, status, schema_version, created_at, updated_at, exported_at')
+            .select('id, period_from, period_to, version, status, schema_version, created_at, updated_at, exported_at, published_at, published_by')
             .single()
 
         if (!insertResponse.error) {
@@ -448,7 +454,7 @@ export async function getSavedProfessionalReportDraft(
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('professional_report_drafts')
-        .select('id, period_from, period_to, version, status, schema_version, report_snapshot, narrative_overrides, created_at, updated_at, exported_at')
+        .select('id, period_from, period_to, version, status, schema_version, report_snapshot, narrative_overrides, created_at, updated_at, exported_at, published_at, published_by')
         .eq('id', parsedId.data)
         .eq('restaurant_id', restaurantId)
         .maybeSingle()
@@ -488,7 +494,7 @@ export async function markProfessionalReportDraftExported(id: string): Promise<A
         .update({ exported_at: new Date().toISOString() })
         .eq('id', parsedId.data)
         .eq('restaurant_id', restaurantId)
-        .select('id, period_from, period_to, version, status, schema_version, created_at, updated_at, exported_at')
+        .select('id, period_from, period_to, version, status, schema_version, created_at, updated_at, exported_at, published_at, published_by')
         .single()
 
     if (error) {
