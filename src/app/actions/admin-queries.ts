@@ -29,7 +29,18 @@ export interface AdminDashboardData {
     recentAuditLogs: AuditLogEntry[]
     restaurants: AdminRestaurantRow[]
     systemHealth: SystemHealthData | null
-    broadcasts: any[]
+    broadcasts: AdminBroadcastRow[]
+}
+
+export interface AdminBroadcastRow {
+    id: string
+    title: string
+    content: string
+    severity: 'INFO' | 'WARNING' | 'CRITICAL' | 'SUCCESS'
+    expires_at: string
+    created_at: string
+    is_active?: boolean
+    target_type?: string
 }
 
 export interface SystemHealthData {
@@ -66,6 +77,14 @@ export interface AdminRestaurantRow {
     salesThisMonth: number
     expensesThisMonth: number
     employeeCount: number
+}
+
+interface AdminListedUser {
+    id: string
+    email?: string | null
+    created_at: string
+    last_sign_in_at: string | null
+    restaurant_id: string | null
 }
 
 // ==========================================
@@ -180,7 +199,9 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
         const rMap = new Map<string, string>(restaurants.map(r => [r.id, r.name]))
         const userRestaurantMap = new Map<string, string>(
-            allUsers.filter((u: any) => u.restaurant_id).map((u: any) => [u.id, rMap.get(u.restaurant_id) || ''])
+            (allUsers as AdminListedUser[])
+                .filter((u) => u.restaurant_id)
+                .map((u) => [u.id, rMap.get(u.restaurant_id || '') || ''])
         )
 
         systemHealth.users_data = systemHealth.users_data.map(u => ({
@@ -197,7 +218,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         recentAuditLogs: auditLogs,
         restaurants: restaurantRows,
         systemHealth,
-        broadcasts: broadcastsRes.data || []
+        broadcasts: (broadcastsRes.data || []) as AdminBroadcastRow[]
     }
 }
 
@@ -264,7 +285,7 @@ export async function getAdminUsers(): Promise<AdminUserRow[]> {
         (restaurants || []).map(r => [r.id, r.name])
     )
 
-    return (users || []).map((u: { id: string; email: string; created_at: string; last_sign_in_at: string | null; restaurant_id: string | null }) => ({
+    return ((users || []) as AdminListedUser[]).map((u) => ({
         id: u.id,
         email: u.email || 'Sin email',
         created_at: u.created_at,

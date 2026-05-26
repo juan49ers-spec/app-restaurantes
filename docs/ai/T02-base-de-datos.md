@@ -59,6 +59,7 @@
 | `notifications` | `restaurant_id`, `type`, `severity`, `title`, `body`, `entity_id`, `read`, `read_at`, `created_at` | Notificaciones in-app. Limpieza automática >30 días. |
 | `broadcasts` | `id`, `title`, `body`, `severity`, `active_from`, `active_until`, `created_by` | Anuncios globales del super-admin. **Sin `restaurant_id`** (sistema). |
 | `scenarios` | `id`, `user_id`, `name`, `base_revenue`, `base_expenses`, `adjustments` (JSONB) | Simulaciones what-if del simulador financiero. |
+| `professional_report_drafts` | `restaurant_id`, `period_from`, `period_to`, `version`, `status`, `schema_version`, `report_snapshot` (JSONB), `narrative_overrides` (JSONB), `exported_at` | Versiones guardadas de informes profesionales. Snapshot inmutable para exportacion. Desde Fase 6 puede incluir la seccion `menu_performance` derivada de `daily_recipe_sales` + `recipes`. |
 | `ingestion_buffer` | items extraídos por OCR pendientes de mapear | Cola intermedia entre OCR y `invoice_items` confirmados. |
 
 ## RLS (Row Level Security)
@@ -82,6 +83,7 @@
 - `idx_inventory_stock_restaurant`, `idx_stock_movements_restaurant_date` — operaciones de stock.
 - `idx_invoices_idempotency`, `idx_operating_expenses_idempotency` — anti-duplicado.
 - `idx_business_rules_restaurant_type`, `idx_financial_alerts_restaurant_unread` — alertas y reglas.
+- `idx_professional_report_drafts_restaurant_period`, `idx_professional_report_drafts_restaurant_updated` — historial y exportacion de informes profesionales.
 
 ## RPCs (funciones SQL)
 

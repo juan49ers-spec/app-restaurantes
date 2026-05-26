@@ -190,6 +190,7 @@ export function FinancialControlClient({
                                         {(() => {
                                             const target = billingData.stats.revenue_target || 0
                                             const actual = billingData.stats.totalNet || 0
+                                            const hasConfiguredTarget = target > 0
                                             const progress = target > 0 ? Math.min(Math.round((actual / target) * 100), 100) : 0
                                             const remaining = Math.max(target - actual, 0)
 
@@ -207,7 +208,9 @@ export function FinancialControlClient({
                                                         />
                                                     </div>
                                                     <p className="text-[10px] text-neutral-400 leading-snug font-medium">
-                                                        {remaining > 0 ? (
+                                                        {!hasConfiguredTarget ? (
+                                                            <span className="text-amber-300 font-semibold">Configura una meta para medir el avance.</span>
+                                                        ) : remaining > 0 ? (
                                                             <>Faltan <span className="text-white font-semibold">{new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(remaining)}</span></>
                                                         ) : (
                                                             <span className="text-emerald-400 font-semibold">¡Objetivo superado!</span>

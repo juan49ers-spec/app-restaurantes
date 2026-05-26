@@ -27,7 +27,6 @@ export function ImpuestosDashboard({ restaurantId }: ImpuestosDashboardProps) {
 
     useEffect(() => {
         let isMounted = true;
-        setIsLoading(true);
         getQuarterlyFiscalData(restaurantId, year, quarterNum)
             .then(res => {
                 if (isMounted) {
@@ -45,6 +44,7 @@ export function ImpuestosDashboard({ restaurantId }: ImpuestosDashboardProps) {
     }, [restaurantId, year, quarterNum])
 
     const handlePeriodChange = (direction: 'prev' | 'next') => {
+        setIsLoading(true)
         setDate(prev => {
             const newDate = new Date(prev)
             if (direction === 'prev') {

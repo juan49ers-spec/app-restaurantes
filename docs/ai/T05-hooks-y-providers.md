@@ -12,6 +12,8 @@
 
 **Regla:** si tu componente necesita un cálculo derivado de receta, no rehagas el cálculo — usa `useRecipeCalculator`.
 
+`useMediaQuery` inicializa el estado con `window.matchMedia()` solo en cliente y se suscribe al evento `change`. No debe hacer `setState` síncrono dentro del effect porque React Compiler lo marca como patrón problemático.
+
 ## Providers (`src/components/providers/`)
 
 ### `MotionProvider`
@@ -65,6 +67,8 @@ Características:
 `src/lib/with-after.ts`:
 
 - `withServerAfterAction(handler)`: decorador para server actions. Ejecuta los `after()` callbacks tras devolver la respuesta.
+
+Los helpers `withAfterHandler` y `withServerAfterAction` están tipados con tuplas `unknown[]`; no uses `any[]` al extenderlos.
 
 **Casos de uso típicos:**
 - Analytics / tracking de eventos.
@@ -139,7 +143,7 @@ Layout principal:
   - Sidebar 288px expandido / 96px colapsado.
   - Mobile (<768px): sidebar oculto, drawer disponible.
   - Tablet (768-1024px): auto-colapsa.
-  - Rutas exentas (sin sidebar): `/login`, `/auth`, `/admin/*`.
+  - Rutas exentas (sin sidebar): `/login`, `/auth`, `/admin/*`, `/reports/print/*`.
 - **Tours:** botón "Guía Interactiva" → `GuideSelector` → `TourGuide`.
 - **Styling:** flex layout, transiciones smooth, fondo gradiente gastronómico.
 

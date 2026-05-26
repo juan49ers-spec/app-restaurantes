@@ -54,3 +54,10 @@ next-env.d.ts
 .gemini/
 .agent/
 brain/
+.codex/
+
+# Local dev server logs
+dev-codex-localhost*.log
+
+# Supabase local/link metadata
+supabase/.temp/

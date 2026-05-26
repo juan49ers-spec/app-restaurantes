@@ -1,0 +1,132 @@
+# 19 — Reports
+
+**Ruta:** `/reports`
+**Archivos clave:** `src/app/reports/page.tsx`, `src/app/reports/print/[draftId]/page.tsx`, `src/components/reports/ProfessionalReportReview.tsx`, `src/components/reports/PrintReportButton.tsx`, `src/app/actions/professional-reporting.ts`, `src/lib/reporting/*`
+**Transversales relacionados:** [T01](./T01-arquitectura.md), [T04](./T04-financial-math.md), [T06](./T06-server-actions-comunes.md), [T11](./T11-reporting-profesional.md)
+
+## 1. Propósito y rol en el negocio
+
+Mesa de revision de informes profesionales. Permite elegir un periodo, generar un borrador estructurado y revisar la calidad de datos antes de convertirlo en un informe final para cliente.
+
+No sustituye al control financiero diario. Es una capa superior orientada a diagnostico, evidencia y narrativa profesional.
+
+## 2. Viaje del usuario
+
+1. Entra en `/reports` desde el menu CORE.
+2. La pagina propone el mes actual como periodo.
+3. Puede ajustar fecha inicial y final.
+4. Pulsa "Generar" y la URL cambia a `/reports?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+5. La pagina carga un borrador desde `getProfessionalReportDraft(period)` y el historial guardado con `getProfessionalReportDraftHistory(period)`.
+6. Revisa estado global, confianza, bloqueos criticos, fuentes y secciones.
+7. Revisa la vista de informe final: KPIs destacados, capitulos, carta y conclusiones ejecutivas.
+8. Edita la narrativa de cada seccion.
+9. Pulsa "Guardar version". La action regenera los datos en servidor, guarda un snapshot y conserva las narrativas editadas.
+10. Desde "Versiones" abre "Exportar", que lleva a `/reports/print/[draftId]`.
+11. En la vista imprimible pulsa "Imprimir / guardar PDF" para usar el dialogo nativo del navegador.
+
+## 3. Flujo tecnico de datos
+
+**Server page:** `src/app/reports/page.tsx`
+
+- Llama `getCurrentRestaurant()`.
+- Si no hay restaurante, redirige a `/onboarding`.
+- Lee `from` y `to` desde `searchParams`.
+- Valida formato basico `YYYY-MM-DD`; si no existe, usa el mes actual.
+- Llama `getProfessionalReportDraft(period)`.
+- Llama `getProfessionalReportDraftHistory(period)`.
+- Pasa `report` o `error` al client component.
+- Pasa `savedDrafts` para mostrar versiones del periodo actual.
+
+**Client component:** `ProfessionalReportReview`
+
+- Renderiza KPIs de calidad del informe.
+- Renderiza la capa ejecutiva construida por `buildProfessionalReportPresentation(report)`.
+- Agrupa secciones en tabs.
+- Permite editar narrativa.
+- Guarda versiones mediante `saveProfessionalReportDraft`.
+- No envia `restaurant_id` ni calculos financieros desde cliente.
+
+**Print page:** `src/app/reports/print/[draftId]/page.tsx`
+
+- Carga una version guardada con `getSavedProfessionalReportDraft(draftId)`.
+- Renderiza HTML imprimible con portada, KPIs ejecutivos, conclusiones numeradas, capitulos, metricas, incidencias y narrativas revisadas.
+- Usa `PrintReportButton` para marcar `exported_at` y abrir `window.print()`.
+
+**Persistencia:** `professional_report_drafts`
+
+- Guarda snapshot JSONB completo de `ProfessionalRestaurantReport`.
+- Guarda `narrative_overrides` por seccion.
+- Versiona por `restaurant_id + period_from + period_to + version`.
+- RLS limita filas al restaurante propietario.
+
+**Motor:** todo calculo viene de `src/lib/reporting/`; la UI no recalcula rentabilidad.
+
+**Datos demo de verificacion:** `src/app/actions/seed-professional-report-demo.ts` + `src/app/api/seed-reporting-demo/route.ts`
+
+- Solo habilitado fuera de produccion, salvo `ALLOW_REPORTING_DEMO_SEED=true`.
+- Resuelve el restaurante activo en servidor.
+- Crea datos deterministas para febrero 2026: ventas, gastos, objetivo mensual si no existe, empleados, turnos, proveedores, facturas, recetas y ventas por receta.
+- Marca filas demo con `source`, `idempotency_key`, emails o nombres `[Demo Informe]` para poder limpiar/resembrar sin tocar datos no demo. Las ventas por receta solo se limpian si pertenecen a recetas demo.
+
+**Capa de presentacion:** `src/lib/reporting/professional-report-presentation.ts`
+
+- Consume `ProfessionalRestaurantReport`.
+- Ordena el informe como entregable profesional: portada, KPIs, capitulos y conclusiones.
+- No consulta Supabase.
+- No modifica metricas fuente.
+- Cuando hay `monthly_targets`, muestra cumplimiento de objetivo como KPI ejecutivo.
+- Cuando hay ventas diarias, incluye lectura de dia fuerte, dia debil y brecha semanal.
+- Cuando hay `daily_recipe_sales`, incorpora una seccion de carta con unidades vendidas, venta estimada, coste estimado, margen bruto estimado, producto lider por margen y producto con menor margen porcentual.
+
+## 4. Reglas de negocio y restricciones
+
+- `restaurant_id` no viaja desde cliente.
+- El periodo viaja por URL como `from` y `to`, no como objeto con restaurante.
+- La UI debe mostrar estados `OK`, `PARTIAL`, `MISSING`, `CONFLICT` sin suavizarlos.
+- Las metricas deben mostrar "Sin dato" cuando `kind = not_available`.
+- La capa de presentacion puede derivar ratios ejecutivos, pero siempre desde metricas del snapshot y con `sourceIds`.
+- Las comparativas contra objetivo solo aparecen si el objetivo existe y es mayor que 0.
+- La lectura semanal solo usa dias con venta registrada; no interpreta ausencias como ventas cero salvo que exista fila fuente.
+- La lectura de carta usa `daily_recipe_sales` + `recipes.current_cost/selling_price`. Si faltan ventas por receta, queda como `PARTIAL` y no como bloqueo critico.
+- La seccion de carta no debe presentarse como matriz BCG cerrada; para eso hace falta un contrato explicito de Menu Engineering/snapshots.
+- El guardado siempre regenera el informe en servidor antes de insertar el snapshot; no se persisten metricas enviadas por cliente.
+- Cada guardado crea una nueva version inmutable. No se sobrescriben versiones anteriores.
+- Si hay bloqueos criticos, la version se guarda como `DRAFT`; si no, como `REVIEWED`.
+- La exportacion actual es HTML imprimible/PDF de navegador, no generacion binaria server-side.
+- La seed demo de informes no debe exponerse como funcionalidad normal de cliente. Es herramienta de verificacion/dev.
+
+## 5. Dependencias e implicaciones cruzadas
+
+- **Reporting profesional:** consume el contrato `ProfessionalRestaurantReport`.
+- **Financial Control:** ventas, gastos, objetivos y fiscalidad alimentan el informe.
+- **Staff:** empleados y turnos alimentan la seccion de personal.
+- **Suppliers/Invoices:** proveedores y facturas completadas alimentan compras y fiabilidad.
+- **Recipes/Stock:** `daily_recipe_sales` y `recipes` alimentan la lectura de carta.
+- **Navigation:** aparece en `src/config/navigation.ts` dentro de CORE.
+- **Base de datos:** depende de `professional_report_drafts` y sus politicas RLS.
+- **Exportacion:** la salida imprimible consume el snapshot guardado, no el estado actual del formulario.
+- **Referencias externas:** el formato se inspira en informes ControlHub tipo Chamaca y documentos Txiquita, pero la app debe generar contenido desde datos propios.
+
+## 6. Casos limite y errores conocidos
+
+- Si faltan datos, la pagina debe mostrar el borrador con incidencias, no ocultar el informe.
+- Si la action devuelve error, se muestra una alerta y no se renderizan secciones vacias.
+- Si el usuario edita narrativa y cambia periodo, se reinicializa el borrador local con el nuevo informe.
+- Si dos guardados coinciden en version, la action reintenta una vez para evitar choque por indice unico.
+- Si una version guardada no pertenece al restaurante activo, la print page devuelve `notFound()`.
+- Si `markProfessionalReportDraftExported` falla, el HTML sigue siendo imprimible; solo no quedaria marcado `exported_at`.
+- Si hay bloqueos criticos, las conclusiones ejecutivas priorizan calidad de dato y no recomendaciones de negocio.
+- Si no existen objetivos mensuales, el informe vuelve a umbrales profesionales por defecto solo en la capa ejecutiva.
+- Si no hay ventas por receta, el informe puede seguir siendo revisable, pero la carta queda incompleta.
+- Si ventas por receta y ventas diarias no cuadran, se muestra cobertura de carta contra ventas diarias para evitar conclusiones falsas de mix.
+- La seed demo borra y recrea solo filas marcadas como demo. No debe borrar datos reales del restaurante ni ventas por receta asociadas a recetas reales.
+
+## 7. Al anadir/modificar una funcion aqui
+
+1. Leer [T11](./T11-reporting-profesional.md).
+2. No recalcular metricas en componentes React.
+3. Si se cambia persistencia de borradores, leer [T02](./T02-base-de-datos.md) y mantener versionado/RLS.
+4. Si se cambia exportacion, consumir el snapshot `ProfessionalRestaurantReport`.
+5. Si se cambia la capa ejecutiva, actualizar tests de `buildProfessionalReportPresentation`.
+6. Si se anade una mutacion, seguir [T06](./T06-server-actions-comunes.md).
+7. Probar `/reports` con datos completos, faltantes y conflicto de ventas.

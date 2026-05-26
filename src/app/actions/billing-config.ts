@@ -23,7 +23,15 @@ export async function getBillingModulesConfig(): Promise<BillingModule[]> {
         throw new Error('No se pudo cargar la configuración de los módulos');
     }
 
-    return data as BillingModule[];
+    return (data || []).map((module) => ({
+        ...module,
+        description: module.description || '',
+        price_monthly: Number(module.price_monthly || 0),
+        price_yearly: Number(module.price_yearly || 0),
+        features: Array.isArray(module.features) ? module.features : [],
+        is_active: Boolean(module.is_active),
+        is_base: Boolean(module.is_base),
+    })) as BillingModule[];
 }
 
 /**

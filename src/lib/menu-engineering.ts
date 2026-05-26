@@ -1,4 +1,6 @@
-import { Recipe } from "../types/schema"
+import type { Recipe } from "../types/schema"
+
+export type MenuEngineeringClassification = 'STAR' | 'PLOWHORSE' | 'PUZZLE' | 'DOG'
 
 export type SalesItemUnsynced = {
     recipe_id: string
@@ -26,7 +28,97 @@ export type EnrichedProduct = {
     // Classification
     popularity_rate: number   // quantity / avg_quantity (or total) - used for X axis
     profitability_rate: number // margin / avg_margin - used for Y axis
-    quadrant: 'STAR' | 'PLOWHORSE' | 'PUZZLE' | 'DOG'
+    quadrant: MenuEngineeringClassification
+}
+
+export type MenuEngineeringCalculationItem = {
+    id: string
+    quantity_sold: number
+    cost_per_unit: number
+    price_per_unit: number
+}
+
+export type CalculatedMenuEngineeringItem<T extends MenuEngineeringCalculationItem> = T & {
+    popularity_pct: number
+    contribution_margin: number
+    total_sales: number
+    total_cost: number
+    total_profit: number
+    classification: MenuEngineeringClassification
+}
+
+export type MenuEngineeringAnalysis<T extends MenuEngineeringCalculationItem> = {
+    thresholds: {
+        totalSold: number
+        avgQuantity: number
+        avgPopularityPct: number
+        avgContributionMargin: number
+    }
+    items: CalculatedMenuEngineeringItem<T>[]
+}
+
+export function calculateMenuEngineeringAnalysis<T extends MenuEngineeringCalculationItem>(
+    items: T[]
+): MenuEngineeringAnalysis<T> {
+    if (items.length === 0) {
+        return {
+            thresholds: {
+                totalSold: 0,
+                avgQuantity: 0,
+                avgPopularityPct: 0,
+                avgContributionMargin: 0,
+            },
+            items: [],
+        }
+    }
+
+    const totalSold = items.reduce((sum, item) => sum + Number(item.quantity_sold), 0)
+    if (totalSold === 0) {
+        throw new Error("Total quantity sold is 0. Cannot calculate popularity.")
+    }
+
+    const avgQuantity = totalSold / items.length
+    const avgPopularityPct = 1 / items.length
+    const totalMarginGenerated = items.reduce((sum, item) => {
+        const margin = Number(item.price_per_unit) - Number(item.cost_per_unit)
+        return sum + margin * Number(item.quantity_sold)
+    }, 0)
+    const avgContributionMargin = totalMarginGenerated / totalSold
+
+    const calculatedItems = items.map((item) => {
+        const quantitySold = Number(item.quantity_sold)
+        const cost = Number(item.cost_per_unit)
+        const price = Number(item.price_per_unit)
+        const contributionMargin = price - cost
+        const popularityPct = quantitySold / totalSold
+        const isHighPopularity = popularityPct >= avgPopularityPct
+        const isHighMargin = contributionMargin >= avgContributionMargin
+
+        let classification: MenuEngineeringClassification = 'DOG'
+        if (isHighPopularity && isHighMargin) classification = 'STAR'
+        else if (isHighPopularity && !isHighMargin) classification = 'PLOWHORSE'
+        else if (!isHighPopularity && isHighMargin) classification = 'PUZZLE'
+
+        return {
+            ...item,
+            popularity_pct: popularityPct,
+            contribution_margin: contributionMargin,
+            total_sales: price * quantitySold,
+            total_cost: cost * quantitySold,
+            total_profit: contributionMargin * quantitySold,
+            classification,
+        }
+    })
+
+    return {
+        thresholds: {
+            totalSold,
+            avgQuantity,
+            avgPopularityPct,
+            avgContributionMargin,
+        },
+        items: calculatedItems,
+    }
 }
 
 export class MenuEngineeringCalculator {
@@ -78,37 +170,15 @@ export class MenuEngineeringCalculator {
     public analyze(): EnrichedProduct[] {
         if (this.products.length === 0) return []
 
-        // 1. Calculate Averages
-        const totalSold = this.products.reduce((acc, p) => acc + p.quantity_sold, 0)
-        // Avg Popularity = (100% / No. of Items) * (0.7 Multiplier usually, but let's use Avg Quantity for simplicity first)
-        // Kasavana & Smith model uses: (100 / N) * 0.7 as the "Hurdle Rate" for Menu Mix.
-        // Let's use simple Average Quantity Sold as the X-axis midpoint for now.
-        const avgQuantity = totalSold / this.products.length
-
-        // Avg Profitability = Weighted Average Contribution Margin
-        // Total Contribution Margin / Total Number Sold
-        const totalCM = this.products.reduce((acc, p) => acc + p.total_profit, 0)
-        const avgCM = totalSold > 0 ? totalCM / totalSold : 0
+        const analysis = calculateMenuEngineeringAnalysis(this.products)
 
         return this.products.map(p => {
-            // X-AXIS: Popularity (Quantity Sold)
-            // Y-AXIS: Profitability (Contribution Margin)
-
-            const isHighPopularity = p.quantity_sold >= avgQuantity
-            const isHighProfitability = p.contribution_margin >= avgCM
-
-            let quadrant: 'STAR' | 'PLOWHORSE' | 'PUZZLE' | 'DOG' = 'DOG'
-
-            if (isHighPopularity && isHighProfitability) quadrant = 'STAR'
-            else if (isHighPopularity && !isHighProfitability) quadrant = 'PLOWHORSE' // High Vol, Low Margin
-            else if (!isHighPopularity && isHighProfitability) quadrant = 'PUZZLE'   // Low Vol, High Margin
-            else quadrant = 'DOG'
-
+            const calculated = analysis.items.find((item) => item.id === p.id)
             return {
                 ...p,
                 popularity_rate: p.quantity_sold, // using raw value for plotting X
                 profitability_rate: p.contribution_margin, // using raw value for plotting Y
-                quadrant
+                quadrant: calculated?.classification ?? 'DOG',
             }
         })
     }
@@ -134,8 +204,8 @@ export class MenuEngineeringCalculator {
             puzzles: analyzed.filter(p => p.quadrant === 'PUZZLE'),
             dogs: analyzed.filter(p => p.quadrant === 'DOG'),
             averages: {
-                quantity: totalQuantity / totalProducts,
-                margin: analyzed.reduce((acc, p) => acc + p.total_profit, 0) / totalQuantity
+                quantity: totalProducts > 0 ? totalQuantity / totalProducts : 0,
+                margin: totalQuantity > 0 ? analyzed.reduce((acc, p) => acc + p.total_profit, 0) / totalQuantity : 0
             }
         }
     }

@@ -64,7 +64,7 @@ export async function processInvoice(formData: FormData) {
         p_items: []
     }
 
-    const { data: invoiceData, error: dbError } = await supabase.rpc('upsert_invoice_with_items', rpcPayload)
+    const { error: dbError } = await supabase.rpc('upsert_invoice_with_items', rpcPayload)
     if (dbError) throw new Error(`DB RPC failed: ${dbError.message}`)
 
     // Update with file url later
@@ -155,7 +155,7 @@ export async function createInvoiceRecord(filePath: string) {
         p_items: []
     }
 
-    const { data: invoiceData, error: dbError } = await supabase.rpc('upsert_invoice_with_items', rpcPayload)
+    const { error: dbError } = await supabase.rpc('upsert_invoice_with_items', rpcPayload)
     if (dbError) throw new Error(`DB Insert failed: ${dbError.message}`)
 
     await supabase.from('invoices').update({ image_url: filePath, status: 'processing' as InvoiceStatus, created_at: new Date().toISOString() }).eq('id', newInvoiceId)

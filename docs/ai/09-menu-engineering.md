@@ -50,21 +50,25 @@ Para cada item: contribution_margin = price_per_unit - cost_per_unit
 
 Promedios del reporte:
   avgQuantity = Σ quantity_sold / N items
+  avgPopularityPct = 1 / N items       (equivale a avgQuantity / totalSold)
   avgMargin   = Σ (margin * qty) / Σ qty   (ponderado por volumen)
 
 Clasificación:
-  qty >= avgQty && margin >= avgMargin → STAR
-  qty >= avgQty && margin <  avgMargin → PLOWHORSE
-  qty <  avgQty && margin >= avgMargin → PUZZLE
-  qty <  avgQty && margin <  avgMargin → DOG
+  popularity_pct >= avgPopularityPct && margin >= avgMargin → STAR
+  popularity_pct >= avgPopularityPct && margin <  avgMargin → PLOWHORSE
+  popularity_pct <  avgPopularityPct && margin >= avgMargin → PUZZLE
+  popularity_pct <  avgPopularityPct && margin <  avgMargin → DOG
 ```
+
+**Contrato unificado desde Fase 7:** `src/lib/menu-engineering.ts` expone `calculateMenuEngineeringAnalysis()` como motor puro. La action `calculateMatrix` y el simulador cliente reutilizan esta misma regla. `avg_popularity` se guarda como decimal (`1 / N`, por ejemplo `0.25` en un menu de 4 items) porque la UI trabaja el eje X en porcentaje.
 
 ## 4. Reglas de negocio y restricciones
 
 - **Snapshots inmutables:** `cost_per_unit` y `price_per_unit` se congelan al crear el reporte. Si después cambias el precio en `/recipes`, el reporte NO se actualiza — refleja el momento del análisis. Útil para auditoría.
 - **No se puede calcular si `totalSold = 0`:** los promedios serían indefinidos. La action debe rehusarlo (validar).
 - **Clasificación es relativa al propio reporte:** un plato puede ser STAR en un análisis y PLOWHORSE en otro solo por cambiar el mix de items considerados.
-- **Bulk update de items** se hace con `Promise.all` (no RPC, por compatibilidad). Si una falla, las otras siguen y queda inconsistente.
+- **Una sola fórmula BCG:** libreria, server action y simulador cliente usan `calculateMenuEngineeringAnalysis()`.
+- **Persistencia de items calculados:** `calculateMatrix` actualiza los items con un `upsert` masivo por `id`, incluyendo las columnas obligatorias del snapshot, y valida el error de escritura antes de marcar el reporte como `ANALYZED`.
 - **`avg_popularity` y `avg_margin`** se persisten en `menu_reports` al calcular. Si re-calculas, se sobreescriben.
 - Visible en sidebar solo si `active_addons.includes('operativa')`.
 
@@ -88,6 +92,7 @@ Clasificación:
 - **Daily recipe sales sin datos:** la pre-carga retorna 0 para esas recetas.
 - **Simulación en vivo no persiste:** si el usuario simula y se va sin guardar, el reporte queda con cantidades originales.
 - **Concurrencia:** dos usuarios calculando matriz al mismo tiempo pueden sobreescribirse mutuamente.
+- **Umbral visual:** la pantalla muestra `avg_popularity * 100`; internamente se conserva como decimal para evitar conversiones dobles.
 
 ## 7. Al añadir/modificar una función aquí
 
@@ -111,7 +116,7 @@ Clasificación:
 - Borrar reporte → ver que se quitan tanto cabecera como items.
 
 **Si añades un nuevo cuadrante o cambias la fórmula:**
-1. Actualizar `MenuEngineeringCalculator.analyze`.
+1. Actualizar `calculateMenuEngineeringAnalysis()` y dejar `MenuEngineeringCalculator.analyze`, `calculateMatrix` y `MenuEngineeringContext` consumiendo esa función.
 2. Actualizar el enum en `MenuReportItemSchema.classification`.
 3. Migración SQL si cambias enum DB.
 4. Actualizar tests en `menu-engineering.test.ts`.

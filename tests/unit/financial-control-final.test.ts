@@ -10,16 +10,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock date-fns
-const mockFormat = vi.fn().mockReturnValue('2024-02-01')
+const mockFormat = vi.fn((_date, pattern) => pattern === 'yyyy-MM' ? '2024-02' : '2024-02-01')
 const mockStartOfMonth = vi.fn().mockReturnValue(new Date('2024-02-01'))
 const mockEndOfMonth = vi.fn().mockReturnValue(new Date('2024-02-29'))
 const mockSubMonths = vi.fn().mockImplementation((date, months) => new Date('2024-01-01'))
 
 vi.mock('date-fns', () => ({
-  format: (...args: any[]) => mockFormat(...args),
-  startOfMonth: (...args: any[]) => mockStartOfMonth(...args),
-  endOfMonth: (...args: any[]) => mockEndOfMonth(...args),
-  subMonths: (...args: any[]) => mockSubMonths(...args)
+  format: (date: Date, pattern: string) => mockFormat(date, pattern),
+  startOfMonth: (date: Date) => mockStartOfMonth(date),
+  endOfMonth: (date: Date) => mockEndOfMonth(date),
+  subMonths: (date: Date, months: number) => mockSubMonths(date, months)
 }))
 
 // Mock Supabase con respuestas específicas para forzar ejecución de líneas 588-593
@@ -28,16 +28,24 @@ let mockResponses: Array<{ data: any; error: any }> = []
 
 const createMockClient = () => {
   mockQueryIndex = 0
+  const resolveNextResponse = () => {
+    const response = mockResponses[mockQueryIndex++] || { data: [], error: null }
+    return Promise.resolve(response)
+  }
+  const createQuery = () => {
+    const query = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      lte: vi.fn().mockReturnThis(),
+      order: vi.fn().mockImplementation(resolveNextResponse),
+      then: vi.fn((resolve, reject) => resolveNextResponse().then(resolve, reject))
+    }
+    return query
+  }
+
   return {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    gte: vi.fn().mockReturnThis(),
-    lte: vi.fn().mockReturnThis(),
-    order: vi.fn().mockImplementation(() => {
-      const response = mockResponses[mockQueryIndex++] || { data: [], error: null }
-      return Promise.resolve(response)
-    })
+    from: vi.fn().mockImplementation(createQuery)
   }
 }
 
@@ -91,8 +99,8 @@ describe('Financial Control - Final Coverage', () => {
       for (let i = 0; i < 6; i++) {
         mockResponses.push({ 
           data: [
-            { category: 'NOMINAS', amount: 1000 },
-            { category: 'ALQUILER', amount: 500 }
+            { expense_date: '2024-02-01', category: 'NOMINAS', amount: 1000 },
+            { expense_date: '2024-02-02', category: 'ALQUILER', amount: 500 }
           ], 
           error: null 
         })
@@ -146,12 +154,12 @@ describe('Financial Control - Final Coverage', () => {
         { data: [], error: null },
         { data: [], error: null },
         { data: [{ revenue_total: 10000 }], error: null },
-        { data: [{ category: 'NOMINAS', amount: 1000 }], error: null },
-        { data: [{ category: 'NOMINAS', amount: 1100 }], error: null },
-        { data: [{ category: 'NOMINAS', amount: 1200 }], error: null },
-        { data: [{ category: 'NOMINAS', amount: 1300 }], error: null },
-        { data: [{ category: 'NOMINAS', amount: 1400 }], error: null },
-        { data: [{ category: 'NOMINAS', amount: 1500 }], error: null }
+        { data: [{ expense_date: '2024-02-01', category: 'NOMINAS', amount: 1000 }], error: null },
+        { data: [{ expense_date: '2024-02-01', category: 'NOMINAS', amount: 1100 }], error: null },
+        { data: [{ expense_date: '2024-02-01', category: 'NOMINAS', amount: 1200 }], error: null },
+        { data: [{ expense_date: '2024-02-01', category: 'NOMINAS', amount: 1300 }], error: null },
+        { data: [{ expense_date: '2024-02-01', category: 'NOMINAS', amount: 1400 }], error: null },
+        { data: [{ expense_date: '2024-02-01', category: 'NOMINAS', amount: 1500 }], error: null }
       ]
 
       const result = await getExpenseDashboardData('rest-123', '2024-02')
@@ -167,21 +175,16 @@ describe('Financial Control - Final Coverage', () => {
         { data: [], error: null },
         { data: [], error: null },
         { data: [{ revenue_total: 10000 }], error: null },
-        { // Datos para probar reduce (línea 588)
+        { // Datos para probar reduce dentro de la consulta única de historial
           data: [
-            { category: 'NOMINAS', amount: 1000 },
-            { category: 'NOMINAS', amount: 500 },
-            { category: 'ALQUILER', amount: 2000 },
-            { category: 'PROVEEDORES', amount: 1500 }
+            { expense_date: '2024-02-01', category: 'NOMINAS', amount: 1000 },
+            { expense_date: '2024-02-02', category: 'NOMINAS', amount: 500 },
+            { expense_date: '2024-02-03', category: 'ALQUILER', amount: 2000 },
+            { expense_date: '2024-02-04', category: 'PROVEEDORES', amount: 1500 }
           ],
           error: null
         }
       ]
-
-      // 5 meses vacíos
-      for (let i = 0; i < 5; i++) {
-        mockResponses.push({ data: [], error: null })
-      }
 
       const result = await getExpenseDashboardData('rest-123', '2024-02')
 
@@ -199,19 +202,15 @@ describe('Financial Control - Final Coverage', () => {
         { data: [], error: null },
         { data: [], error: null },
         { data: [{ revenue_total: 10000 }], error: null },
-        { // Datos para probar forEach (líneas 590-592)
+        { // Datos para probar forEach dentro de la consulta única de historial
           data: [
-            { category: 'NOMINAS', amount: 1000 },
-            { category: 'ALQUILER', amount: 2000 },
-            { category: 'PROVEEDORES', amount: 1500 }
+            { expense_date: '2024-02-01', category: 'NOMINAS', amount: 1000 },
+            { expense_date: '2024-02-02', category: 'ALQUILER', amount: 2000 },
+            { expense_date: '2024-02-03', category: 'PROVEEDORES', amount: 1500 }
           ],
           error: null
         }
       ]
-
-      for (let i = 0; i < 5; i++) {
-        mockResponses.push({ data: [], error: null })
-      }
 
       const result = await getExpenseDashboardData('rest-123', '2024-02')
 

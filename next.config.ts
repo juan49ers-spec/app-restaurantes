@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
@@ -6,6 +7,9 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
@@ -31,4 +35,3 @@ const nextConfig: NextConfig = {
 };
 
 export default withBundleAnalyzer(nextConfig);
-

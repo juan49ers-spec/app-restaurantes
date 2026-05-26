@@ -397,7 +397,7 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                                                     <div className="flex items-center justify-end h-full w-full relative">
                                                         {/* DATA BAR BACKGROUND */}
                                                         <div className={`absolute right-4 top-1/2 -translate-y-1/2 h-6 rounded-sm opacity-20 ${isHigh ? 'bg-red-500' : 'bg-neutral-400'}`}
-                                                            style={{ width: `${Math.min(pct, 100)}%` } as any} />
+                                                            style={{ width: `${Math.min(pct, 100)}%` }} />
                                                         <span className={`tabular-nums z-10 font-bold ${isHigh ? 'text-red-600' : 'text-neutral-600'}`}>{formatPct(pct)}</span>
                                                     </div>
                                                 </TableCell>
@@ -440,7 +440,7 @@ export function PnLReport({ sales, expenses, currentDate = new Date(), activeMet
                                             <TableCell className="relative h-full p-0 pr-8 align-middle">
                                                 <div className="flex items-center justify-end h-full w-full relative">
                                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 h-6 rounded-sm opacity-20 bg-neutral-400"
-                                                        style={{ width: `${Math.min(exp.pct, 100)}%` } as any} />
+                                                        style={{ width: `${Math.min(exp.pct, 100)}%` }} />
                                                     <span className="tabular-nums z-10 font-bold text-neutral-600">{formatPct(exp.pct)}</span>
                                                 </div>
                                             </TableCell>

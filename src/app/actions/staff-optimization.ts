@@ -1,7 +1,8 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
-import { subDays, format, getDay } from "date-fns"
+import { differenceInCalendarDays, subDays, format, getDay } from "date-fns"
+import { getUserRestaurant } from "./utils"
 
 export interface StaffEfficiencyData {
     date: string
@@ -66,11 +67,12 @@ const MIN_EXCESS_THRESHOLD = 20 // Ignore tiny inefficiencies under 20€
 const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 
 export async function getStaffEfficiency(
-    restaurantId: string,
+    _restaurantId: string,
     startDate?: string,
     endDate?: string
 ): Promise<StaffEfficiencySummary> {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
 
     const start = startDate ? new Date(startDate) : subDays(new Date(), 30)
     const end = endDate ? new Date(endDate) : new Date()
@@ -81,6 +83,8 @@ export async function getStaffEfficiency(
         topOverstaffedDays: [], whatIfSimulation: null,
         trendVsLastMonth: null, smartRecommendation: null
     }
+
+    if (!restaurantId) return emptyResult
 
     // 1. Fetch Daily Sales (Revenue)
     const { data: salesData, error: salesError } = await supabase
@@ -107,7 +111,7 @@ export async function getStaffEfficiency(
             end_time,
             employee_id,
             employees (
-                base_salary_monthly,
+                monthly_base_salary,
                 contract_hours_weekly
             )
         `)
@@ -126,10 +130,10 @@ export async function getStaffEfficiency(
 
     shiftsData?.forEach(shift => {
         const dateKey = shift.date
-        const employee = shift.employees as unknown as { base_salary_monthly: number; contract_hours_weekly: number } | null
+        const employee = shift.employees as unknown as { monthly_base_salary: number; contract_hours_weekly: number } | null
 
         // Skip shifts sin empleado asociado (left join puede devolver null)
-        if (!employee || !employee.base_salary_monthly || !employee.contract_hours_weekly) return
+        if (!employee || !employee.monthly_base_salary || !employee.contract_hours_weekly) return
 
         // Calculate hours from start_time and end_time (TIME format)
         const startParts = shift.start_time.split(':').map(Number)
@@ -139,7 +143,7 @@ export async function getStaffEfficiency(
         if (hoursWorked < 0) hoursWorked += 24 // Overnight shift
 
         // Calculate hourly rate from monthly salary (assuming 4.33 weeks/month)
-        const hourlyRate = employee.base_salary_monthly / (employee.contract_hours_weekly * 4.33)
+        const hourlyRate = employee.monthly_base_salary / (employee.contract_hours_weekly * 4.33)
         const shiftCost = hoursWorked * hourlyRate
 
         const existing = laborByDate.get(dateKey) || { hours: 0, cost: 0, shiftCount: 0 }
@@ -239,11 +243,17 @@ export async function getStaffEfficiency(
         }
     }
 
-    // 6. TREND VS LAST MONTH: Compare current avg labor cost % with a mock "previous month"
-    // In production, this would query the previous 30 days separately
+    // 6. TREND VS PREVIOUS PERIOD: Compare current avg labor cost % with the same-length previous period.
     const currentPct = totalRevenue > 0 ? (totalLaborCost / totalRevenue) * 100 : 0
-    // Simulate previous month being slightly different (mock data for demo)
-    const previousPct = currentPct * (0.9 + Math.random() * 0.2) // ±10% variation
+    const periodDays = Math.max(1, differenceInCalendarDays(end, start) + 1)
+    const previousEnd = subDays(start, 1)
+    const previousStart = subDays(previousEnd, periodDays - 1)
+    const previousPct = await calculateLaborCostPct(
+        supabase,
+        restaurantId,
+        format(previousStart, 'yyyy-MM-dd'),
+        format(previousEnd, 'yyyy-MM-dd')
+    )
     const changePercent = currentPct - previousPct
     const trendVsLastMonth: TrendData = {
         currentPct,
@@ -302,4 +312,52 @@ export async function getStaffEfficiency(
         trendVsLastMonth,
         smartRecommendation
     }
+}
+
+async function calculateLaborCostPct(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    restaurantId: string,
+    startDate: string,
+    endDate: string
+): Promise<number> {
+    const [salesResult, shiftsResult] = await Promise.all([
+        supabase
+            .from('daily_sales')
+            .select('date, revenue_total')
+            .eq('restaurant_id', restaurantId)
+            .gte('date', startDate)
+            .lte('date', endDate),
+        supabase
+            .from('shifts')
+            .select(`
+                date,
+                start_time,
+                end_time,
+                employees (
+                    monthly_base_salary,
+                    contract_hours_weekly
+                )
+            `)
+            .eq('restaurant_id', restaurantId)
+            .gte('date', startDate)
+            .lte('date', endDate)
+    ])
+
+    if (salesResult.error || shiftsResult.error) return 0
+
+    const totalRevenue = (salesResult.data || []).reduce((sum, sale) => sum + (sale.revenue_total || 0), 0)
+    const totalLaborCost = (shiftsResult.data || []).reduce((sum, shift) => {
+        const employee = shift.employees as unknown as { monthly_base_salary: number; contract_hours_weekly: number } | null
+        if (!employee?.monthly_base_salary || !employee.contract_hours_weekly) return sum
+
+        const startParts = shift.start_time.split(':').map(Number)
+        const endParts = shift.end_time.split(':').map(Number)
+        let hoursWorked = (endParts[0] + endParts[1] / 60) - (startParts[0] + startParts[1] / 60)
+        if (hoursWorked < 0) hoursWorked += 24
+
+        const hourlyRate = employee.monthly_base_salary / (employee.contract_hours_weekly * 4.33)
+        return sum + (hoursWorked * hourlyRate)
+    }, 0)
+
+    return totalRevenue > 0 ? (totalLaborCost / totalRevenue) * 100 : 0
 }

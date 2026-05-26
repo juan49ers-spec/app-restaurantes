@@ -2,38 +2,64 @@
 
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { requireAdmin } from "./admin-queries"
+import { requireAdmin } from "@/lib/admin"
+import { logAuditEvent } from "@/lib/audit"
+import { createClient } from "@/lib/supabaseServer"
 
-export async function startImpersonation(restaurantId: string, restaurantName: string) {
-    await requireAdmin()
+export async function startImpersonation(restaurantId: string) {
+    const admin = await requireAdmin()
+
+    const supabase = await createClient()
+    const { data: restaurant } = await supabase
+        .from('restaurants')
+        .select('id, name')
+        .eq('id', restaurantId)
+        .maybeSingle()
+
+    if (!restaurant) {
+        throw new Error("Restaurant not found")
+    }
+
+    await logAuditEvent({
+        action: 'impersonation_start',
+        target_type: 'restaurant',
+        target_id: restaurantId,
+        metadata: { admin_email: admin.email, restaurant_name: restaurant.name }
+    })
 
     const cookieStore = await cookies()
-    // Storing ID and Name to show it in the banner easily
-    cookieStore.set('impersonated_restaurant_id', restaurantId, {
+    const cookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/'
-    })
-    cookieStore.set('impersonated_restaurant_name', restaurantName, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/'
-    })
+        secure: true,
+        sameSite: 'strict' as const,
+        path: '/',
+        maxAge: 1800,
+    }
 
-    // Redirige al dashboard normal (viendo como restaurante)
+    cookieStore.set('impersonated_restaurant_id', restaurant.id, cookieOptions)
+    cookieStore.set('impersonated_restaurant_name', restaurant.name, cookieOptions)
+
     redirect('/')
 }
 
 export async function stopImpersonation() {
-    await requireAdmin()
+    const admin = await requireAdmin()
 
     const cookieStore = await cookies()
+    const impersonatedId = cookieStore.get('impersonated_restaurant_id')?.value
+
+    if (impersonatedId) {
+        await logAuditEvent({
+            action: 'impersonation_stop',
+            target_type: 'restaurant',
+            target_id: impersonatedId,
+            metadata: { admin_email: admin.email }
+        })
+    }
+
     cookieStore.delete('impersonated_restaurant_id')
     cookieStore.delete('impersonated_restaurant_name')
 
-    // Regresar al panel de admin
     redirect('/admin/restaurants')
 }
 

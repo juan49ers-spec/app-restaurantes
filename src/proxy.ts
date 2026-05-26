@@ -1,18 +1,37 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-    // Debug Log (Server side)
-    // console.log("Middleware running for:", request.nextUrl.pathname)
+function hasSupabaseAuthCookie(request: NextRequest) {
+    return request.cookies
+        .getAll()
+        .some(cookie => cookie.name.startsWith('sb-') && cookie.name.includes('auth-token'))
+}
 
+export async function proxy(request: NextRequest) {
     try {
+        const isPublicRoute =
+            request.nextUrl.pathname.startsWith('/login') ||
+            request.nextUrl.pathname.startsWith('/auth') ||
+            request.nextUrl.pathname.startsWith('/api/debug')
+        const hasAuthCookie = hasSupabaseAuthCookie(request)
+
         let response = NextResponse.next({
             request: {
                 headers: request.headers,
             },
         })
 
-        // Create Supabase Client compatible with Next.js Middleware
+        if (!hasAuthCookie) {
+            if (isPublicRoute) {
+                return response
+            }
+
+            const url = request.nextUrl.clone()
+            url.pathname = '/login'
+            return NextResponse.redirect(url)
+        }
+
+        // Create Supabase Client compatible with Next.js Proxy
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -48,11 +67,7 @@ export async function middleware(request: NextRequest) {
         } = await supabase.auth.getUser()
 
         // Protected Routes Logic
-        if (!user &&
-            !request.nextUrl.pathname.startsWith('/login') &&
-            !request.nextUrl.pathname.startsWith('/auth') &&
-            !request.nextUrl.pathname.startsWith('/api/debug') /* Explicitly allow debug */
-        ) {
+        if (!user && !isPublicRoute) {
             const url = request.nextUrl.clone()
             url.pathname = '/login'
             return NextResponse.redirect(url)
@@ -82,9 +97,9 @@ export async function middleware(request: NextRequest) {
 
     } catch (e: unknown) {
         const error = e as Error
-        console.error("Middleware Crash:", error)
+        console.error("Proxy Crash:", error)
         return NextResponse.json(
-            { error: "Middleware Crash", details: error.message || "Unknown error" },
+            { error: "Proxy Crash", details: error.message || "Unknown error" },
             { status: 500 }
         )
     }

@@ -5,6 +5,8 @@ import { AdminShell } from '@/components/admin/AdminShell'
 
 const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminLayout({ children }: { children: ReactNode }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

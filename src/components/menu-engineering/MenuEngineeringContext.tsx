@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react"
 import { createClient } from "@/lib/supabaseClient"
+import { calculateMenuEngineeringAnalysis } from "@/lib/menu-engineering"
 import { toast } from "sonner"
 
 interface MenuEngineeringContextType {
@@ -167,66 +168,25 @@ export function MenuEngineeringProvider({
     // Core Logic: Recalculate Menu Engineering Matrix
     // This duplicates the backend logic but client-side for instant feedback
     const recalculateMatrix = useCallback((currentItems: SimulatedMenuItem[]) => {
-        // 1. Calculate basic metrics per item
-        const processedItems = currentItems.map(item => {
-            const price = Number(item.price)
-            const cost = Number(item.cost)
-            const quantity = Number(item.quantity_sold)
+        if (currentItems.reduce((acc, item) => acc + Number(item.quantity_sold), 0) === 0) return
 
-            const contributionMargin = price - cost
-            const totalSales = price * quantity
-            const totalCost = cost * quantity
-            const totalProfit = contributionMargin * quantity
-
-            return {
-                ...item,
-                contribution_margin: contributionMargin,
-                total_sales: totalSales,
-                total_cost: totalCost,
-                total_profit: totalProfit
-            }
-        })
-
-        // 2. Global Averages
-        const totalSold = processedItems.reduce((acc: number, i: SimulatedMenuItem) => acc + i.quantity_sold, 0)
-
-        // Avoid division by zero
-        if (totalSold === 0) return
-
-        const mixPercentage = 100 / processedItems.length
-        const popularityThreshold = mixPercentage * 0.7 // 70% rule
-
-        // Weighted Average Margin
-        const totalMarginGenerated = processedItems.reduce((acc: number, i: SimulatedMenuItem) => acc + ((i.contribution_margin || 0) * i.quantity_sold), 0)
-        const avgMarginWeighted = totalMarginGenerated / totalSold
-
-        // 3. Classification
-        const finalItems = processedItems.map((item: SimulatedMenuItem) => {
-            const popularityPct = (item.quantity_sold / totalSold) * 100
-            const isHighPopularity = popularityPct >= popularityThreshold
-            const isHighMargin = (item.contribution_margin ?? 0) >= avgMarginWeighted
-
-            let classification: 'STAR' | 'PLOWHORSE' | 'PUZZLE' | 'DOG' = 'DOG' // Ensure type is assigned
-            if (isHighPopularity && isHighMargin) classification = 'STAR'
-            else if (isHighPopularity && !isHighMargin) classification = 'PLOWHORSE'
-            else if (!isHighPopularity && isHighMargin) classification = 'PUZZLE'
-
-            return {
-                ...item,
-                popularity_pct: popularityPct / 100, // Keep decimal format for consistency
-                classification
-            }
-        })
+        const analysis = calculateMenuEngineeringAnalysis(currentItems.map((item) => ({
+            ...item,
+            price_per_unit: Number(item.price),
+            cost_per_unit: Number(item.cost),
+            quantity_sold: Number(item.quantity_sold),
+        })))
+        const finalItems = analysis.items
 
         setSimulatedItems(finalItems)
-        setSimulatedAvgMargin(avgMarginWeighted)
-        setSimulatedAvgPopularity(popularityThreshold / 100) // Keep decimal format
+        setSimulatedAvgMargin(analysis.thresholds.avgContributionMargin)
+        setSimulatedAvgPopularity(analysis.thresholds.avgPopularityPct)
 
         // Calculate Bridging Deltas
         const originalRevenue = originalItems.reduce((acc, i) => acc + (Number(i.price) * i.quantity_sold), 0)
         const originalCogs = originalItems.reduce((acc, i) => acc + (Number(i.cost) * i.quantity_sold), 0)
-        const simRevenue = processedItems.reduce((acc, i) => acc + (i.total_sales || 0), 0)
-        const simCogs = processedItems.reduce((acc, i) => acc + (i.total_cost || 0), 0)
+        const simRevenue = finalItems.reduce((acc, i) => acc + (i.total_sales || 0), 0)
+        const simCogs = finalItems.reduce((acc, i) => acc + (i.total_cost || 0), 0)
 
         setRevenueDelta(simRevenue - originalRevenue)
         setCogsDelta(simCogs - originalCogs)

@@ -54,21 +54,24 @@ profit_after  = revenue_after - cogs_after - labor_after - fixed_after
 
 ```
 Ejes:
-  X (popularidad): quantity_sold vs avgQuantity = totalSold / N_items
+  X (popularidad): popularity_pct vs avgPopularityPct = 1 / N_items
   Y (rentabilidad): contribution_margin vs avgCM = totalContribution / totalSold (ponderado)
 
 Clasificación:
-  qty >= avgQty && cm >= avgCM → STAR        (alto volumen, alto margen)
-  qty >= avgQty && cm <  avgCM → PLOWHORSE   (alto volumen, bajo margen)
-  qty <  avgQty && cm >= avgCM → PUZZLE      (bajo volumen, alto margen)
-  qty <  avgQty && cm <  avgCM → DOG         (bajo volumen, bajo margen)
+  popularity_pct >= avgPopularityPct && cm >= avgCM → STAR
+  popularity_pct >= avgPopularityPct && cm <  avgCM → PLOWHORSE
+  popularity_pct <  avgPopularityPct && cm >= avgCM → PUZZLE
+  popularity_pct <  avgPopularityPct && cm <  avgCM → DOG
 ```
 
 `contribution_margin = selling_price - cost_per_unit` (unitario).
+`avgPopularityPct = 1 / N_items` es matematicamente equivalente a comparar `quantity_sold >= totalSold / N_items`, pero encaja con la UI, que dibuja el eje X como porcentaje de mix.
 
 `getStats()` retorna: ingreso total, conteo por cuadrante, margen promedio ponderado, popularidad promedio.
 
-**Implicación:** el sistema NO usa umbrales fijos (ej. 70% popularidad). Usa **promedios del propio reporte**. Una receta puede pasar de STAR a PLOWHORSE solo porque cambió la composición del reporte.
+**Implicación:** el sistema NO usa umbrales fijos ni el descuento historico del 70%. Usa **promedios del propio reporte**. Una receta puede pasar de STAR a PLOWHORSE solo porque cambió la composición del reporte.
+
+**Consistencia Fase 7:** `calculateMenuEngineeringAnalysis()` en `src/lib/menu-engineering.ts` es la fuente unica. La action `calculateMatrix` y la simulación cliente reutilizan la misma función.
 
 ## Recipe utils
 
@@ -83,6 +86,7 @@ Clasificación:
 
 - `getFiscalQuarterInfo(date)`: devuelve trimestre (Q1-Q4), fecha de cierre y siguiente vencimiento (modelos 303 IVA / 111 IRPF) según calendario AEAT.
 - `formatCurrency(value)`: locale `es-ES`, 2 decimales, símbolo €.
+- En métricas fiscales, una suma de bases `base_10 + base_21` distinta de 0 es dato explícito aunque sea negativa; el fallback `revenue_total - iva_collected` solo aplica cuando no hay desglose.
 
 ## Precisión decimal
 

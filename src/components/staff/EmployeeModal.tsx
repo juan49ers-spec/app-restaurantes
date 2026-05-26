@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { Resolver, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import {
@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Employee, EmployeeSchema, StaffRoleSchema, ContractTypeSchema } from "@/types/schema"
+import { Employee, EmployeeSchema } from "@/types/schema"
 import { upsertEmployee } from "@/app/actions/staff"
 import { toast } from "sonner"
 import { Loader2, Palette } from "lucide-react"
@@ -60,20 +60,22 @@ const COLORS = [
     "#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#8b5cf6", "#14b8a6", "#27272a"
 ]
 
+type EmployeeFormValues = z.infer<typeof EmployeeSchema>
+
 export function EmployeeModal({ isOpen, onClose, employee, restaurantId, onSuccess }: EmployeeModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const form = useForm<z.infer<typeof EmployeeSchema>>({
-        resolver: zodResolver(EmployeeSchema) as any,
+    const form = useForm<EmployeeFormValues>({
+        resolver: zodResolver(EmployeeSchema) as unknown as Resolver<EmployeeFormValues>,
         defaultValues: {
             restaurant_id: restaurantId,
             first_name: "",
             last_name: "",
-            role: 'OTHER' as any,
-            system_access_level: 'NONE' as any,
-            status: 'ACTIVE' as any,
-            contract_type: 'INDEFINIDO' as any,
-            wage_type: 'HOURLY' as any,
+            role: 'OTHER',
+            system_access_level: 'NONE',
+            status: 'ACTIVE',
+            contract_type: 'INDEFINIDO',
+            wage_type: 'HOURLY',
             hourly_rate: 0,
             monthly_base_salary: 0,
             contract_hours_weekly: 40,
@@ -102,11 +104,11 @@ export function EmployeeModal({ isOpen, onClose, employee, restaurantId, onSucce
                     restaurant_id: restaurantId,
                     first_name: "",
                     last_name: "",
-                    role: 'OTHER' as any,
-                    system_access_level: 'NONE' as any,
-                    status: 'ACTIVE' as any,
-                    contract_type: 'INDEFINIDO' as any,
-                    wage_type: 'HOURLY' as any,
+                    role: 'OTHER',
+                    system_access_level: 'NONE',
+                    status: 'ACTIVE',
+                    contract_type: 'INDEFINIDO',
+                    wage_type: 'HOURLY',
                     hourly_rate: 0,
                     monthly_base_salary: 0,
                     contract_hours_weekly: 40,
@@ -120,7 +122,7 @@ export function EmployeeModal({ isOpen, onClose, employee, restaurantId, onSucce
         }
     }, [isOpen, employee, restaurantId, form])
 
-    const onSubmit = async (values: z.infer<typeof EmployeeSchema>) => {
+    const onSubmit = async (values: EmployeeFormValues) => {
         setIsSubmitting(true)
         const result = await upsertEmployee(values as Employee)
 
@@ -133,7 +135,10 @@ export function EmployeeModal({ isOpen, onClose, employee, restaurantId, onSucce
         setIsSubmitting(false)
     }
 
-    const wageType = form.watch("wage_type")
+    const wageType = useWatch({
+        control: form.control,
+        name: "wage_type",
+    })
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>

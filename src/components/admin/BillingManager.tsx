@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { BillingOverview, RestaurantBillingInfo, changeRestaurantPlan, adjustCredits, registerPayment, getBillingHistory, BillingEvent } from '@/app/actions/admin-billing'
-import { AddonId, PlanModuleAccess } from '@/lib/plan-definitions'
+import { AddonId } from '@/lib/plan-definitions'
 import { BillingModule } from '@/types/billing'
 import { CreditCard, History, Package, Receipt, Settings, TrendingUp, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -26,15 +26,26 @@ const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
+
 export function BillingManager({ overview, restaurants, billingConfigs }: BillingManagerProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantBillingInfo | null>(null)
     const [actionModals, setActionModals] = useState<'NONE' | 'CHANGE_PLAN' | 'ADJUST_CREDITS' | 'REGISTER_PAYMENT' | 'HISTORY'>('NONE')
     const [history, setHistory] = useState<BillingEvent[]>([])
+    const safeOverview = overview || {
+        estimatedMonthlyRevenue: 0,
+        totalRestaurants: 0,
+        totalOcrCreditsInCirculation: 0,
+        addonDistribution: { CORE: 0, operativa: 0, personal: 0, proveedores: 0 },
+    }
+    const safeRestaurants = restaurants || []
+    const safeBillingConfigs = billingConfigs || []
 
     // Lookup table for modules
-    const moduleMap = new Map(billingConfigs.map(m => [m.id, m]));
-    const baseModule = billingConfigs.find(m => m.is_base);
+    const moduleMap = new Map(safeBillingConfigs.map(m => [m.id, m]));
+    const baseModule = safeBillingConfigs.find(m => m.is_base);
 
     const calculateDynamicMonthlyPrice = (activeAddons: AddonId[]) => {
         let total = baseModule?.price_monthly || 0;
@@ -62,8 +73,8 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
             try {
                 const hist = await getBillingHistory(restaurant.id)
                 setHistory(hist)
-            } catch (err: any) {
-                toast.error(err.message || 'Error al cargar historial')
+            } catch (err) {
+                toast.error(getErrorMessage(err, 'Error al cargar historial'))
             }
         }
     }
@@ -75,8 +86,8 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
             await changeRestaurantPlan(selectedRestaurant.id, selectedAddons, reasonConcept)
             toast.success(`Suscripción actualizada correctamente`)
             setActionModals('NONE')
-        } catch (err: any) {
-            toast.error(err.message || "Error al actualizar la suscripción")
+        } catch (err) {
+            toast.error(getErrorMessage(err, "Error al actualizar la suscripción"))
         } finally {
             setIsSubmitting(false)
         }
@@ -90,8 +101,8 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
             const res = await adjustCredits(selectedRestaurant.id, creditAmount, reasonConcept)
             toast.success(`Créditos actualizados: ${res.previous} → ${res.new}`)
             setActionModals('NONE')
-        } catch (err: any) {
-            toast.error(err.message || "Error al ajustar créditos")
+        } catch (err) {
+            toast.error(getErrorMessage(err, "Error al ajustar créditos"))
         } finally {
             setIsSubmitting(false)
         }
@@ -106,8 +117,8 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
             await registerPayment(selectedRestaurant.id, paymentAmount, reasonConcept)
             toast.success("Pago registrado exitosamente")
             setActionModals('NONE')
-        } catch (err: any) {
-            toast.error(err.message || "Error al registrar pago")
+        } catch (err) {
+            toast.error(getErrorMessage(err, "Error al registrar pago"))
         } finally {
             setIsSubmitting(false)
         }
@@ -130,7 +141,7 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
                         <TrendingUp className="w-5 h-5 text-emerald-400" />
                         <h3 className="text-sm font-medium">MRR Estimado</h3>
                     </div>
-                    <p className="text-3xl font-bold text-white tabular-nums">{formatCurrency(overview.estimatedMonthlyRevenue)}</p>
+                    <p className="text-3xl font-bold text-white tabular-nums">{formatCurrency(safeOverview.estimatedMonthlyRevenue)}</p>
                     <p className="text-xs text-neutral-500 mt-1">Ingreso Recurrente Mensual</p>
                 </div>
                 <div className="bg-white/5 border border-white/5 rounded-xl p-5">
@@ -138,15 +149,15 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
                         <Package className="w-5 h-5 text-blue-400" />
                         <h3 className="text-sm font-medium">Restaurantes Activos</h3>
                     </div>
-                    <p className="text-3xl font-bold text-white tabular-nums">{overview.totalRestaurants}</p>
+                    <p className="text-3xl font-bold text-white tabular-nums">{safeOverview.totalRestaurants}</p>
                     <p className="text-xs text-neutral-500 mt-1">Suscritos a algún plan</p>
                 </div>
                 <div className="bg-white/5 border border-white/5 rounded-xl p-5 md:col-span-2">
                     <h3 className="text-sm font-medium text-neutral-400 mb-3">Distribución de Módulos</h3>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
-                        {(Object.keys(overview.addonDistribution) as (AddonId | 'CORE')[]).map(addon => {
-                            const count = overview.addonDistribution[addon] || 0
-                            const pct = Math.round((count / (overview.totalRestaurants || 1)) * 100)
+                        {(Object.keys(safeOverview.addonDistribution) as (AddonId | 'CORE')[]).map(addon => {
+                            const count = safeOverview.addonDistribution[addon] || 0
+                            const pct = Math.round((count / (safeOverview.totalRestaurants || 1)) * 100)
                             return count > 0 ? (
                                 <div key={addon} className="flex-1">
                                     <div className="flex justify-between items-end mb-1">
@@ -184,7 +195,7 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {restaurants.map(rest => {
+                            {safeRestaurants.map(rest => {
                                 const activeAddons = rest.active_addons || []
                                 const currentPrice = calculateDynamicMonthlyPrice(activeAddons)
                                 return (
@@ -262,7 +273,7 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
                                     </tr>
                                 )
                             })}
-                            {restaurants.length === 0 && (
+                            {safeRestaurants.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="px-5 py-12 text-center text-neutral-500">
                                         No hay restaurantes registrados
@@ -292,7 +303,7 @@ export function BillingManager({ overview, restaurants, billingConfigs }: Billin
                                     </p>
 
                                     <div className="space-y-3 mb-6">
-                                        {billingConfigs.filter(m => !m.is_base && m.is_active).map(addon => {
+                                        {safeBillingConfigs.filter(m => !m.is_base && m.is_active).map(addon => {
                                             const addonId = addon.id as AddonId
                                             const isActive = selectedAddons.includes(addonId)
 

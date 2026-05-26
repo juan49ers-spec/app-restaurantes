@@ -60,7 +60,7 @@ export function ClientEmployeesView({ initialEmployees, restaurantId }: ClientEm
 
     const handleToggleStatus = useCallback(async (emp: Employee) => {
         setIsToggling(emp.id!)
-        const result = await toggleEmployeeStatus(emp.id!, emp.status, restaurantId)
+        const result = await toggleEmployeeStatus(emp.id!, emp.status)
 
         if (result.success) {
             setEmployees(prev => prev.map(e =>
@@ -73,7 +73,7 @@ export function ClientEmployeesView({ initialEmployees, restaurantId }: ClientEm
             toast.error(result.error || "Error al cambiar estado")
         }
         setIsToggling(null)
-    }, [restaurantId])
+    }, [])
 
     const openEditModal = (emp: Employee) => {
         setEditingEmployee(emp)

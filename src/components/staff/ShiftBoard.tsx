@@ -6,9 +6,7 @@ import {
     ChevronRight,
     Plus,
     Users,
-    Clock,
     Euro,
-    AlertCircle,
     Info
 } from "lucide-react"
 import { getEmployees, getShifts, upsertShift, deleteShift, getStaffingForecast, type DailyForecast } from "@/app/actions/staff"
@@ -108,7 +106,7 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
         setLoading(true)
         try {
             const [staffRes, shiftsRes, forecastData] = await Promise.all([
-                getEmployees(restaurantId),
+                getEmployees(),
                 getShifts(restaurantId, startStr, endStr),
                 getStaffingForecast(restaurantId, startStr, endStr)
             ])
@@ -177,7 +175,7 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
 
         try {
             if (shift.id) {
-                const result = await deleteShift(shift.id, restaurantId)
+                const result = await deleteShift(shift.id)
                 if (result.success) {
                     toast.success("Turno eliminado")
                     fetchData()

@@ -8,8 +8,6 @@ import {
     Zap,
     Lightbulb,
     Edit3,
-    ArrowUpRight,
-    ArrowDownRight,
     CheckCircle2,
     AlertCircle
 } from "lucide-react"

@@ -25,14 +25,23 @@ export const metadata: Metadata = {
   description: "Gastronomic Intelligence Platform",
 };
 
+function hasSupabaseAuthCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  return cookieStore
+    .getAll()
+    .some(cookie => cookie.name.startsWith('sb-') && cookie.name.includes('auth-token'))
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
   const cookieStore = await cookies()
+  const hasAuthCookie = hasSupabaseAuthCookie(cookieStore)
+  const supabase = hasAuthCookie ? await createClient() : null
+  const { data: { user } } = supabase
+    ? await supabase.auth.getUser()
+    : { data: { user: null } }
   const impersonatedRestaurantName = cookieStore.get('impersonated_restaurant_name')?.value
 
   // Get active addons and restaurant info for navigation filtering
@@ -47,7 +56,7 @@ export default async function RootLayout({
     restaurantName = restaurant?.name || ''
   }
 
-  const broadcasts = await getActiveBroadcasts()
+  const broadcasts = user ? await getActiveBroadcasts() : []
 
   return (
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>

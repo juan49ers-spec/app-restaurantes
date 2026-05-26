@@ -118,7 +118,7 @@ export function OperationalStats({ kpis, activeMetric, onMetricSelect }: Operati
                         <div className="w-full bg-neutral-100 h-1.5 rounded-full overflow-hidden mt-1">
                             <div
                                 className={`h-full rounded-full ${primeHealth === 'healthy' ? 'bg-emerald-500' : primeHealth === 'warning' ? 'bg-amber-500' : 'bg-red-500'}`}
-                                style={{ width: `${Math.min(primeCostPct, 100)}%` } as any}
+                                style={{ width: `${Math.min(primeCostPct, 100)}%` }}
                             />
                         </div>
                         <p className="text-xs font-medium text-neutral-500 mt-1">Coste Primo (Personal + MP)</p>

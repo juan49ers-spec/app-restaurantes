@@ -1,6 +1,7 @@
 
 import {
     FileText,
+    ClipboardList,
     BookOpen,
     BrainCircuit,
     Users,
@@ -29,6 +30,7 @@ export const navigationConfig: MenuGroup[] = [
         title: "CORE",
         items: [
             { title: "Control Financiero", href: "/financial-control", icon: Wallet, description: "Gestión y KPIs" },
+            { title: "Informes", href: "/reports", icon: ClipboardList, description: "Reporting profesional" },
             { title: "Facturas", href: "/invoices", icon: FileText, description: "Input de Datos" }
         ]
     },

@@ -630,10 +630,7 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
     setCloseError(null)
     try {
       const { closeMonth } = await import("@/app/actions/resultados")
-      const result = await closeMonth(
-        dashboardData.currentMonth.restaurant_id,
-        dashboardData.currentMonth.month_year
-      )
+      const result = await closeMonth(dashboardData.currentMonth.month_year)
       if (result.success) {
         setShowSuccess(true)
         setTimeout(() => setShowSuccess(false), 2000)
@@ -914,4 +911,3 @@ export function ResultadosDashboard({ dashboardData }: ResultadosDashboardProps)
     </div >
   )
 }
-

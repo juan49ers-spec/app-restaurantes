@@ -39,6 +39,10 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn()
 }))
 
+vi.mock('@/app/actions/utils', () => ({
+  getUserRestaurant: vi.fn().mockResolvedValue('test-restaurant')
+}))
+
 // Mock de date-fns
 vi.mock('date-fns', () => ({
   format: () => '2024-02-01',
@@ -52,6 +56,17 @@ describe('Financial Control Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Resetear los mocks que resuelven valores
+    mockSupabase.from.mockReturnThis()
+    mockSupabase.select.mockReturnThis()
+    mockSupabase.insert.mockReturnThis()
+    mockSupabase.update.mockReturnThis()
+    mockSupabase.delete.mockReturnThis()
+    mockSupabase.upsert.mockReturnThis()
+    mockSupabase.eq.mockReturnThis()
+    mockSupabase.gte.mockReturnThis()
+    mockSupabase.lte.mockReturnThis()
+    mockSupabase.order.mockReset()
+    mockSupabase.single.mockReset()
     mockSupabase.order.mockResolvedValue({ data: null, error: null })
     mockSupabase.single.mockResolvedValue({ data: null, error: null })
   })

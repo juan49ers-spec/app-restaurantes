@@ -1,6 +1,7 @@
 import { Suspense } from "react"
-import { createClient } from "@/lib/supabaseServer"
+import { redirect } from "next/navigation"
 import { getEmployees } from "@/app/actions/staff"
+import { getUserRestaurant } from "@/app/actions/utils"
 import { ClientEmployeesView } from "./ClientEmployeesView"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -34,16 +35,11 @@ function EmployeesLoading() {
 }
 
 async function EmployeesDataWrapper() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const restaurantId = await getUserRestaurant()
 
-    if (!user) return <div>No autorizado</div>
+    if (!restaurantId) redirect("/onboarding")
 
-    // En una app real usaríamos el restaurant_id del contexto del usuario
-    // Por ahora usamos "1" o el ID que maneje la sesión actual
-    const restaurant_id = user.user_metadata?.restaurant_id || "1"
-
-    const { data: employees, error } = await getEmployees(restaurant_id)
+    const { data: employees, error } = await getEmployees()
 
     if (error) {
         return (
@@ -57,7 +53,7 @@ async function EmployeesDataWrapper() {
     return (
         <ClientEmployeesView
             initialEmployees={employees || []}
-            restaurantId={restaurant_id}
+            restaurantId={restaurantId}
         />
     )
 }

@@ -14,6 +14,7 @@ import {
     calculateHistoryEntry,
     generateHistoryMonths
 } from "@/lib/financial-utils"
+import { getUserRestaurant } from "./utils"
 
 // --- Daily Sales Actions ---
 
@@ -56,6 +57,11 @@ export async function getDailySalesRange(restaurantId: string, startDate: string
 
 export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema>) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para guardar ventas." }
+    }
 
     // Validate input
     const validData = DailySalesSchema.parse(formData)
@@ -80,7 +86,7 @@ export async function upsertDailySales(formData: z.infer<typeof DailySalesSchema
     const { data, error } = await supabase
         .from('daily_sales')
         .upsert({
-            restaurant_id: validData.restaurant_id,
+            restaurant_id: restaurantId,
             date: validData.date,
             revenue_total,
             base_10: validData.base_10,
@@ -136,6 +142,11 @@ export async function getOperatingExpenses(restaurantId: string, startDate: stri
 
 export async function upsertOperatingExpense(formData: z.infer<typeof OperatingExpenseSchema>) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para guardar gastos." }
+    }
 
     // Validate
     // Note: Schema expects string dates, but we might receive dates. Standardize if needed.
@@ -144,7 +155,7 @@ export async function upsertOperatingExpense(formData: z.infer<typeof OperatingE
     const { data, error } = await supabase
         .from('operating_expenses')
         .insert({
-            restaurant_id: validData.restaurant_id,
+            restaurant_id: restaurantId,
             expense_date: validData.expense_date,
             category: validData.category,
             amount: validData.amount,
@@ -176,11 +187,17 @@ export async function upsertOperatingExpense(formData: z.infer<typeof OperatingE
 
 export async function deleteOperatingExpense(id: string) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para eliminar gastos." }
+    }
 
     const { error } = await supabase
         .from('operating_expenses')
         .delete()
         .eq('id', id)
+        .eq('restaurant_id', restaurantId)
 
     if (error) {
         return { success: false, error: error.message }
@@ -194,11 +211,19 @@ export async function deleteOperatingExpense(id: string) {
 
 export async function updateOperatingExpense(id: string, updates: Partial<OperatingExpense>) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para actualizar gastos." }
+    }
+
+    const { restaurant_id: _ignoredRestaurantId, ...safeUpdates } = updates
 
     const { data, error } = await supabase
         .from('operating_expenses')
-        .update(updates)
+        .update(safeUpdates)
         .eq('id', id)
+        .eq('restaurant_id', restaurantId)
         .select()
         .single()
 
@@ -353,12 +378,18 @@ export async function getMonthlyTarget(restaurantId: string, monthYear: string) 
 
 export async function upsertMonthlyTarget(formData: z.infer<typeof MonthlyTargetSchema>) {
     const supabase = await createClient()
+    const restaurantId = await getUserRestaurant()
+
+    if (!restaurantId) {
+        return { success: false, error: "No hay restaurante activo para guardar objetivos." }
+    }
+
     const validData = MonthlyTargetSchema.parse(formData)
 
     const { data, error } = await supabase
         .from('monthly_targets')
         .upsert({
-            restaurant_id: validData.restaurant_id,
+            restaurant_id: restaurantId,
             month_year: validData.month_year,
             revenue_target: validData.revenue_target,
             cogs_target_pct: validData.cogs_target_pct,
@@ -657,7 +688,7 @@ export async function getFiscalMetrics(restaurantId: string, startDate: string, 
 
     // Fallback: si base_10/base_21 no están desglosados, calcular desde revenue_total - iva_collected
     const baseFromFields = sales?.reduce((sum, day) => sum + (day.base_10 || 0) + (day.base_21 || 0), 0) || 0
-    const revenueTaxableBase = baseFromFields > 0
+    const revenueTaxableBase = baseFromFields !== 0
         ? baseFromFields
         : sales?.reduce((sum, day) => sum + (day.revenue_total || 0) - (day.iva_collected || 0), 0) || 0
 
@@ -751,7 +782,7 @@ export async function getQuarterlyFiscalData(restaurantId: string, year: number,
         // Fallback robusto: si los campos desglosados (base_10/21, tax_10/21) están vacíos,
         // calcular desde revenue_total e iva_collected que sí tienen datos.
         const baseFromFields = monthlySales.reduce((sum, s) => sum + (s.base_10 || 0) + (s.base_21 || 0), 0)
-        const baseImponible = baseFromFields > 0
+        const baseImponible = baseFromFields !== 0
             ? baseFromFields
             : monthlySales.reduce((sum, s) => sum + (s.revenue_total || 0) - (s.iva_collected || 0), 0)
 
@@ -775,7 +806,16 @@ export async function getQuarterlyFiscalData(restaurantId: string, year: number,
     }
 
     // IRPF Concept grouping
-    const irpfConceptsMap: Record<string, any> = {
+    type IrpfConceptSummary = {
+        categoria: string
+        modelo: string
+        baseSujeta: number
+        porcentajeRetencion: number
+        cuotaIngresar: number
+        count: number
+    }
+
+    const irpfConceptsMap: Record<string, IrpfConceptSummary> = {
         "Nóminas": { categoria: "Nóminas", modelo: "Mod. 111", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 },
         "Alquiler": { categoria: "Alquiler", modelo: "Mod. 115", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 },
         "Profesionales": { categoria: "Profesionales", modelo: "Mod. 111", baseSujeta: 0, porcentajeRetencion: 0, cuotaIngresar: 0, count: 0 }

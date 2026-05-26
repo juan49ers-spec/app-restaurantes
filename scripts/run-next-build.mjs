@@ -1,0 +1,40 @@
+import { spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const nextDevDir = resolve(rootDir, '.next', 'dev');
+const nextBin = resolve(
+  rootDir,
+  'node_modules',
+  'next',
+  'dist',
+  'bin',
+  'next',
+);
+
+rmSync(nextDevDir, { force: true, recursive: true });
+
+const child = spawn(process.execPath, [nextBin, 'build'], {
+  cwd: rootDir,
+  env: {
+    ...process.env,
+    NODE_ENV: 'production',
+  },
+  stdio: 'inherit',
+});
+
+child.on('exit', (code, signal) => {
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
+
+  process.exit(code ?? 1);
+});
+
+child.on('error', (error) => {
+  console.error(error);
+  process.exit(1);
+});

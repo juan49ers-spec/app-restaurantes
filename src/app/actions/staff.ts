@@ -3,19 +3,25 @@
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { Employee, Shift } from "@/types/schema"
+import { getUserRestaurant } from "./utils"
 
 // ==========================================
 // EMPLOYEES
 // ==========================================
 
-export async function getEmployees(restaurantId: string): Promise<{ data: Employee[] | null; error: string | null }> {
+export async function getEmployees(): Promise<{ data: Employee[] | null; error: string | null }> {
     try {
         const supabase = await createClient()
+        const restaurantId = await getUserRestaurant()
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) {
             return { data: null, error: "No autorizado." }
+        }
+
+        if (!restaurantId) {
+            return { data: null, error: "No hay restaurante activo." }
         }
 
         const { data, error } = await supabase
@@ -39,6 +45,7 @@ export async function getEmployees(restaurantId: string): Promise<{ data: Employ
 export async function upsertEmployee(employee: Partial<Employee>): Promise<{ success: boolean; data: Employee | null; error: string | null }> {
     try {
         const supabase = await createClient()
+        const restaurantId = await getUserRestaurant()
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -46,13 +53,15 @@ export async function upsertEmployee(employee: Partial<Employee>): Promise<{ suc
             return { success: false, data: null, error: "No autorizado para modificar personal." }
         }
 
-        if (!employee.restaurant_id) {
+        if (!restaurantId) {
             return { success: false, data: null, error: "Faltan datos de restaurante." }
         }
 
+        const { restaurant_id: _ignoredRestaurantId, ...safeEmployee } = employee
+
         const { data, error } = await supabase
             .from("employees")
-            .upsert(employee)
+            .upsert({ ...safeEmployee, restaurant_id: restaurantId })
             .select()
             .single()
 
@@ -71,14 +80,19 @@ export async function upsertEmployee(employee: Partial<Employee>): Promise<{ suc
     }
 }
 
-export async function toggleEmployeeStatus(employeeId: string, currentStatus: string, restaurantId: string): Promise<{ success: boolean; error: string | null }> {
+export async function toggleEmployeeStatus(employeeId: string, currentStatus: string): Promise<{ success: boolean; error: string | null }> {
     try {
         const supabase = await createClient()
+        const restaurantId = await getUserRestaurant()
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) {
             return { success: false, error: "No autorizado." }
+        }
+
+        if (!restaurantId) {
+            return { success: false, error: "No hay restaurante activo." }
         }
 
         const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
@@ -102,14 +116,19 @@ export async function toggleEmployeeStatus(employeeId: string, currentStatus: st
     }
 }
 
-export async function deleteEmployee(employeeId: string, restaurantId: string): Promise<{ success: boolean; error: string | null }> {
+export async function deleteEmployee(employeeId: string): Promise<{ success: boolean; error: string | null }> {
     try {
         const supabase = await createClient()
+        const restaurantId = await getUserRestaurant()
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) {
             return { success: false, error: "No autorizado." }
+        }
+
+        if (!restaurantId) {
+            return { success: false, error: "No hay restaurante activo." }
         }
 
         // Se usa hard delete aquí, pero el soft delete se realiza con toggleEmployeeStatus hacia INACTIVE. 
@@ -148,18 +167,20 @@ export interface DailyForecast {
     efficiency: number // (Labor / Sales) * 100
 }
 
-export async function getStaffingForecast(restaurantId: string, startDate: string, endDate: string): Promise<DailyForecast[]> {
+export async function getStaffingForecast(_restaurantId: string, startDate: string, endDate: string): Promise<DailyForecast[]> {
     try {
         const supabase = await createClient()
+        const activeRestaurantId = await getUserRestaurant()
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) throw new Error("No autorizado.")
+        if (!activeRestaurantId) throw new Error("No hay restaurante activo.")
 
         // 1. Fetch Scheduled Shifts for the period
         const { data: shifts } = await supabase
             .from('shifts')
             .select('*')
-            .eq('restaurant_id', restaurantId)
+            .eq('restaurant_id', activeRestaurantId)
             .gte('date', startDate)
             .lte('date', endDate)
 
@@ -167,7 +188,7 @@ export async function getStaffingForecast(restaurantId: string, startDate: strin
         const { data: actualSales } = await supabase
             .from('daily_sales')
             .select('date, revenue_total')
-            .eq('restaurant_id', restaurantId)
+            .eq('restaurant_id', activeRestaurantId)
             .gte('date', startDate)
             .lte('date', endDate)
 
@@ -176,7 +197,7 @@ export async function getStaffingForecast(restaurantId: string, startDate: strin
         const { data: target } = await supabase
             .from('monthly_targets')
             .select('labor_target_pct')
-            .eq('restaurant_id', restaurantId)
+            .eq('restaurant_id', activeRestaurantId)
             .eq('month_year', monthYear)
             .single()
 
@@ -195,7 +216,7 @@ export async function getStaffingForecast(restaurantId: string, startDate: strin
         const { data: historySales } = await supabase
             .from('daily_sales')
             .select('date, revenue_total')
-            .eq('restaurant_id', restaurantId)
+            .eq('restaurant_id', activeRestaurantId)
             .gte('date', historyStartStr)
             .lt('date', startDate)
 
@@ -250,17 +271,19 @@ export async function getStaffingForecast(restaurantId: string, startDate: strin
     }
 }
 
-export async function getShifts(restaurantId: string, startDate: string, endDate: string): Promise<{ data: Shift[] | null; error: string | null }> {
+export async function getShifts(_restaurantId: string, startDate: string, endDate: string): Promise<{ data: Shift[] | null; error: string | null }> {
     try {
         const supabase = await createClient()
+        const activeRestaurantId = await getUserRestaurant()
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) return { data: null, error: "No autorizado." }
+        if (!activeRestaurantId) return { data: null, error: "No hay restaurante activo." }
 
         const { data, error } = await supabase
             .from("shifts")
             .select("*, employees!inner(first_name, last_name, color_code, role)")
-            .eq("restaurant_id", restaurantId)
+            .eq("restaurant_id", activeRestaurantId)
             .gte("date", startDate)
             .lte("date", endDate)
             .order("date", { ascending: true })
@@ -271,7 +294,7 @@ export async function getShifts(restaurantId: string, startDate: string, endDate
             return { data: null, error: "No se pudieron cargar los turnos." }
         }
 
-        return { data: data as any[], error: null }
+        return { data: data as Shift[], error: null }
     } catch (err) {
         console.error("Unexpected error in getShifts:", err)
         return { data: null, error: "Error inesperado." }
@@ -281,17 +304,20 @@ export async function getShifts(restaurantId: string, startDate: string, endDate
 export async function upsertShift(shift: Partial<Shift>): Promise<{ success: boolean; data: Shift | null; error: string | null }> {
     try {
         const supabase = await createClient()
+        const restaurantId = await getUserRestaurant()
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) return { success: false, data: null, error: "No autorizado." }
 
-        if (!shift.restaurant_id || !shift.employee_id) {
+        if (!restaurantId || !shift.employee_id) {
             return { success: false, data: null, error: "Faltan datos obligatorios del turno." }
         }
 
+        const { restaurant_id: _ignoredRestaurantId, ...safeShift } = shift
+
         const { data, error } = await supabase
             .from("shifts")
-            .upsert(shift)
+            .upsert({ ...safeShift, restaurant_id: restaurantId })
             .select()
             .single()
 
@@ -308,12 +334,14 @@ export async function upsertShift(shift: Partial<Shift>): Promise<{ success: boo
     }
 }
 
-export async function deleteShift(shiftId: string, restaurantId: string): Promise<{ success: boolean; error: string | null }> {
+export async function deleteShift(shiftId: string): Promise<{ success: boolean; error: string | null }> {
     try {
         const supabase = await createClient()
+        const restaurantId = await getUserRestaurant()
 
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) return { success: false, error: "No autorizado." }
+        if (!restaurantId) return { success: false, error: "No hay restaurante activo." }
 
         const { error } = await supabase
             .from("shifts")

@@ -216,7 +216,7 @@ export const MenuReportSchema = z.object({
     date_from: z.string().optional(), // ISO Date
     date_to: z.string().optional(),   // ISO Date
     status: MenuReportStatusSchema.default('DRAFT'),
-    avg_popularity: z.number().optional(), // Calculated (100% / Items * 0.7)
+    avg_popularity: z.number().optional(), // Calculated (1 / Items), stored as decimal
     avg_margin: z.number().optional(),     // Calculated (Weighted)
     created_at: z.date().optional()
 });

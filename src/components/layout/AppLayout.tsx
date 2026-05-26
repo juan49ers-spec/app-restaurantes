@@ -23,7 +23,7 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
     const [isMobile, setIsMobile] = useState(false)
     const [scenarioId, setScenarioId] = useState<string | null>(null)
     const [isGuideOpen, setIsGuideOpen] = useState(false)
-    const [isPending, startTransition] = useTransition()
+    const [, startTransition] = useTransition()
 
     useEffect(() => {
         startTransition(() => {
@@ -63,7 +63,10 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
     }
 
     const pathname = usePathname()
-    const isExemptRoute = pathname?.startsWith('/login') || pathname?.startsWith('/auth') || pathname?.startsWith('/admin')
+    const isExemptRoute = pathname?.startsWith('/login') ||
+        pathname?.startsWith('/auth') ||
+        pathname?.startsWith('/admin') ||
+        pathname?.startsWith('/reports/print')
 
     if (isExemptRoute) {
         return <>{children}</>

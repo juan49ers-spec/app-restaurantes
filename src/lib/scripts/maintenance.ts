@@ -276,7 +276,6 @@ export async function generateSystemMetrics(): Promise<{
                 unreadAlerts: unreadAlerts || 0
             }
         }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_error: unknown) {
         return {
             success: false,

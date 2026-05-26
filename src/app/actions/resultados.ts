@@ -1,13 +1,20 @@
+"use server"
+
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { MonthlyResult } from "@/types/resultados"
+import { getUserRestaurant } from "./utils"
 
 export async function insertMonthlyTestData(
-    restaurantId: string,
     data: Partial<MonthlyResult> & { year: number; month: number }
 ): Promise<{ success: boolean; error: string | null }> {
     try {
         const supabase = await createClient()
+        const restaurantId = await getUserRestaurant()
+
+        if (!restaurantId) {
+            return { success: false, error: "No hay restaurante activo para insertar resultados." }
+        }
 
         // 🛡️ Vercel Best Practice: Authenticate Server Actions
         const { data: { user } } = await supabase.auth.getUser()
@@ -18,7 +25,7 @@ export async function insertMonthlyTestData(
         const { error } = await supabase
             .from("monthly_results")
             .upsert({
-                restaurant_id: restaurantId || "1",
+                restaurant_id: restaurantId,
                 month_year: `${data.year}-${data.month.toString().padStart(2, "0")}`,
                 year: data.year,
                 month: data.month,
@@ -129,11 +136,15 @@ export async function getResultsDashboardData(
 // ==========================================
 
 export async function closeMonth(
-    restaurantId: string,
     monthYear: string
 ): Promise<{ success: boolean; error: string | null }> {
     try {
         const supabase = await createClient()
+        const restaurantId = await getUserRestaurant()
+
+        if (!restaurantId) {
+            return { success: false, error: "No hay restaurante activo para cerrar el mes." }
+        }
 
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {

@@ -36,9 +36,10 @@ Todas en `src/app/actions/`, una carpeta plana (sin subcarpetas) con archivos po
 | `policy-actions.ts` | Políticas internas. |
 | `contracts.ts` | Contratos con proveedores. |
 | `billing.ts`, `billing-config.ts` | Billing usuario. |
-| `seed-financial-data.ts`, `seed-sales.ts`, `seed-sales-robust.ts`, `seed-shifts-robust.ts` | Datos de prueba/demo. |
+| `seed-financial-data.ts`, `seed-sales.ts`, `seed-sales-robust.ts`, `seed-shifts-robust.ts`, `seed-professional-report-demo.ts` | Datos de prueba/demo. |
 | `inventory.ts` | Sesiones de conteo físico, guardado de conteos, informe de consumo. |
 | `ai-insights.ts` | Persistencia de informes narrativos IA por módulo y período. |
+| `professional-reporting.ts` | Lectura multi-fuente, versionado y exportacion imprimible de informes profesionales. |
 
 ## Patrón estándar de una action
 
@@ -113,6 +114,10 @@ type ActionResponse<T> = {
 - **Lecturas:** `get*`, `fetch*`. Ej: `getDailySales`, `getRecipes`, `getSupplierItems`.
 - **Escrituras:** `upsert*`, `create*`, `update*`, `delete*`. Ej: `upsertDailySales`, `createSupplier`, `updateInvoice`, `deleteRecipe`.
 - **Agregaciones complejas:** sufijo `Data`. Ej: `getExpenseDashboardData`, `getResultsDashboardData`.
+- **Informes profesionales:** `getProfessionalReportDraft(period)` carga datos del restaurante activo y delega el cálculo a `src/lib/reporting/`.
+- **Versiones de informes:** `saveProfessionalReportDraft({ period, narrativeOverrides, status })` regenera el informe en servidor y crea un snapshot nuevo en `professional_report_drafts`.
+- **Historial/exportacion:** `getProfessionalReportDraftHistory(period)`, `getSavedProfessionalReportDraft(id)` y `markProfessionalReportDraftExported(id)` siempre filtran por restaurante activo.
+- **Seed demo reporting:** `seedProfessionalReportDemoData()` resuelve el restaurante en servidor y solo debe usarse como herramienta QA/dev; no acepta `restaurant_id`.
 - **Toggles:** `toggle*`. Ej: `toggleRestaurantModule`, `toggleEmployeeStatus`.
 - **Acciones del super-admin:** prefijo `admin` en el archivo (`admin-billing.ts`) y nombres como `changeRestaurantPlan`, `adjustCredits`, `registerPayment`.
 
@@ -177,6 +182,6 @@ Para tareas accesorias (analytics, cache warming, logging extra), envolver con `
 
 - Algunos archivos tienen funciones helper internas no exportadas (`groupExpensesByCategory`, `calculateCategoryRatios`). No las expongas a menos que las necesites desde otro dominio.
 - `saveRecipe.ts` está en archivo aparte porque su RPC es complejo y conviene aislarlo.
-- `seed-*.ts` solo se usan en endpoints `/api/seed-ops` (solo dev / staging). No deben llamarse desde UI normal.
+- `seed-*.ts` solo se usan en endpoints de seed como `/api/seed-ops` o `/api/seed-reporting-demo` (solo dev / staging). No deben llamarse desde UI normal.
 - `safe-action.ts` no se usa universalmente — coexiste con actions escritas a mano siguiendo el mismo patrón pero sin el wrapper. No fuerces migración masiva si no es necesario.
 - Cuidado al revalidar `/`: revalida el dashboard, no el layout. Para invalidar el layout (y la navegación) usa `revalidatePath('/', 'layout')`.

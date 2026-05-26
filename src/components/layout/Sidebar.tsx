@@ -10,7 +10,7 @@ import {
     LogOut
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { navigationConfig, MenuGroup } from "@/config/navigation"
 import { supabase } from "@/lib/supabaseClient"
@@ -59,6 +59,7 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-[280px]">
+                    <SheetTitle className="sr-only">Menú principal</SheetTitle>
                     <SidebarContent
                         pathname={pathname}
                         collapsed={false}

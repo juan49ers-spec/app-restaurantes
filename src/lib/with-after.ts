@@ -18,7 +18,7 @@ import { executeAfterCallbacks } from './after'
  *   return { success: true }
  * })
  */
-export function withServerAfterAction<T extends any[], R>(
+export function withServerAfterAction<T extends unknown[], R>(
   handler: (...args: T) => Promise<R>
 ): (...args: T) => Promise<R> {
   return async (...args: T) => {

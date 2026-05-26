@@ -63,7 +63,9 @@ export async function getBillingOverview(): Promise<BillingOverview> {
     let revenue = 0
     let totalCredits = 0
 
-    restaurants.forEach(r => {
+    const safeRestaurants = restaurants || []
+
+    safeRestaurants.forEach(r => {
         distribution.CORE++
         revenue += baseModule?.price_monthly || 0;
 
@@ -80,7 +82,7 @@ export async function getBillingOverview(): Promise<BillingOverview> {
     })
 
     return {
-        totalRestaurants: restaurants.length,
+        totalRestaurants: safeRestaurants.length,
         addonDistribution: distribution,
         estimatedMonthlyRevenue: revenue,
         totalOcrCreditsInCirculation: totalCredits
@@ -98,7 +100,7 @@ export async function getRestaurantsBillingList(): Promise<RestaurantBillingInfo
 
     if (error) throw new Error("Failed to fetch restaurants billing data")
 
-    return data.map(r => ({
+    return (data || []).map(r => ({
         id: r.id,
         name: r.name,
         active_addons: (r.active_addons as AddonId[]) || [],

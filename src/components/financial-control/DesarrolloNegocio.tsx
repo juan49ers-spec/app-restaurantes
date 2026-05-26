@@ -284,7 +284,7 @@ export function DesarrolloNegocio({
     }, [data, currentMonthIndex, lastYearData])
 
     // Insights automáticos
-    const insights = useMemo(() => {
+    const insights = (() => {
         const items = []
 
         // Insight 1: Tendencia general
@@ -329,7 +329,7 @@ export function DesarrolloNegocio({
         }
 
         return items
-    }, [metrics])
+    })()
 
     return (
         <div className="space-y-4">

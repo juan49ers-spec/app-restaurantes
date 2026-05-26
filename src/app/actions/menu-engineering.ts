@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
+import { calculateMenuEngineeringAnalysis } from "@/lib/menu-engineering"
 import { safeAction } from "./safe-action"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
@@ -116,86 +117,49 @@ export const calculateMatrix = safeAction(z.object({ reportId: z.string().uuid()
 
     if (itemsError || !items) throw new Error(itemsError?.message || "No items found")
 
-    // 2. Calculate Totals
-    const totalSold = items.reduce((sum, item) => sum + Number(item.quantity_sold), 0)
-    if (totalSold === 0) throw new Error("Total quantity sold is 0. Cannot calculate popularity.")
+    const analysis = calculateMenuEngineeringAnalysis(items.map((item) => ({
+        id: item.id,
+        report_id: item.report_id,
+        recipe_id: item.recipe_id,
+        quantity_sold: Number(item.quantity_sold),
+        cost_per_unit: Number(item.cost_per_unit),
+        price_per_unit: Number(item.price_per_unit),
+    })))
 
-    const totalItems = items.length
-
-    // 3. Calculate Thresholds
-    // Popularity Threshold: (100% / Number of Items) * 70%
-    const expectedMix = (1 / totalItems)
-    const popularityThreshold = expectedMix * 0.7
-
-    // Margin Threshold: Weighted Average Contribution Margin
-    // Sum(Margin * Qty) / Total Qty
-    let totalMarginGenerated = 0
-    items.forEach(item => {
-        const margin = Number(item.price_per_unit) - Number(item.cost_per_unit)
-        totalMarginGenerated += margin * Number(item.quantity_sold)
-    })
-    const avgMarginThreshold = totalMarginGenerated / totalSold
-
-    // 4. Classify Each Item
-    const updates = items.map(item => {
-        const margin = Number(item.price_per_unit) - Number(item.cost_per_unit)
-        const popularityMix = Number(item.quantity_sold) / totalSold
-
-        let classification = 'DOG'
-        const isHighPop = popularityMix >= popularityThreshold
-        const isHighMargin = margin >= avgMarginThreshold
-
-        if (isHighPop && isHighMargin) classification = 'STAR'
-        else if (isHighPop && !isHighMargin) classification = 'PLOWHORSE' // High Pop, Low Margin
-        else if (!isHighPop && isHighMargin) classification = 'PUZZLE'   // Low Pop, High Margin
-        else classification = 'DOG'
-
-        return {
-            id: item.id,
-            classification,
-            popularity_pct: popularityMix,
-            contribution_margin: margin,
-            total_sales: Number(item.price_per_unit) * Number(item.quantity_sold),
-            total_cost: Number(item.cost_per_unit) * Number(item.quantity_sold),
-            total_profit: margin * Number(item.quantity_sold)
-        }
-    })
-
-    // 5. Bulk Update Items
-    // Supabase doesn't support bulk update with different values easily in one query without RPC
-    // For now, we'll do Promise.all (Parallel updates) - acceptable for <100 items menus
-    const results = await Promise.all(updates.map(async (update) => {
-        const { error } = await supabase.from('menu_report_items')
-            .update({
-                classification: update.classification,
-                popularity_pct: update.popularity_pct,
-                contribution_margin: update.contribution_margin,
-                total_sales: update.total_sales,
-                total_cost: update.total_cost,
-                total_profit: update.total_profit
-            })
-            .eq('id', update.id)
-
-        if (error) {
-            console.error(`Failed to update item ${update.id}:`, error)
-            return error.message
-        }
-        return null
+    const updates = analysis.items.map((item) => ({
+        id: item.id,
+        report_id: item.report_id,
+        recipe_id: item.recipe_id,
+        quantity_sold: item.quantity_sold,
+        cost_per_unit: item.cost_per_unit,
+        price_per_unit: item.price_per_unit,
+        classification: item.classification,
+        popularity_pct: item.popularity_pct,
+        contribution_margin: item.contribution_margin,
+        total_sales: item.total_sales,
+        total_cost: item.total_cost,
+        total_profit: item.total_profit,
     }))
 
-    const errors = results.filter(e => e !== null)
-    if (errors.length > 0) {
-        throw new Error(`Failed to update ${errors.length} items. First error: ${errors[0]}`)
+    const { error: updateItemsError } = await supabase
+        .from('menu_report_items')
+        .upsert(updates, { onConflict: 'id' })
+
+    if (updateItemsError) {
+        throw new Error(updateItemsError.message)
     }
 
-    // 6. Update Report Status & Averages
-    await supabase.from('menu_reports')
+    const { error: updateReportError } = await supabase.from('menu_reports')
         .update({
             status: 'ANALYZED',
-            avg_popularity: popularityThreshold, // Store as decimal (0.05 not 5%)
-            avg_margin: avgMarginThreshold
+            avg_popularity: analysis.thresholds.avgPopularityPct,
+            avg_margin: analysis.thresholds.avgContributionMargin
         })
         .eq('id', data.reportId)
+
+    if (updateReportError) {
+        throw new Error(updateReportError.message)
+    }
 
     revalidatePath(`/menu-engineering/${data.reportId}`)
     return { success: true }

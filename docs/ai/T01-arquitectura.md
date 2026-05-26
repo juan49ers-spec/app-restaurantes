@@ -31,13 +31,14 @@ src/
 ├── app/
 │   ├── layout.tsx               ← Root layout: AppLayout + Sidebar + BroadcastBanner + ImpersonationBanner
 │   ├── page.tsx                 ← Dashboard raíz (UnifiedDashboard) — redirige admins a /admin
-│   ├── middleware.ts            ← Auth gate (ver T03)
+│   ├── proxy.ts                 ← Auth gate (ver T03)
 │   ├── login/                   ← Único punto sin auth obligatoria
 │   ├── onboarding/              ← Crear restaurante por primera vez
 │   ├── admin/                   ← Panel super-admin (NAV_ITEMS hardcoded en AdminShell)
 │   ├── api/                     ← Endpoints internos (debug, invoices/uploads, seed-ops)
 │   ├── actions/                 ← Server Actions agrupadas por dominio (ver T06)
 │   ├── financial-control/       ← Hub financiero con 4 tabs lazy-loaded
+│   ├── reports/                 ← Mesa de revision de informes profesionales
 │   ├── invoices/                ← Ingesta de facturas + OCR + review
 │   ├── escandallos/             ← Hub UI (tabs: Recetas + Ingredientes)
 │   ├── recipes/                 ← CRUD de fichas técnicas (editor full-screen)
@@ -53,7 +54,7 @@ src/
 ├── components/                  ← UI agrupada por dominio + /ui (shadcn primitives)
 ├── config/navigation.ts         ← Definición del sidebar por grupos (CORE/OPERATIVA/ESTRUCTURA/PROVEEDORES)
 ├── hooks/                       ← useDebouncedValue, useMediaQuery, useRecipeCalculator
-├── lib/                         ← financial-math, menu-engineering, fiscal-utils, cached-queries, logger, supabaseClient/Server, etc.
+├── lib/                         ← financial-math, menu-engineering, fiscal-utils, cached-queries, logger, supabaseClient/Server, reporting, etc.
 ├── services/openai-vision.ts    ← Wrapper de GPT-4o para OCR
 └── types/                       ← schema.ts (Zod) + supabase.ts (generados) + tipos por dominio
 ```
@@ -85,7 +86,7 @@ src/
 ## Convenciones de routing
 
 - Una carpeta bajo `src/app/X/` = una ruta `/X`.
-- Subrutas reales (con `page.tsx` propio): `/staff/employees`, `/staff/schedule`, `/staff/policies`, `/invoices/[id]/review`, `/menu-engineering/new`, `/menu-engineering/[id]`, `/recipes/[id]/edit`, `/recipes/new/edit`, `/suppliers/[id]`, `/purchasing/analytics`, y `/admin/*` (dashboard, restaurants, users, billing, audit, invoice-validation).
+- Subrutas reales (con `page.tsx` propio): `/reports`, `/reports/print/[draftId]`, `/staff/employees`, `/staff/schedule`, `/staff/policies`, `/invoices/[id]/review`, `/menu-engineering/new`, `/menu-engineering/[id]`, `/recipes/[id]/edit`, `/recipes/new/edit`, `/suppliers/[id]`, `/purchasing/analytics`, y `/admin/*` (dashboard, restaurants, users, billing, audit, invoice-validation).
 - Algunas "rutas" del sidebar son tabs internos (no URL): los 4 tabs de `/financial-control`, los 2 tabs de `/escandallos`, los 3 tabs de `/invoices`, los 2 tabs de `/notifications`.
 
 ## Multi-tenancy
@@ -98,6 +99,7 @@ src/
 
 - Las actions de escritura llaman `revalidatePath()` con la ruta afectada. Habitualmente se incluye también `revalidatePath('/', 'layout')` para refrescar sidebar/balances en el layout.
 - Para lecturas server-side compartidas en un render usar `cached-queries.ts` (`getDailySalesCached`, `getOperatingExpensesCached`, `getFiscalMetricsCached`).
+- Para informes profesionales usar `src/lib/reporting/`: el motor es puro y recibe datos ya cargados; las lecturas multi-tenant viven en `src/app/actions/professional-reporting.ts`.
 
 ## Telemetría y logging
 
@@ -131,6 +133,10 @@ src/
 ## Cosas no obvias
 
 - El README dice "Next.js 15" pero `package.json` usa Next.js 16. La realidad manda.
+- `npm run build` usa `scripts/run-next-build.mjs` para forzar `NODE_ENV=production` desde el propio comando. Esto evita fallos de prerender cuando la terminal local hereda `NODE_ENV=development`.
+- `npm run typecheck` usa `tsconfig.typecheck.json`, que excluye `.next/dev/**`. Next 16 puede volver a añadir `.next/dev/types/**/*.ts` al `tsconfig.json` durante `next build`, pero el gate de TypeScript no debe depender de artefactos de `next dev`.
+- `eslint.config.mjs` usa la configuración flat nativa de `eslint-config-next` y excluye artefactos generados/no relevantes como `test-bundle.js`.
+- `src/app/error.tsx` y `src/app/global-error.tsx` deben ser autocontenidos. No importes componentes UI internos ni iconos externos allí: si el boundary falla compilando, oculta la causa original y deja la app sin pantalla de error fiable.
 - Hay docs viejos en `docs/` (`ARCHITECTURE.md`, `FEATURES.md`, etc.) que pueden estar desactualizados. **No se modifican.** Cuando sirvan, verificar contra el código.
 - El root layout importa el componente `getActiveBroadcasts` en cada render (sin caché) — todo render del layout consulta la tabla `broadcasts`.
 - Hay una tabla `staff` legacy duplicada con `employees`. Las páginas actuales usan `employees`.

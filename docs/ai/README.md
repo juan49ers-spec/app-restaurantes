@@ -51,6 +51,7 @@ Cuando vayas a tocar una funcionalidad:
 | 16 | [Notifications](./16-notifications.md) | `/notifications` | Centro de notificaciones + reglas de alerta. |
 | 17 | [Admin](./17-admin.md) | `/admin/*` | Panel super-admin: restaurantes, usuarios, billing, audit, impersonación. |
 | 18 | [Inventory](./18-inventory.md) | `/operations/inventory` | Conteo físico de inventario + informe de consumo real. |
+| 19 | [Reports](./19-reports.md) | `/reports` | Mesa de revision de informes profesionales. |
 
 ### Transversales (lo que no es una página pero atraviesa todo)
 
@@ -66,6 +67,20 @@ Cuando vayas a tocar una funcionalidad:
 | T08 | [Drive Ingestion](./T08-drive-ingestion.md) | Google Drive → cron → OCR → DB. Reports API. |
 | T09 | [Services Layer](./T09-services-layer.md) | BusinessRules, FinancialAlerts, InvoiceAtomic, InvoiceIngestion. |
 | T10 | [AI Insights](./T10-ai-insights.md) | Informes narrativos por módulo y período con contexto del usuario. |
+| T11 | [Reporting profesional](./T11-reporting-profesional.md) | Contrato maestro de informes, mapa de fuentes, calidad de dato y borrador profesional. |
+
+### Informes de fase
+
+- [Cierre Fase 1 — Reporting profesional](./phase-1-reporting-cierre.md) — resumen claro de alcance, decisiones, verificación y siguiente paso.
+- [Cierre Fase 2 — Reporting profesional](./phase-2-reporting-cierre.md) — resumen de la mesa de revision, gates y siguiente paso.
+- [Cierre Fase 3 — Reporting profesional](./phase-3-reporting-cierre.md) — resumen de persistencia, versionado y exportacion imprimible.
+- [Cierre Fase 4 — Reporting profesional](./phase-4-reporting-cierre.md) — resumen de estructura ejecutiva, KPIs y conclusiones.
+- [Cierre Fase 5 — Reporting profesional](./phase-5-reporting-cierre.md) — resumen de objetivos mensuales y diagnostico semanal.
+- [Cierre Fase 6 — Reporting profesional](./phase-6-reporting-cierre.md) — resumen de carta, ventas por receta y margen por producto.
+- [Cierre Fase 6.5 — Consolidacion reporting](./phase-6-5-reporting-consolidacion.md) — seed demo completa, tests server action y exportacion pulida.
+- [Cierre Fase 7 — Menu Engineering](./phase-7-menu-engineering-cierre.md) — unificacion de formula BCG entre libreria, action y simulador.
+- [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
+- [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 
 ## Plantilla de archivo de página (para futuras adiciones)
 

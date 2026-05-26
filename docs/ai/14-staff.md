@@ -40,17 +40,21 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 ## 3. Flujo técnico de datos
 
 **Lectura:**
-- `getEmployees()`, `getEmployee(id)`.
+- `getEmployees()` — resuelve el restaurante activo en servidor con `getUserRestaurant()`.
 - `getShifts(weekStart, weekEnd)` — turnos del rango.
 - `getStaffingForecast(date)` — combina `shifts` + `daily_sales` históricos.
 - `getStaffEfficiency()` — análisis de sobre-plantilla con sugerencias.
 - `getPolicies()`.
 
 **Escritura:**
-- `upsertEmployee(payload)`, `toggleEmployeeStatus(id)`, `deleteEmployee(id)`.
-- `upsertShift(payload)` — calcula `estimated_cost` automáticamente.
-- `deleteShift(id)`.
+- `upsertEmployee(payload)`, `toggleEmployeeStatus(id)`, `deleteEmployee(id)` — resuelven el restaurante activo en servidor e ignoran cualquier `restaurant_id` enviado por cliente.
+- `upsertShift(payload)` — resuelve el restaurante activo en servidor; calcula o conserva `estimated_cost` según el flujo actual.
+- `deleteShift(id)` — borra solo si el turno pertenece al restaurante activo.
 - `upsertPolicy(payload)`, `deletePolicy(id)`.
+
+**Formulario empleado:**
+- `EmployeeModal` usa `EmployeeSchema` con `react-hook-form`/`zodResolver`; por compatibilidad de tipos con React Hook Form, el resolver se castea vía `unknown` a `Resolver<EmployeeFormValues>`.
+- `wage_type` se observa con `useWatch`, no con `form.watch()` en render, para evitar avisos del React Compiler.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -59,6 +63,7 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 - **`actual_cost`:** se calcula con `actual_start_time` y `actual_end_time` si están informados (time tracking).
 - **Conflictos de turnos:** no hay validación de solapamiento (mismo empleado, mismo día, horas superpuestas). Drag-drop permite cualquier cosa.
 - **`labor_cost_pct` óptimo:** 35% sobre ventas (target hospitality ES). `staff-optimization.ts` marca sobre-plantilla si > 45%.
+- **Tendencia de eficiencia:** `staff-optimization.ts` compara contra el periodo anterior de la misma duración; no debe usar datos aleatorios o simulados en producción.
 - **`monthly_targets.labor_target_pct`:** override del target por mes.
 - **Sin alertas push de turnos** — solo análisis en pantalla.
 - **`employees` vs `staff`:** la tabla `staff` es legacy. La UI usa `employees`.
@@ -85,12 +90,15 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 - **system_access_level:** se guarda pero la auth real sigue siendo por email (ver [T03](./T03-autenticacion.md)). No se aplica como permiso de la app.
 - **Políticas no publicadas (`is_published=false`):** visibles solo para gerencia (en teoría — verificar filtros en UI).
 - **`employees.is_active` vs `employees.status`:** dos campos parecidos. Verificar cuál es canónico antes de filtrar.
+- **Actions duplicadas:** existen `staff.ts` y `staff-actions.ts`. Ambas deben resolver `restaurant_id` en servidor. La duplicidad sigue siendo deuda pendiente de consolidar antes de construir informes profesionales de horarios.
+- **React Hook Form + React Compiler:** evita leer `form.watch()` directamente durante render en componentes nuevos; usa `useWatch`.
 
 ## 7. Al añadir/modificar una función aquí
 
 **Antes de tocar:**
 - Confirmar qué campo manda: `is_active` (bool) o `status` (`ACTIVE`/`INACTIVE`). Probable redundancia legacy.
 - Mirar `staff-optimization.ts` para entender el algoritmo de eficiencia.
+- No reintroducir `restaurant_id` como dato confiable enviado por cliente. Puede seguir presente en formularios por compatibilidad visual, pero la action debe resolverlo en servidor.
 
 **Archivos que suelen cambiar a la vez:**
 - `src/app/actions/staff.ts`, `staff-actions.ts`, `staff-optimization.ts`, `policy-actions.ts`.
