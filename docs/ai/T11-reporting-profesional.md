@@ -73,7 +73,7 @@ Desde Fase 9, la publicación al cliente es explícita: `status = READY` solo in
 - La UI muestra calidad global, evidencias, incidencias y metricas.
 - La UI muestra la capa ejecutiva previa a exportacion.
 - La narrativa es editable y puede persistirse como override por seccion.
-- La ruta `/reports/print/[draftId]` renderiza el snapshot guardado en HTML imprimible con estructura de informe profesional.
+- La ruta `/reports/print/[draftId]` renderiza el snapshot guardado mediante `ProfessionalReportPrintDocument`. La salida HTML imprimible incluye portada con marca del consultor, KPIs, índice, conclusiones, capítulos, métricas, incidencias y anexo de calidad de dato.
 
 **Seed demo de verificacion:** `src/app/actions/seed-professional-report-demo.ts`.
 
@@ -104,7 +104,7 @@ Desde Fase 9, la publicación al cliente es explícita: `status = READY` solo in
 - La exportacion visible debe abrir una version guardada. No debe exportar estado local sin snapshot.
 - La publicación en portal solo puede hacerse sobre versiones guardadas. El portal consume snapshots publicados y no recalcula el informe.
 - Publicar en portal exige snapshot guardado `READY`, pertenencia al restaurante activo y quality gate sin bloqueos. La validacion se repite en servidor aunque la UI ya haya mostrado el estado.
-- La salida actual es imprimible por navegador; si se anade PDF server-side, debe consumir el mismo snapshot.
+- La salida actual es imprimible por navegador con CSS orientado a A4; si se anade PDF server-side, debe consumir el mismo snapshot y la misma estructura documental.
 - Si existen bloqueos criticos, las conclusiones deben hablar de calidad de dato antes que de decisiones comerciales.
 
 ## 5. Dependencias e implicaciones cruzadas
