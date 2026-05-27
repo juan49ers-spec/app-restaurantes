@@ -27,7 +27,7 @@ const STATUS_COPY: Record<ConsultantDeliveryStatus, { label: string; className: 
     icon: Send,
   },
   MEETING_REQUESTED: {
-    label: 'Reunion solicitada',
+    label: 'Reunión solicitada',
     className: 'border-violet-200 bg-violet-50 text-violet-700',
     icon: Clock3,
   },
@@ -48,14 +48,14 @@ const FILTER_COPY: Record<DeliveryFilter, string> = {
 const TIMELINE_STEPS = [
   { id: 'ready', label: 'READY' },
   { id: 'published', label: 'Portal' },
-  { id: 'requested', label: 'Reunion' },
+  { id: 'requested', label: 'Reunión' },
   { id: 'closed', label: 'Cierre' },
 ] as const
 
 function buildStatusDetail(report: ConsultantDeliveryReport) {
-  if (report.status === 'READY_TO_PUBLISH') return 'El informe esta marcado como READY y pendiente de publicacion.'
-  if (report.status === 'MEETING_REQUESTED') return `${report.openRequestCount} solicitud(es) abiertas del cliente.`
-  if (report.status === 'FOLLOW_UP_COMPLETE') return `${report.completedRequestCount} solicitud(es) completadas tras la entrega.`
+  if (report.status === 'READY_TO_PUBLISH') return 'El informe está marcado como READY y pendiente de publicación.'
+  if (report.status === 'MEETING_REQUESTED') return `${report.openRequestCount} solicitudes abiertas del cliente.`
+  if (report.status === 'FOLLOW_UP_COMPLETE') return `${report.completedRequestCount} solicitudes completadas tras la entrega.`
   return report.publishedAt ? `Visible en portal desde ${formatDateEs(report.publishedAt)}.` : 'Visible en portal.'
 }
 
@@ -141,7 +141,7 @@ export function DeliveryWorkflowPanel({ reports }: DeliveryWorkflowPanelProps) {
           </Badge>
           {priorityCount > 0 && (
             <Badge variant="outline" className="w-fit rounded-md border-amber-200 bg-amber-50 text-amber-700">
-              {priorityCount} requieren accion
+              {priorityCount} requieren acción
             </Badge>
           )}
         </div>
@@ -166,7 +166,7 @@ export function DeliveryWorkflowPanel({ reports }: DeliveryWorkflowPanelProps) {
       <div className="mt-5 grid gap-3">
         {reports.length === 0 ? (
           <div className="rounded-md border border-dashed border-slate-200 p-5 text-sm text-slate-500">
-            Aun no hay informes READY para iniciar una entrega al cliente.
+            Aún no hay informes READY para iniciar una entrega al cliente.
           </div>
         ) : visibleReports.length === 0 ? (
           <div className="rounded-md border border-dashed border-slate-200 p-5 text-sm text-slate-500">
@@ -198,7 +198,7 @@ export function DeliveryWorkflowPanel({ reports }: DeliveryWorkflowPanelProps) {
                       </Badge>
                     </div>
                     <p className="mt-2 text-sm text-slate-600">
-                      Version {report.version} · {buildStatusDetail(report)}
+                      Versión {report.version} · {buildStatusDetail(report)}
                     </p>
                     <DeliveryTimeline report={report} />
                   </div>

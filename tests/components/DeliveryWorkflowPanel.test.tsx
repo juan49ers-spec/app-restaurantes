@@ -46,10 +46,10 @@ describe('DeliveryWorkflowPanel', () => {
   it('renders priority count and delivery timeline', () => {
     render(<DeliveryWorkflowPanel reports={reports} />)
 
-    expect(screen.getByText('2 requieren accion')).toBeInTheDocument()
+    expect(screen.getByText('2 requieren acción')).toBeInTheDocument()
     expect(screen.getAllByText('READY')).toHaveLength(3)
     expect(screen.getAllByText('Portal')).toHaveLength(3)
-    expect(screen.getAllByText('Reunion')).toHaveLength(3)
+    expect(screen.getAllByText('Reunión')).toHaveLength(3)
     expect(screen.getAllByText('Cierre')).toHaveLength(3)
   })
 
