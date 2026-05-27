@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabaseServer'
+import { buildPortalPeriodComparison, previousCalendarMonthBounds, type PortalPeriodComparison } from '@/lib/portal-insights'
 import type { ProfessionalRestaurantReport } from '@/lib/reporting'
 
 export type ActionResponse<T> = {
@@ -42,6 +43,8 @@ export interface PortalContext {
     consultantLogoUrl: string | null
     liveRevenue: PortalLiveRevenueProgress | null
 }
+
+type NumericRow = Record<string, number | null | undefined>
 
 export function buildPortalContextFallback(input: {
     restaurantId: string
@@ -103,6 +106,10 @@ function monthBounds(month: string) {
 
 function roundRatio(value: number) {
     return Math.round(value * 10000) / 10000
+}
+
+function sumRows(rows: NumericRow[] | null, key: string) {
+    return (rows || []).reduce((sum, row) => sum + (row[key] ?? 0), 0)
 }
 
 function mapPortalContextBase(restaurantId: string, row: {
@@ -228,5 +235,56 @@ export async function getPortalContextForRestaurant(restaurantId: string): Promi
                 }
                 : null,
         },
+    }
+}
+
+export async function getPortalPeriodComparisonForRestaurant(input: {
+    restaurantId: string
+    periodFrom: string
+    periodTo: string
+}): Promise<ActionResponse<PortalPeriodComparison>> {
+    const supabase = await createClient()
+    const { previousFrom, previousTo } = previousCalendarMonthBounds(input.periodFrom)
+
+    const [currentSalesRes, currentExpensesRes, previousSalesRes, previousExpensesRes] = await Promise.all([
+        supabase
+            .from('daily_sales')
+            .select('revenue_total')
+            .eq('restaurant_id', input.restaurantId)
+            .gte('date', input.periodFrom)
+            .lte('date', input.periodTo),
+        supabase
+            .from('operating_expenses')
+            .select('amount')
+            .eq('restaurant_id', input.restaurantId)
+            .gte('expense_date', input.periodFrom)
+            .lte('expense_date', input.periodTo),
+        supabase
+            .from('daily_sales')
+            .select('revenue_total')
+            .eq('restaurant_id', input.restaurantId)
+            .gte('date', previousFrom)
+            .lte('date', previousTo),
+        supabase
+            .from('operating_expenses')
+            .select('amount')
+            .eq('restaurant_id', input.restaurantId)
+            .gte('expense_date', previousFrom)
+            .lte('expense_date', previousTo),
+    ])
+
+    const firstError = currentSalesRes.error || currentExpensesRes.error || previousSalesRes.error || previousExpensesRes.error
+    if (firstError) return { success: false, error: 'No se pudo cargar la comparación del periodo.' }
+
+    return {
+        success: true,
+        data: buildPortalPeriodComparison({
+            currentFrom: input.periodFrom,
+            currentTo: input.periodTo,
+            currentRevenue: sumRows(currentSalesRes.data as NumericRow[] | null, 'revenue_total'),
+            currentExpenses: sumRows(currentExpensesRes.data as NumericRow[] | null, 'amount'),
+            previousRevenue: sumRows(previousSalesRes.data as NumericRow[] | null, 'revenue_total'),
+            previousExpenses: sumRows(previousExpensesRes.data as NumericRow[] | null, 'amount'),
+        }),
     }
 }

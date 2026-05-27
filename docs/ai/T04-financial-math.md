@@ -10,6 +10,7 @@
 | `src/lib/menu-engineering.ts` | `MenuEngineeringCalculator.analyze()` y `.getStats()` — clasificación BCG. |
 | `src/lib/financial-constants.ts` | Constantes target/inflación/factores. |
 | `src/lib/financial-utils.ts` | Helpers para dashboard de gastos (top categorías, vs target, insight summaries). |
+| `src/lib/portal-insights.ts` | Comparativa ejecutiva del portal cliente: periodo publicado vs mes natural anterior y acciones sugeridas deterministas desde KPIs. |
 | `src/lib/fiscal-utils.ts` | Trimestres fiscales ES, próximos vencimientos (modelos 303/111), `formatCurrency` con locale `es-ES`. |
 | `src/lib/recipe-utils.ts` | `formatRecipeIngredient()` — normaliza ingrediente/sub-receta + yield. |
 | `src/lib/financial-theme.ts` | Paleta de colores y estilos para gráficos. |
@@ -94,6 +95,23 @@ Clasificación:
 - En tests usa `toBeCloseTo()` con tolerancia para evitar falsos negativos por errores acumulados.
 - En UI: `toFixed(1)` para % y `Intl.NumberFormat('es-ES')` para moneda.
 - **Riesgo:** multiplicaciones encadenadas (proyección de revenue con 3-4 palancas) pueden acumular errores de centavo. Aceptable para dashboards, peligroso si se persiste como verdad.
+
+## Comparativa del portal cliente
+
+`buildPortalPeriodComparison()` compara el periodo publicado contra el mes natural anterior:
+
+```
+netResult = revenue - expenses
+expenseRatioPct = expenses / revenue * 100
+delta.value = current - previous
+delta.pct = (current - previous) / abs(previous) * 100
+expenseRatioDelta = currentExpenseRatioPct - previousExpenseRatioPct
+```
+
+Reglas:
+- Si el denominador anterior es 0, `delta.pct` queda `null`; la UI muestra el delta absoluto y evita porcentajes engañosos.
+- La presión de gasto se expresa en puntos porcentuales (`pp`), no como porcentaje relativo.
+- Esta comparativa es lectura derivada del portal, no se persiste y no modifica el snapshot profesional publicado.
 
 ## Gotchas críticos
 

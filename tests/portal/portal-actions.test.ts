@@ -353,6 +353,38 @@ describe('portal server actions', () => {
     expect(call?.updateValue?.viewed_at).toEqual(expect.any(String))
   })
 
+  it('loads portal period comparison scoped to current and previous periods', async () => {
+    const { getPortalPeriodComparisonForRestaurant } = await import('@/lib/portal')
+
+    const result = await getPortalPeriodComparisonForRestaurant({
+      restaurantId: RESTAURANT_ID,
+      periodFrom: '2026-02-01',
+      periodTo: '2026-02-28',
+    })
+
+    expect(result.success).toBe(true)
+    const salesCalls = calls.filter(call => call.table === 'daily_sales')
+    const expenseCalls = calls.filter(call => call.table === 'operating_expenses')
+
+    expect(salesCalls).toHaveLength(2)
+    expect(expenseCalls).toHaveLength(2)
+    expect(salesCalls[0]?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['gte', 'date', '2026-02-01'],
+      ['lte', 'date', '2026-02-28'],
+    ]))
+    expect(salesCalls[1]?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['gte', 'date', '2026-01-01'],
+      ['lte', 'date', '2026-01-31'],
+    ]))
+    expect(expenseCalls[0]?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['gte', 'expense_date', '2026-02-01'],
+      ['lte', 'expense_date', '2026-02-28'],
+    ]))
+  })
+
   it('creates a pending meeting request for the active restaurant', async () => {
     tableResults.professional_report_drafts = { data: { id: REPORT_ID }, error: null }
     const { requestConsultantMeeting } = await import('@/app/actions/portal')

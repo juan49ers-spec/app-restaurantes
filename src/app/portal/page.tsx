@@ -4,10 +4,13 @@ import { getCurrentRestaurant } from '@/app/actions/user'
 import { formatPortalKpiValue } from '@/components/portal/format'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
+import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
 import { PortalReportSummary } from '@/components/portal/PortalReportSummary'
+import { PortalSuggestedActions } from '@/components/portal/PortalSuggestedActions'
 import { Button } from '@/components/ui/button'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
-import { buildPortalContextFallback, getPortalContextForRestaurant, getPublishedReportDetailForRestaurant, getPublishedReportsForRestaurant } from '@/lib/portal'
+import { buildPortalContextFallback, getPortalContextForRestaurant, getPortalPeriodComparisonForRestaurant, getPublishedReportDetailForRestaurant, getPublishedReportsForRestaurant } from '@/lib/portal'
+import { buildPortalSuggestedActions } from '@/lib/portal-insights'
 import { formatCurrency, formatPct } from '@/lib/utils'
 
 export default async function PortalPage() {
@@ -35,6 +38,15 @@ export default async function PortalPage() {
   const detailRes = latest ? await getPublishedReportDetailForRestaurant(latest.id, restaurant.id) : null
   const detail = detailRes?.data ?? null
   const presentation = detail ? buildProfessionalReportPresentation(detail.report) : null
+  const comparisonRes = detail
+    ? await getPortalPeriodComparisonForRestaurant({
+      restaurantId: restaurant.id,
+      periodFrom: detail.periodFrom,
+      periodTo: detail.periodTo,
+    })
+    : null
+  const comparison = comparisonRes?.data ?? null
+  const suggestedActions = presentation ? buildPortalSuggestedActions(presentation) : []
 
   if (!latest || !detail || !presentation) {
     return (
@@ -85,6 +97,11 @@ export default async function PortalPage() {
           </p>
         </section>
       )}
+
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {comparison && <PortalPeriodComparisonPanel comparison={comparison} />}
+        <PortalSuggestedActions actions={suggestedActions} />
+      </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-slate-950">Histórico de informes publicados</h2>

@@ -4,8 +4,11 @@ import { formatPortalKpiValue, formatPortalMetricValue } from '@/components/port
 import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
+import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
+import { PortalSuggestedActions } from '@/components/portal/PortalSuggestedActions'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
-import { getPublishedReportDetailForRestaurant, markPublishedReportViewedForRestaurant } from '@/lib/portal'
+import { getPortalPeriodComparisonForRestaurant, getPublishedReportDetailForRestaurant, markPublishedReportViewedForRestaurant } from '@/lib/portal'
+import { buildPortalSuggestedActions } from '@/lib/portal-insights'
 import type { ProfessionalReportSection } from '@/lib/reporting'
 
 interface PortalReportDetailPageProps {
@@ -33,6 +36,12 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
   await markPublishedReportViewedForRestaurant(draft.id, restaurant.id)
   const report = draft.report
   const presentation = buildProfessionalReportPresentation(report)
+  const comparisonRes = await getPortalPeriodComparisonForRestaurant({
+    restaurantId: restaurant.id,
+    periodFrom: draft.periodFrom,
+    periodTo: draft.periodTo,
+  })
+  const suggestedActions = buildPortalSuggestedActions(presentation)
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -65,6 +74,11 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          {comparisonRes.data && <PortalPeriodComparisonPanel comparison={comparisonRes.data} />}
+          <PortalSuggestedActions actions={suggestedActions} />
         </section>
 
         {presentation.chapters.map(chapter => {

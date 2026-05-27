@@ -2,7 +2,10 @@ import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
+import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
+import { PortalSuggestedActions } from '@/components/portal/PortalSuggestedActions'
 import type { ProfessionalReportPresentation } from '@/lib/reporting'
+import type { PortalPeriodComparison, PortalSuggestedAction } from '@/lib/portal-insights'
 
 const presentation: ProfessionalReportPresentation = {
   eyebrow: 'Informe profesional de gestion',
@@ -93,5 +96,61 @@ describe('Portal premium components', () => {
 
     expect(within(nav).getByRole('link', { name: /Resultados/i })).toHaveAttribute('href', '#chapter-results')
     expect(within(nav).getByRole('link', { name: /Carta/i })).toHaveAttribute('href', '#chapter-menu')
+  })
+
+  it('renders period comparison with current values and previous period deltas', () => {
+    const comparison: PortalPeriodComparison = {
+      period: {
+        currentFrom: '2026-02-01',
+        currentTo: '2026-02-28',
+        previousFrom: '2026-01-01',
+        previousTo: '2026-01-31',
+      },
+      current: {
+        revenue: 12000,
+        expenses: 7600,
+        netResult: 4400,
+        expenseRatioPct: 63.33,
+      },
+      previous: {
+        revenue: 10000,
+        expenses: 7000,
+        netResult: 3000,
+        expenseRatioPct: 70,
+      },
+      deltas: {
+        revenue: { value: 2000, pct: 20 },
+        expenses: { value: 600, pct: 8.57 },
+        netResult: { value: 1400, pct: 46.67 },
+        expenseRatioPct: -6.67,
+      },
+      hasPreviousData: true,
+    }
+
+    render(<PortalPeriodComparisonPanel comparison={comparison} />)
+
+    expect(screen.getByText('Evolución frente al mes anterior')).toBeInTheDocument()
+    expect(screen.getByText('Con histórico')).toBeInTheDocument()
+    expect(screen.getByText(/12.000,00/)).toBeInTheDocument()
+    expect(screen.getByText(/\+2000,00/)).toBeInTheDocument()
+    expect(screen.getByText(/-6,67 pp/)).toBeInTheDocument()
+  })
+
+  it('renders suggested actions with tone badges', () => {
+    const actions: PortalSuggestedAction[] = [
+      {
+        id: 'review-prime-cost',
+        title: 'Revisar prime cost con el consultor',
+        body: 'Cruzar materia prima, personal y carta.',
+        tone: 'critical',
+        sourceId: 'prime_cost_pct',
+      },
+    ]
+
+    render(<PortalSuggestedActions actions={actions} />)
+
+    expect(screen.getByText('Acciones sugeridas para revisar')).toBeInTheDocument()
+    expect(screen.getByText('Revisar prime cost con el consultor')).toBeInTheDocument()
+    expect(screen.getByText('Urgente')).toBeInTheDocument()
   })
 })
