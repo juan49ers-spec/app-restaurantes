@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, CheckCircle2, DollarSign, FileText, ScanText, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { InvoicesCsvImportPanel } from "@/components/invoices/InvoicesCsvImportPanel"
 
 export default async function InvoicesPage() {
     const invoices = await getInvoices()
@@ -90,6 +91,8 @@ export default async function InvoicesPage() {
                 </TabsList>
 
                 <TabsContent value="upload" className="space-y-4 animate-in slide-in-from-bottom-2 duration-300">
+                    <InvoicesCsvImportPanel />
+
                     <Card className="border-dashed border-2 border-slate-200 bg-slate-50/50">
                         <CardHeader className="text-center">
                             <CardTitle className="text-lg font-medium text-slate-700">Ingesta Inteligente</CardTitle>

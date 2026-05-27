@@ -15,6 +15,7 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
    - **Revisión**: facturas pendientes (status `processing` o `review_required`).
    - **Histórico**: facturas `completed`.
 2. **Subir:**
+   - `InvoicesCsvImportPanel`: permite importar cabeceras históricas desde CSV para marcar facturas ya revisadas como `completed` sin OCR.
    - Arrastra archivos (PDF, JPG, PNG).
    - Click "Procesar N Facturas".
    - Por cada archivo: upload a Supabase Storage → crea fila `invoices` con `status='processing'` → llama OpenAI Vision → guarda resultado en `scanned_data` → status pasa a `review_required` (o `error`).
@@ -46,6 +47,13 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
 5. Guarda `scanned_data` (JSONB) y pasa `status='review_required'` (o `error` si OCR falla).
 6. Descuenta 1 crédito OCR.
 
+**Importar cabeceras CSV (`importInvoicesCsv`):**
+
+1. El cliente pega un CSV con `date`, `supplier_id` o `supplier_name`, `invoice_number`, `total_amount` y opcionalmente `tax_amount`.
+2. `validateInvoicesCsvImport({ csvText })` revalida el parser en servidor, resuelve `restaurant_id` con `getUserRestaurant()`, cruza proveedores contra `suppliers` del restaurante y detecta duplicados exactos.
+3. `importInvoicesCsv({ csvText })` repite todo el preflight antes de escribir e inserta filas en `invoices` con `status='completed'` y `scanned_data.source='csv_import'`.
+4. Este flujo **solo crea cabeceras históricas**. No crea `invoice_items`, no genera `stock_movements`, no actualiza `inventory_stock` y no inserta `operating_expenses`.
+
 **Revisar y guardar (`updateInvoice`):**
 
 1. Valida que `supplier_id` esté presente.
@@ -72,9 +80,10 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
   - `uploading` → archivo en proceso de subida.
   - `processing` → OCR en curso.
   - `review_required` → OCR terminado, esperando revisión humana.
-  - `completed` → mapeo confirmado, datos volcados a stock/gastos. **No editable.**
+  - `completed` → factura cerrada. En OCR+review implica mapeo confirmado y datos volcados a stock/gastos; en CSV de cabeceras implica solo histórico revisado. **No editable.**
   - `error` → OCR falló. Usuario debe reintentar.
-- **OCR obligatorio:** todas las facturas pasan por GPT-4o. No hay path manual sin OCR.
+- **OCR completo:** las facturas que deben afectar stock, precio de ingredientes, aliases y gastos operativos pasan por GPT-4o + review humana.
+- **CSV de cabeceras:** existe como flujo limitado para histórico/checklist. Solo marca facturas ya revisadas como `completed`; no sustituye la review cuando se necesita impacto en stock/gastos.
 - **Créditos:** cada OCR consume 1 crédito. Sin créditos, no se puede subir.
 - **`supplier_id` obligatorio** al guardar review.
 - **Mapeo opcional por item:** se puede ignorar líneas (`mappingValue='ignore'`). No afectan stock.
@@ -106,6 +115,9 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
 - **Ingrediente similar pero no idéntico:** la sugerencia busca por nombre case-insensitive. Si hay "Tomate" y la factura dice "Tomates", lo sugerirá. El usuario debe confirmar.
 - **Stock no inicializado:** si es primera compra de un ingrediente, se crea `inventory_stock` row.
 - **Tag de COGS:** sin tag, el gasto va a `PROVEEDORES_COMIDA` por default (revisar). Para vinos/alcohol debería ser `PROVEEDORES_BEBIDA`.
+- **Importar CSV con proveedor inexistente:** se bloquea; el proveedor debe existir en `/suppliers`.
+- **Importar CSV con proveedor ambiguo por nombre:** se bloquea; usar `supplier_id`.
+- **Importar CSV de factura ya existente:** se bloquea si coincide proveedor, número, fecha e importe.
 - **Doble click en "Guardar":** sin debounce; idempotency_key mitiga duplicados.
 - **Edición post-completado:** el formulario muestra "✅ Procesada" pero no permite editar. Si necesitas corregir, hay que eliminar y resubir, o intervenir en BD.
 - **PDF multipágina:** GPT-4o vision puede no leer todas las páginas según el modelo configurado. Revisar `openai-vision.ts`.
