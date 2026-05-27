@@ -17,7 +17,7 @@ Centro operativo financiero del día a día. Aquí el restaurador registra venta
 - **IMPUESTOS**: `ImpuestosDashboard` (IVA, IRPF, próximos vencimientos).
 - **RESULTADOS**: `ResultadosDashboard` (P&L, ratios, tendencias).
 3. Menú flotante de tabs se puede bloquear/desbloquear para navegar sin perder cambios (Lock toggle).
-4. **Importar CSV financiero:** el consultor puede cargar ventas o gastos en bloque desde el panel de importación. La UI muestra preview, totales, fechas, errores y duplicados antes de habilitar la confirmación.
+4. **Importar CSV financiero:** el consultor puede descargar una plantilla, cargar ventas o gastos en bloque desde el panel de importación y revisar preview, totales, fechas, errores, duplicados internos y duplicados ya existentes en BD antes de habilitar la importación.
 5. **Registrar ventas del día:**
    - Selecciona fecha (default hoy).
    - Rellena: revenue_total o breakdown por base/IVA, breakdown por canal (dine-in/takeout/delivery), covers, labor hours.
@@ -44,22 +44,25 @@ getMonthlyTarget(restaurantId, monthYear)
 **Escritura:**
 - `upsertDailySales(payload)` — INSERT/UPDATE en `daily_sales` con clave `(restaurant_id, date)`. El `restaurant_id` se resuelve siempre en servidor con `getUserRestaurant()`; si el payload lo trae por compatibilidad de formulario, se ignora.
 - `upsertOperatingExpense(payload)` — INSERT en `operating_expenses`. El `restaurant_id` se resuelve siempre en servidor; si el payload lo trae, se ignora.
-- `importFinancialCsv({ kind, csvText })` — importa CSV de ventas o gastos. Revalida el CSV en servidor con `parseFinancialCsvPreview`, resuelve `restaurant_id` con `getUserRestaurant()`, bloquea filas inválidas y duplicados internos antes de escribir. Ventas usa `upsert` sobre `(restaurant_id, date)` y gastos usa `upsert` con `idempotency_key` determinista e `ignoreDuplicates`.
+- `validateFinancialCsvImport({ kind, csvText })` — preflight server-side antes de importar. Revalida el CSV, resuelve `restaurant_id`, consulta duplicados ya existentes en `daily_sales.date` o `operating_expenses.idempotency_key` y devuelve `canImport`.
+- `importFinancialCsv({ kind, csvText })` — importa CSV de ventas o gastos. Revalida el CSV en servidor con `parseFinancialCsvPreview`, resuelve `restaurant_id` con `getUserRestaurant()`, bloquea filas inválidas, duplicados internos y duplicados existentes en BD antes de escribir. Ventas usa `upsert` sobre `(restaurant_id, date)` y gastos usa `upsert` con `idempotency_key` determinista e `ignoreDuplicates`.
 - `deleteOperatingExpense(id)` — borra solo si el gasto pertenece al restaurante activo.
 - `updateOperatingExpense(id, updates)` — actualiza solo si el gasto pertenece al restaurante activo e ignora cualquier `restaurant_id` del cliente.
 - `upsertMonthlyTarget(payload)` — `monthly_targets`. El `restaurant_id` se resuelve siempre en servidor.
 - `closeMonth(monthYear)` — congela el mes en `monthly_results` con `is_closed=true, closed_by, closed_at`, resolviendo el restaurante en servidor.
 
 **Componente cliente principal:** `FinancialControlClient` (en `client.tsx`). Mantiene tab activo, modales, fecha local. Tabs se cargan con `Suspense + lazy`.
-`FinancialCsvImportPanel` vive dentro de `FinancialControlClient` y permite cargar CSV de ventas o gastos. Calcula el preview en cliente con el motor puro `parseFinancialCsvPreview()` y solo llama a `importFinancialCsv()` cuando no hay errores, filas inválidas ni duplicados internos.
+`FinancialCsvImportPanel` vive dentro de `FinancialControlClient` y permite cargar CSV de ventas o gastos. Calcula el preview en cliente con el motor puro `parseFinancialCsvPreview()`, ofrece plantilla descargable para el tipo seleccionado y exige un preflight limpio con `validateFinancialCsvImport()` antes de llamar a `importFinancialCsv()`.
 `ImpuestosDashboard` carga el trimestre de forma asíncrona y activa `isLoading` al cambiar de trimestre, evitando setState síncrono dentro del effect. `DesarrolloNegocio` calcula insights como derivado simple de métricas para no depender de memoización frágil.
 
 **Importación CSV (16-lite):**
 - `src/lib/importing/financial-csv.ts` contiene el motor puro de preview para CSV de ventas (`daily_sales`) y gastos (`operating_expenses`).
+- `FINANCIAL_CSV_TEMPLATES` define plantillas CSV descargables para ventas y gastos. No escribe datos; solo ayuda a que el consultor parta de cabeceras válidas.
 - `parseFinancialCsvPreview({ kind, csvText })` no consulta Supabase ni escribe datos. Normaliza cabeceras, detecta separador `,`/`;`, soporta importes con coma decimal española, valida columnas obligatorias y devuelve filas válidas/invalidas, duplicados internos y resumen de totales.
 - Para ventas, el duplicado interno se calcula por `date`. Para gastos, se calcula por `expense_date + category + amount + description`.
-- La server action `importFinancialCsv()` vuelve a ejecutar el parser en servidor y no confía en un preview calculado en cliente. Si hay `fileErrors`, filas inválidas o duplicados internos, devuelve error y no toca Supabase.
-- Las ventas importadas se guardan con `source = csv_import` y se actualizan por fecha mediante `onConflict: restaurant_id,date`.
+- La server action `validateFinancialCsvImport()` vuelve a ejecutar el parser, consulta duplicados existentes en BD con `restaurant_id` server-side y no escribe nada.
+- La server action `importFinancialCsv()` vuelve a ejecutar el parser en servidor y no confía en un preview calculado en cliente. Si hay `fileErrors`, filas inválidas, duplicados internos o duplicados existentes en BD, devuelve error y no toca Supabase.
+- Las ventas importadas se guardan con `source = csv_import` y usan `onConflict: restaurant_id,date` como red técnica, pero la action bloquea previamente fechas ya existentes para evitar sobrescrituras accidentales.
 - Los gastos importados generan `idempotency_key = financial-csv:{restaurantId}:expenses:{expense_date|category|amount|description}` y usan `ignoreDuplicates` para que reintentos del mismo CSV no dupliquen gasto.
 
 ## 4. Reglas de negocio y restricciones
@@ -104,7 +107,9 @@ getMonthlyTarget(restaurantId, monthYear)
 - **CSV preview no persiste:** el parser de `src/lib/importing/financial-csv.ts` solo valida y resume. Un CSV con errores no debe llegar a escritura masiva hasta que la UI muestre preview y el usuario confirme.
 - **CSV import no acepta restaurante:** la action de importación no acepta `restaurant_id`, no acepta filas ya parseadas desde cliente y no escribe si el parse server-side detecta errores o duplicados internos.
 - **CSV gastos e idempotencia:** dos gastos iguales en el mismo CSV se bloquean como duplicado interno. Un reintento posterior del mismo archivo queda protegido por `idempotency_key`.
-- **CSV UI defensiva:** el botón de importación queda deshabilitado si el preview local detecta errores de archivo, filas inválidas, duplicados internos o cero filas válidas. Aunque la UI habilite el botón por un bug futuro, la action vuelve a validar todo en servidor.
+- **CSV UI defensiva:** el botón de importación queda deshabilitado si el preview local detecta errores de archivo, filas inválidas, duplicados internos, cero filas válidas o si todavía no existe una comprobación limpia contra BD. Aunque la UI habilite el botón por un bug futuro, la action vuelve a validar todo en servidor.
+- **CSV ventas existentes:** una venta diaria ya existente para `(restaurant_id, date)` bloquea la importación CSV para evitar sobrescrituras accidentales.
+- **CSV gastos existentes:** un gasto con el mismo `idempotency_key` bloquea la importación desde UI antes de confirmar. La action también lo revalida.
 
 ## 7. Al añadir/modificar una función aquí
 

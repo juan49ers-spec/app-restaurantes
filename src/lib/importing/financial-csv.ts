@@ -67,6 +67,17 @@ export interface FinancialCsvPreview {
   rows: FinancialCsvPreviewRow[]
 }
 
+export const FINANCIAL_CSV_TEMPLATES: Record<FinancialCsvKind, string> = {
+  sales: [
+    'date;revenue_total;base_10;tax_10;base_21;tax_21;revenue_dine_in;revenue_takeout;revenue_delivery;total_covers;labor_hours;cost_of_goods;labor_cost;day_status',
+    '2026-02-01;1234,56;1122,33;112,23;0;0;900;200;134,56;78;12,5;320;210;CLOSED',
+  ].join('\n'),
+  expenses: [
+    'expense_date;category;amount;description;provider_detail;tag;payment_method;recurrence;is_paid;taxable_amount;tax_rate;tax_amount;withholding_rate;withholding_amount;is_professional_invoice',
+    '2026-02-01;PROVEEDORES_COMIDA;345,67;Factura pescado;Proveedor ejemplo;pescado;bank;NONE;si;314,25;10;31,42;0;0;si',
+  ].join('\n'),
+}
+
 const REQUIRED_HEADERS: Record<FinancialCsvKind, string[]> = {
   sales: ['date', 'revenue_total'],
   expenses: ['expense_date', 'category', 'amount'],

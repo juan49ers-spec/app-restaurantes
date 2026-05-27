@@ -1,19 +1,36 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
-import { AlertTriangle, CheckCircle2, FileText, Upload } from "lucide-react"
-import { importFinancialCsv } from "@/app/actions/financial-control"
+import { AlertTriangle, CheckCircle2, Download, FileText, Upload } from "lucide-react"
+import { importFinancialCsv, validateFinancialCsvImport } from "@/app/actions/financial-control"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { parseFinancialCsvPreview, type FinancialCsvKind } from "@/lib/importing/financial-csv"
+import {
+    FINANCIAL_CSV_TEMPLATES,
+    parseFinancialCsvPreview,
+    type FinancialCsvKind,
+} from "@/lib/importing/financial-csv"
 import { cn } from "@/lib/utils"
 
 type ImportMessage = {
     tone: "success" | "error"
     text: string
 }
+
+type ExistingImportRow = {
+    key: string
+    rowNumbers: number[]
+    message: string
+}
+
+type PreflightState =
+    | { status: "idle" }
+    | { status: "checking"; signature: string }
+    | { status: "clean"; signature: string }
+    | { status: "blocked"; signature: string; existingRows: ExistingImportRow[] }
+    | { status: "error"; signature: string; message: string }
 
 const KIND_OPTIONS: { value: FinancialCsvKind; label: string; description: string }[] = [
     { value: "sales", label: "Ventas", description: "daily_sales" },
@@ -24,12 +41,19 @@ export function FinancialCsvImportPanel() {
     const [kind, setKind] = useState<FinancialCsvKind>("sales")
     const [csvText, setCsvText] = useState("")
     const [message, setMessage] = useState<ImportMessage | null>(null)
-    const [isPending, startTransition] = useTransition()
+    const [preflight, setPreflight] = useState<PreflightState>({ status: "idle" })
+    const [isCheckingPending, startCheckingTransition] = useTransition()
+    const [isImportPending, startImportTransition] = useTransition()
 
     const preview = useMemo(() => {
         if (!csvText.trim()) return null
         return parseFinancialCsvPreview({ kind, csvText })
     }, [csvText, kind])
+
+    const previewSignature = `${kind}:${csvText}`
+    const isPreflightClean = preflight.status === "clean" && preflight.signature === previewSignature
+    const isPreflightChecking = preflight.status === "checking" && preflight.signature === previewSignature
+    const templateHref = buildTemplateHref(kind)
 
     const hasBlockingIssues = Boolean(
         !preview ||
@@ -42,6 +66,7 @@ export function FinancialCsvImportPanel() {
     function handleKindChange(nextKind: FinancialCsvKind) {
         setKind(nextKind)
         setMessage(null)
+        setPreflight({ status: "idle" })
     }
 
     async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -49,14 +74,42 @@ export function FinancialCsvImportPanel() {
         if (!file) return
 
         setMessage(null)
+        setPreflight({ status: "idle" })
         setCsvText(await file.text())
     }
 
-    function handleConfirm() {
+    function handlePreflight() {
         if (hasBlockingIssues) return
 
         setMessage(null)
-        startTransition(async () => {
+        setPreflight({ status: "checking", signature: previewSignature })
+        startCheckingTransition(async () => {
+            const result = await validateFinancialCsvImport({ kind, csvText })
+
+            if (!result.success || !result.data) {
+                setPreflight({
+                    status: "error",
+                    signature: previewSignature,
+                    message: result.error ?? "No se pudo comprobar el CSV contra la base de datos.",
+                })
+                return
+            }
+
+            setPreflight(result.data.canImport
+                ? { status: "clean", signature: previewSignature }
+                : {
+                    status: "blocked",
+                    signature: previewSignature,
+                    existingRows: result.data.existingRows,
+                })
+        })
+    }
+
+    function handleConfirm() {
+        if (hasBlockingIssues || !isPreflightClean) return
+
+        setMessage(null)
+        startImportTransition(async () => {
             const result = await importFinancialCsv({ kind, csvText })
             if (!result.success || !result.data) {
                 setMessage({
@@ -74,6 +127,7 @@ export function FinancialCsvImportPanel() {
                 tone: "success",
                 text: `Importación completada: ${result.data.importedRows} filas guardadas.${skippedText}`,
             })
+            setPreflight({ status: "idle" })
         })
     }
 
@@ -88,7 +142,7 @@ export function FinancialCsvImportPanel() {
                         <div>
                             <h2 className="text-sm font-semibold text-neutral-950 dark:text-white">Importación CSV</h2>
                             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                Preview local y validación final en servidor.
+                                Preview local, comprobación en BD y validación final en servidor.
                             </p>
                         </div>
                     </div>
@@ -115,6 +169,12 @@ export function FinancialCsvImportPanel() {
                         Archivo CSV
                     </label>
                     <Input id="financial-csv-file" type="file" accept=".csv,text/csv" onChange={handleFileChange} />
+                    <Button asChild variant="outline" size="sm" className="w-full">
+                        <a href={templateHref} download={kind === "sales" ? "plantilla-ventas.csv" : "plantilla-gastos.csv"}>
+                            <Download className="size-3.5" />
+                            {kind === "sales" ? "Descargar plantilla ventas" : "Descargar plantilla gastos"}
+                        </a>
+                    </Button>
                 </div>
             </div>
 
@@ -129,6 +189,7 @@ export function FinancialCsvImportPanel() {
                         onChange={event => {
                             setCsvText(event.target.value)
                             setMessage(null)
+                            setPreflight({ status: "idle" })
                         }}
                         placeholder={kind === "sales"
                             ? "date;revenue_total;total_covers"
@@ -139,6 +200,7 @@ export function FinancialCsvImportPanel() {
 
                 <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-white/10 dark:bg-white/5">
                     <PreviewSummary kind={kind} preview={preview} />
+                    <PreflightStatus state={preflight} signature={previewSignature} />
 
                     {message && (
                         <div
@@ -155,15 +217,70 @@ export function FinancialCsvImportPanel() {
 
                     <Button
                         type="button"
+                        variant="outline"
                         className="w-full"
-                        disabled={hasBlockingIssues || isPending}
+                        disabled={hasBlockingIssues || isCheckingPending || isImportPending}
+                        onClick={handlePreflight}
+                    >
+                        {isPreflightChecking ? "Comprobando..." : "Comprobar duplicados"}
+                    </Button>
+
+                    <Button
+                        type="button"
+                        className="w-full"
+                        disabled={hasBlockingIssues || isCheckingPending || isImportPending || !isPreflightClean}
                         onClick={handleConfirm}
                     >
-                        {isPending ? "Importando..." : "Importar CSV"}
+                        {isImportPending ? "Importando..." : "Importar CSV"}
                     </Button>
                 </div>
             </div>
         </section>
+    )
+}
+
+function PreflightStatus({ state, signature }: { state: PreflightState; signature: string }) {
+    if (state.status === "idle" || state.signature !== signature) return null
+
+    if (state.status === "checking") {
+        return (
+            <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-600 dark:border-white/10 dark:bg-neutral-950 dark:text-neutral-300">
+                Comprobando duplicados en base de datos...
+            </div>
+        )
+    }
+
+    if (state.status === "clean") {
+        return (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+                Sin duplicados en base de datos.
+            </div>
+        )
+    }
+
+    if (state.status === "error") {
+        return (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">
+                {state.message}
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+            <div className="flex items-center gap-2 font-semibold">
+                <AlertTriangle className="size-3.5" />
+                Duplicados en base de datos
+            </div>
+            <ul className="space-y-1">
+                {state.existingRows.slice(0, 4).map(row => (
+                    <li key={`${row.key}-${row.rowNumbers.join("-")}`}>{row.message}</li>
+                ))}
+            </ul>
+            {state.existingRows.length > 4 && (
+                <p>{state.existingRows.length - 4} duplicados más.</p>
+            )}
+        </div>
     )
 }
 
@@ -257,4 +374,8 @@ function formatMoney(value: number) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     }).format(value).replace(/\s/g, " ")
+}
+
+function buildTemplateHref(kind: FinancialCsvKind) {
+    return `data:text/csv;charset=utf-8,${encodeURIComponent(FINANCIAL_CSV_TEMPLATES[kind])}`
 }
