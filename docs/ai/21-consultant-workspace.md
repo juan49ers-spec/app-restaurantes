@@ -37,8 +37,8 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 
 - `getConsultantWorkspace()` resuelve `restaurant_id` con `getUserRestaurant()` y carga:
   - `restaurants.id/name/consultant_*`
-  - `professional_report_drafts` publicados (`published_at IS NOT NULL`)
-  - `professional_report_drafts` con `status = READY` para construir el flujo de entrega reciente.
+  - `professional_report_drafts` publicados (`published_at IS NOT NULL`) incluyendo `viewed_at` para saber si el cliente abrió el informe.
+  - `professional_report_drafts` con `status = READY` para construir el flujo de entrega reciente, también con `viewed_at`.
   - el último `professional_report_drafts` `READY` del periodo actual con `report_snapshot` para evaluar el quality gate de preparación.
   - `portal_meeting_requests`
   - conteos del mes actual para checklist de preparación: ventas, gastos, facturas, equipo, turnos, recetas, ventas por receta, Menu Engineering, drafts READY, publicaciones y solicitudes abiertas.
@@ -87,9 +87,10 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - El quality gate mostrado en `/consultant` usa exactamente el mismo evaluator que `/reports` y `publishReportDraft`, pero solo sobre snapshots `READY` ya guardados.
 - Si no hay versión `READY` para el periodo, el quality gate de preparación queda vacío y la UI enlaza a `/reports?from=...&to=...` para crear una.
 - Si el snapshot `READY` está corrupto o no pertenece al restaurante activo, la preparación lo marca como `BLOCKED` y pide regenerar una versión.
-- El flujo de entrega es derivado, no persistido. Se calcula desde `professional_report_drafts.status`, `published_at` y `portal_meeting_requests.status`.
+- El flujo de entrega es derivado, no persistido. Se calcula desde `professional_report_drafts.status`, `published_at`, `viewed_at` y `portal_meeting_requests.status`.
 - Estados del flujo de entrega: `READY_TO_PUBLISH` si el informe READY no está publicado; `PUBLISHED` si ya está visible sin solicitudes abiertas; `MEETING_REQUESTED` si el cliente pidió reunión y está pendiente/en revisión; `FOLLOW_UP_COMPLETE` si la solicitud asociada ya se completó.
 - El panel de entrega no publica ni despublica directamente. La publicación sigue viviendo en `/reports`, donde existe la revisión del snapshot y los controles internos.
+- `viewed_at` no cambia el estado de entrega por sí solo, pero el panel muestra si el cliente ya abrió el detalle del informe o si sigue pendiente de lectura.
 - Los filtros del flujo de entrega son solo estado de UI local. No cambian URL, no hacen queries y no alteran el estado de las solicitudes.
 - No se crea todavía una cartera multi-cliente ni una tabla `consultant_clients`.
 

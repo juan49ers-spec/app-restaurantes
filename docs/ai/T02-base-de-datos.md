@@ -59,7 +59,7 @@
 | `notifications` | `restaurant_id`, `type`, `severity`, `title`, `body`, `entity_id`, `read`, `read_at`, `created_at` | Notificaciones in-app. Limpieza automática >30 días. |
 | `broadcasts` | `id`, `title`, `body`, `severity`, `active_from`, `active_until`, `created_by` | Anuncios globales del super-admin. **Sin `restaurant_id`** (sistema). |
 | `scenarios` | `id`, `user_id`, `name`, `base_revenue`, `base_expenses`, `adjustments` (JSONB) | Simulaciones what-if del simulador financiero. |
-| `professional_report_drafts` | `restaurant_id`, `period_from`, `period_to`, `version`, `status`, `schema_version`, `report_snapshot` (JSONB), `narrative_overrides` (JSONB), `exported_at`, `published_at`, `published_by` | Versiones guardadas de informes profesionales. Snapshot inmutable para exportacion. Desde Fase 6 puede incluir `menu_performance`; desde Fase 8 puede incluir `menu_engineering` derivado de un snapshot BCG `ANALYZED`. Desde Fase 9 solo las filas con `published_at IS NOT NULL` aparecen en el portal cliente. |
+| `professional_report_drafts` | `restaurant_id`, `period_from`, `period_to`, `version`, `status`, `schema_version`, `report_snapshot` (JSONB), `narrative_overrides` (JSONB), `exported_at`, `published_at`, `published_by`, `viewed_at` | Versiones guardadas de informes profesionales. Snapshot inmutable para exportacion. Desde Fase 6 puede incluir `menu_performance`; desde Fase 8 puede incluir `menu_engineering` derivado de un snapshot BCG `ANALYZED`. Desde Fase 9 solo las filas con `published_at IS NOT NULL` aparecen en el portal cliente. Desde Fase 14, `viewed_at` registra la apertura del detalle web del informe por el cliente/restaurante. |
 | `portal_meeting_requests` | `restaurant_id`, `report_id`, `message`, `status`, `created_by`, `created_at` | Solicitudes de reunión desde el portal cliente. `status`: `PENDING`, `ACKNOWLEDGED`, `COMPLETED`. RLS por restaurante propietario. |
 | `menu_reports` / `menu_report_items` | `menu_reports.restaurant_id`, snapshots de coste/precio/cantidad en items | Informes BCG de Menu Engineering. Desde `20260526083000_secure_menu_engineering_rls.sql` ambos tienen RLS: `menu_reports` filtra por restaurante propietario y `menu_report_items` hereda permisos por su reporte padre. |
 | `ingestion_buffer` | items extraídos por OCR pendientes de mapear | Cola intermedia entre OCR y `invoice_items` confirmados. |
@@ -87,6 +87,7 @@
 - `idx_business_rules_restaurant_type`, `idx_financial_alerts_restaurant_unread` — alertas y reglas.
 - `idx_professional_report_drafts_restaurant_period`, `idx_professional_report_drafts_restaurant_updated` — historial y exportacion de informes profesionales.
 - `idx_professional_report_drafts_published` — listado del portal cliente por publicación descendente.
+- `idx_professional_report_drafts_viewed` — seguimiento de informes vistos por restaurante.
 - `idx_portal_meeting_requests_restaurant_created` — historial de solicitudes de reunión por restaurante.
 
 ## RPCs (funciones SQL)

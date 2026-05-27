@@ -122,7 +122,7 @@ class MockQuery {
     if (this.operation === 'update' && this.table === 'professional_report_drafts') {
       const ownsRestaurant = this.filters.some(filter => filter[0] === 'eq' && filter[1] === 'restaurant_id' && filter[2] === RESTAURANT_ID)
       const requiresReady = this.filters.some(filter => filter[0] === 'eq' && filter[1] === 'status' && filter[2] === 'READY')
-      const isPublishing = this.mutationValue && this.mutationValue.published_at !== null
+      const isPublishing = this.mutationValue && 'published_at' in this.mutationValue && this.mutationValue.published_at !== null
       if (!ownsRestaurant || (isPublishing && !requiresReady)) {
         return { data: null, error: { message: 'not found' } }
       }
@@ -130,6 +130,7 @@ class MockQuery {
         data: {
           id: REPORT_ID,
           published_at: this.mutationValue?.published_at ?? null,
+          viewed_at: this.mutationValue?.viewed_at ?? null,
         },
         error: null,
       }
@@ -187,6 +188,7 @@ describe('portal server actions', () => {
             exported_at: null,
             published_at: '2026-03-02T10:00:00.000Z',
             published_by: 'user-1',
+            viewed_at: null,
           },
         ],
         error: null,
@@ -334,6 +336,21 @@ describe('portal server actions', () => {
     }))
     expect(calls.find(call => call.table === 'daily_sales')?.filters).toContainEqual(['eq', 'restaurant_id', RESTAURANT_ID])
     expect(calls.find(call => call.table === 'monthly_targets')?.filters).toContainEqual(['eq', 'restaurant_id', RESTAURANT_ID])
+  })
+
+  it('marks a published report as viewed only for the active restaurant', async () => {
+    const { markPublishedReportViewedForRestaurant } = await import('@/lib/portal')
+
+    const result = await markPublishedReportViewedForRestaurant(REPORT_ID, RESTAURANT_ID)
+
+    expect(result.success).toBe(true)
+    const call = calls.find(item => item.table === 'professional_report_drafts' && item.updateValue)
+    expect(call?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'id', REPORT_ID],
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['not', 'published_at', 'is', null],
+    ]))
+    expect(call?.updateValue?.viewed_at).toEqual(expect.any(String))
   })
 
   it('creates a pending meeting request for the active restaurant', async () => {

@@ -19,6 +19,7 @@ export interface PublishedReportSummary {
     exportedAt: string | null
     publishedAt: string
     publishedBy: string | null
+    viewedAt: string | null
 }
 
 export interface PublishedReportDetail extends PublishedReportSummary {
@@ -71,6 +72,7 @@ function mapPublishedSummary(row: {
     exported_at: string | null
     published_at: string | null
     published_by: string | null
+    viewed_at?: string | null
 }): PublishedReportSummary {
     return {
         id: row.id,
@@ -84,6 +86,7 @@ function mapPublishedSummary(row: {
         exportedAt: row.exported_at,
         publishedAt: row.published_at ?? '',
         publishedBy: row.published_by,
+        viewedAt: row.viewed_at ?? null,
     }
 }
 
@@ -121,7 +124,7 @@ export async function getPublishedReportsForRestaurant(restaurantId: string): Pr
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('professional_report_drafts')
-        .select('id, period_from, period_to, version, status, schema_version, created_at, updated_at, exported_at, published_at, published_by')
+        .select('id, period_from, period_to, version, status, schema_version, created_at, updated_at, exported_at, published_at, published_by, viewed_at')
         .eq('restaurant_id', restaurantId)
         .not('published_at', 'is', null)
         .order('published_at', { ascending: false })
@@ -135,7 +138,7 @@ export async function getPublishedReportDetailForRestaurant(id: string, restaura
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('professional_report_drafts')
-        .select('id, period_from, period_to, version, status, schema_version, report_snapshot, narrative_overrides, created_at, updated_at, exported_at, published_at, published_by')
+        .select('id, period_from, period_to, version, status, schema_version, report_snapshot, narrative_overrides, created_at, updated_at, exported_at, published_at, published_by, viewed_at')
         .eq('id', id)
         .eq('restaurant_id', restaurantId)
         .not('published_at', 'is', null)
@@ -150,6 +153,32 @@ export async function getPublishedReportDetailForRestaurant(id: string, restaura
             ...mapPublishedSummary(data as Parameters<typeof mapPublishedSummary>[0]),
             report: data.report_snapshot as ProfessionalRestaurantReport,
             narrativeOverrides: (data.narrative_overrides || {}) as Record<string, string>,
+        },
+    }
+}
+
+export async function markPublishedReportViewedForRestaurant(
+    id: string,
+    restaurantId: string
+): Promise<ActionResponse<{ id: string; viewedAt: string }>> {
+    const viewedAt = new Date().toISOString()
+    const supabase = await createClient()
+    const { data, error } = await supabase
+        .from('professional_report_drafts')
+        .update({ viewed_at: viewedAt })
+        .eq('id', id)
+        .eq('restaurant_id', restaurantId)
+        .not('published_at', 'is', null)
+        .select('id, viewed_at')
+        .single()
+
+    if (error || !data) return { success: false, error: 'No se pudo marcar el informe como visto.' }
+
+    return {
+        success: true,
+        data: {
+            id: data.id,
+            viewedAt: data.viewed_at ?? viewedAt,
         },
     }
 }

@@ -17,6 +17,7 @@ export interface ConsultantPublishedReport {
   version: number
   status: 'DRAFT' | 'REVIEWED' | 'READY'
   publishedAt: string
+  viewedAt: string | null
 }
 
 export interface ConsultantMeetingRequest {
@@ -40,6 +41,7 @@ export interface ConsultantDeliveryReport {
   periodTo: string
   version: number
   publishedAt: string | null
+  viewedAt: string | null
   status: ConsultantDeliveryStatus
   openRequestCount: number
   completedRequestCount: number
@@ -119,6 +121,7 @@ export type PublishedReportRow = {
   version: number
   status: ConsultantPublishedReport['status']
   published_at: string | null
+  viewed_at?: string | null
 }
 
 export type ReadyReportRow = PublishedReportRow

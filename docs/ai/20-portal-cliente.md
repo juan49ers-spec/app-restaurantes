@@ -15,10 +15,11 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 1. El usuario entra en `/portal`.
 2. Ve una portada ejecutiva del último informe publicado: lectura principal, KPIs destacados, prioridades de revisión y acceso al PDF.
 3. Puede abrir el detalle web del informe.
-4. En el detalle, navega por capítulos mediante anclas internas sin salir del portal.
-5. Puede consultar el histórico de informes publicados.
-6. Puede solicitar una reunión de revisión.
-7. Puede volver a ControlHub para operar la app interna.
+4. Al abrir el detalle, el informe queda marcado como visto para que el consultor pueda hacer seguimiento.
+5. En el detalle, navega por capítulos mediante anclas internas sin salir del portal.
+6. Puede consultar el histórico de informes publicados, incluyendo si cada informe está pendiente de lectura o ya fue visto.
+7. Puede solicitar una reunión de revisión.
+8. Puede volver a ControlHub para operar la app interna.
 
 ## 3. Flujo técnico de datos
 
@@ -40,6 +41,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `getPublishedReports()` lista solo drafts con `published_at IS NOT NULL`.
 - `getPublishedReportDetail(id)` carga el snapshot completo solo si está publicado y pertenece al restaurante activo.
 - `getPortalContext()` carga restaurante, datos del consultor y ventas acumuladas del mes vs objetivo.
+- `markPublishedReportViewedForRestaurant(id, restaurantId)` vive en `src/lib/portal.ts` y se llama desde la página server `/portal/reports/[id]` después de validar restaurante e informe publicado. Actualiza `professional_report_drafts.viewed_at` con scope `id + restaurant_id + published_at IS NOT NULL`.
 - `requestConsultantMeeting(input)` crea una fila `portal_meeting_requests` solo si no existe ya una solicitud abierta (`PENDING` o `ACKNOWLEDGED`) para ese informe y restaurante. Si existe, devuelve la solicitud existente con `reused: true`.
 - `publishReportDraft(id)` y `unpublishReportDraft(id)` se usan desde la mesa interna. Publicar valida que el draft esta `READY`, pertenece al restaurante activo y que el snapshot supera `evaluateProfessionalReportQualityGate()` sin bloqueos.
 
@@ -53,6 +55,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 
 - `professional_report_drafts.published_at` marca visibilidad en portal.
 - `professional_report_drafts.published_by` conserva quién publicó.
+- `professional_report_drafts.viewed_at` marca la última apertura del detalle web por parte del cliente/restaurante.
 - `portal_meeting_requests` guarda solicitudes de reunión.
 
 ## 4. Reglas de negocio y restricciones
@@ -61,6 +64,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `READY` no implica visibilidad; la visibilidad depende de `published_at`.
 - Una version `READY` no puede publicarse si el snapshot tiene bloqueos criticos o secciones en conflicto. El servidor aplica este quality gate aunque la UI ya haya mostrado el estado.
 - El detalle del portal consume `report_snapshot`; no recalcula el informe.
+- Abrir `/portal/reports/[id]` marca `viewed_at`. Esta marca no cambia el snapshot, no altera el estado `READY` y no publica/despublica.
 - El dato vivo solo muestra ventas acumuladas del mes actual contra objetivo mensual.
 - El porcentaje del dato vivo se devuelve redondeado a 4 decimales para evitar artefactos de coma flotante.
 - Si no hay objetivo mensual, no se muestra la card de dato vivo.
@@ -92,6 +96,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si falla una solicitud de reunión, el formulario muestra error sin romper el portal.
 - Si ya existe una solicitud abierta para el informe, el formulario informa al cliente y no inserta otra fila.
 - Si una versión se despublica mientras el cliente la ve, una recarga deja de mostrarla.
+- Si una versión se despublica o se vuelve a publicar, `viewed_at` se reinicia para que el nuevo ciclo de entrega empiece como pendiente de lectura.
 - Si el informe tiene conclusiones con tono `warning` o `critical`, la portada las muestra antes que una lectura positiva para orientar la revisión con el consultor.
 - Si un capítulo no tiene secciones disponibles en el snapshot, la navegación puede seguir mostrando el capítulo por contrato de presentación, pero el detalle solo renderiza secciones existentes.
 

@@ -5,7 +5,7 @@ import { PortalChapterNavigation } from '@/components/portal/PortalChapterNaviga
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
-import { getPublishedReportDetailForRestaurant } from '@/lib/portal'
+import { getPublishedReportDetailForRestaurant, markPublishedReportViewedForRestaurant } from '@/lib/portal'
 import type { ProfessionalReportSection } from '@/lib/reporting'
 
 interface PortalReportDetailPageProps {
@@ -30,6 +30,7 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
   }
 
   const draft = detailRes.data
+  await markPublishedReportViewedForRestaurant(draft.id, restaurant.id)
   const report = draft.report
   const presentation = buildProfessionalReportPresentation(report)
 

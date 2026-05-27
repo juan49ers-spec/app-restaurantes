@@ -10,6 +10,7 @@ const reports: ConsultantDeliveryReport[] = [
     periodTo: '2026-02-28',
     version: 1,
     publishedAt: null,
+    viewedAt: null,
     status: 'READY_TO_PUBLISH',
     openRequestCount: 0,
     completedRequestCount: 0,
@@ -22,6 +23,7 @@ const reports: ConsultantDeliveryReport[] = [
     periodTo: '2026-03-31',
     version: 2,
     publishedAt: '2026-04-02T10:00:00.000Z',
+    viewedAt: '2026-04-03T09:30:00.000Z',
     status: 'MEETING_REQUESTED',
     openRequestCount: 1,
     completedRequestCount: 0,
@@ -34,6 +36,7 @@ const reports: ConsultantDeliveryReport[] = [
     periodTo: '2026-04-30',
     version: 1,
     publishedAt: '2026-05-02T10:00:00.000Z',
+    viewedAt: null,
     status: 'FOLLOW_UP_COMPLETE',
     openRequestCount: 0,
     completedRequestCount: 1,
@@ -51,6 +54,7 @@ describe('DeliveryWorkflowPanel', () => {
     expect(screen.getAllByText('Portal')).toHaveLength(3)
     expect(screen.getAllByText('Reunión')).toHaveLength(3)
     expect(screen.getAllByText('Cierre')).toHaveLength(3)
+    expect(screen.getByText(/Visto por el cliente/)).toBeInTheDocument()
   })
 
   it('filters open and closed deliveries locally', () => {

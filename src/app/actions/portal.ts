@@ -62,7 +62,7 @@ export async function publishReportDraft(id: string): Promise<ActionResponse<{ i
     const publishedAt = new Date().toISOString()
     const { data, error } = await supabase
         .from('professional_report_drafts')
-        .update({ published_at: publishedAt, published_by: user.id })
+        .update({ published_at: publishedAt, published_by: user.id, viewed_at: null })
         .eq('id', parsed.data)
         .eq('restaurant_id', restaurantId)
         .eq('status', 'READY')
@@ -88,7 +88,7 @@ export async function unpublishReportDraft(id: string): Promise<ActionResponse<{
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('professional_report_drafts')
-        .update({ published_at: null, published_by: null })
+        .update({ published_at: null, published_by: null, viewed_at: null })
         .eq('id', parsed.data)
         .eq('restaurant_id', restaurantId)
         .select('id')

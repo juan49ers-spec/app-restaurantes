@@ -15,6 +15,11 @@ export function PortalReportSummary({ report }: { report: PublishedReportSummary
           <p className="mt-1 text-xs text-slate-500">
             Versión {report.version} · Publicado {new Date(report.publishedAt).toLocaleDateString('es-ES')}
           </p>
+          <p className="mt-1 text-xs text-slate-500">
+            {report.viewedAt
+              ? `Visto ${new Date(report.viewedAt).toLocaleDateString('es-ES')}`
+              : 'Pendiente de lectura'}
+          </p>
         </div>
         <Badge variant="secondary" className="w-fit rounded-md">
           {report.status}

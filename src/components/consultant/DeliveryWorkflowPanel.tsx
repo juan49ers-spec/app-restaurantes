@@ -56,7 +56,8 @@ function buildStatusDetail(report: ConsultantDeliveryReport) {
   if (report.status === 'READY_TO_PUBLISH') return 'El informe está marcado como READY y pendiente de publicación.'
   if (report.status === 'MEETING_REQUESTED') return `${report.openRequestCount} solicitudes abiertas del cliente.`
   if (report.status === 'FOLLOW_UP_COMPLETE') return `${report.completedRequestCount} solicitudes completadas tras la entrega.`
-  return report.publishedAt ? `Visible en portal desde ${formatDateEs(report.publishedAt)}.` : 'Visible en portal.'
+  if (report.viewedAt) return `Visto por el cliente el ${formatDateEs(report.viewedAt)}.`
+  return report.publishedAt ? `Visible en portal desde ${formatDateEs(report.publishedAt)}. Pendiente de lectura del cliente.` : 'Visible en portal.'
 }
 
 function isStepComplete(report: ConsultantDeliveryReport, step: typeof TIMELINE_STEPS[number]['id']) {
@@ -200,6 +201,19 @@ export function DeliveryWorkflowPanel({ reports }: DeliveryWorkflowPanelProps) {
                     <p className="mt-2 text-sm text-slate-600">
                       Versión {report.version} · {buildStatusDetail(report)}
                     </p>
+                    {report.publishedAt && (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'mt-3 w-fit rounded-md',
+                          report.viewedAt
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-200 bg-white text-slate-600'
+                        )}
+                      >
+                        {report.viewedAt ? 'Visto por el cliente' : 'Pendiente de lectura'}
+                      </Badge>
+                    )}
                     <DeliveryTimeline report={report} />
                   </div>
 

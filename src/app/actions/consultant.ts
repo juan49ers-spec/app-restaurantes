@@ -147,13 +147,13 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
       .maybeSingle(),
     supabase
       .from('professional_report_drafts')
-      .select('id, period_from, period_to, version, status, published_at')
+      .select('id, period_from, period_to, version, status, published_at, viewed_at')
       .eq('restaurant_id', restaurantId)
       .not('published_at', 'is', null)
       .order('published_at', { ascending: false }),
     supabase
       .from('professional_report_drafts')
-      .select('id, period_from, period_to, version, status, published_at')
+      .select('id, period_from, period_to, version, status, published_at, viewed_at')
       .eq('restaurant_id', restaurantId)
       .eq('status', 'READY')
       .order('updated_at', { ascending: false })

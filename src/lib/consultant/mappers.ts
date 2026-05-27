@@ -23,5 +23,6 @@ export function mapPublishedReport(row: PublishedReportRow): ConsultantPublished
     version: row.version,
     status: row.status,
     publishedAt: row.published_at ?? '',
+    viewedAt: row.viewed_at ?? null,
   }
 }
