@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabaseServer'
+import { DEFAULT_BUSINESS_TIME_ZONE } from '@/lib/date-format'
 import { getUserRestaurant } from './utils'
 
 const MeetingRequestStatusSchema = z.enum(['PENDING', 'ACKNOWLEDGED', 'COMPLETED'])
@@ -16,6 +17,10 @@ const ConsultantBrandingSchema = z.object({
 const UpdateMeetingRequestStatusSchema = z.object({
   id: z.string().uuid(),
   status: MeetingRequestStatusSchema,
+})
+
+const ChecklistPeriodSchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/, 'Formato YYYY-MM requerido.'),
 })
 
 type ActionResponse<T> = {
@@ -132,11 +137,21 @@ function mapPublishedReport(row: PublishedReportRow): ConsultantPublishedReport 
   }
 }
 
-function currentMonthPeriod(now = new Date()) {
-  const month = now.toISOString().slice(0, 7)
+function periodFromMonth(month: string) {
   const [year, monthNumber] = month.split('-').map(Number)
   const to = new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10)
   return { month, from: `${month}-01`, to }
+}
+
+function currentMonthPeriod(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    month: '2-digit',
+    timeZone: DEFAULT_BUSINESS_TIME_ZONE,
+    year: 'numeric',
+  }).formatToParts(now)
+  const year = parts.find(part => part.type === 'year')?.value ?? now.getUTCFullYear().toString()
+  const month = parts.find(part => part.type === 'month')?.value ?? String(now.getUTCMonth() + 1).padStart(2, '0')
+  return periodFromMonth(`${year}-${month}`)
 }
 
 function countValue(result: CountResult) {
@@ -154,6 +169,7 @@ function buildPreparationChecklist(input: {
   salesCount: number
   expensesCount: number
   invoiceCount: number
+  invoiceReviewCount: number
   employeeCount: number
   shiftCount: number
   recipeCount: number
@@ -177,7 +193,7 @@ function buildPreparationChecklist(input: {
       id: 'expenses',
       label: 'Gastos cargados',
       description: 'Movimientos de gasto disponibles para leer costes.',
-      status: statusFromCount(input.expensesCount, 3),
+      status: statusFromCount(input.expensesCount),
       count: input.expensesCount,
       href: `/financial-control?from=${period.from}&to=${period.to}`,
     },
@@ -185,8 +201,10 @@ function buildPreparationChecklist(input: {
       id: 'invoices',
       label: 'Facturas/proveedores revisados',
       description: 'Facturas completadas dentro del periodo.',
-      status: statusFromCount(input.invoiceCount),
-      count: input.invoiceCount,
+      status: input.invoiceCount > 0 && input.invoiceReviewCount === 0
+        ? 'complete'
+        : input.invoiceCount > 0 || input.invoiceReviewCount > 0 ? 'partial' : 'missing',
+      count: input.invoiceCount + input.invoiceReviewCount,
       href: '/invoices',
     },
     {
@@ -195,7 +213,7 @@ function buildPreparationChecklist(input: {
       description: 'Plantilla activa y turnos disponibles para coste laboral.',
       status: input.employeeCount > 0 && input.shiftCount > 0 ? 'complete' : input.employeeCount > 0 || input.shiftCount > 0 ? 'partial' : 'missing',
       count: input.employeeCount + input.shiftCount,
-      href: '/staff/employees',
+      href: input.employeeCount > 0 && input.shiftCount === 0 ? '/staff/schedule' : '/staff/employees',
     },
     {
       id: 'menu',
@@ -203,7 +221,7 @@ function buildPreparationChecklist(input: {
       description: 'Recetas y ventas por receta para analizar mix y margen.',
       status: input.recipeCount > 0 && input.recipeSalesCount > 0 ? 'complete' : input.recipeCount > 0 || input.recipeSalesCount > 0 ? 'partial' : 'missing',
       count: input.recipeCount + input.recipeSalesCount,
-      href: '/escandallos',
+      href: input.recipeCount > 0 && input.recipeSalesCount === 0 ? '/stock' : '/escandallos',
     },
     {
       id: 'menu_engineering',
@@ -246,6 +264,43 @@ function buildPreparationChecklist(input: {
     readyCount,
     totalCount: items.length,
     items,
+  }
+}
+
+async function fetchChecklistCounts(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  restaurantId: string,
+  period: { from: string; to: string },
+) {
+  const checklistRes = await Promise.all([
+    supabase.from('daily_sales').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gt('revenue_total', 0).gte('date', period.from).lte('date', period.to),
+    supabase.from('operating_expenses').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('expense_date', period.from).lte('expense_date', period.to),
+    supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('status', 'completed').gte('date', period.from).lte('date', period.to),
+    supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).in('status', ['review_required', 'processing']).gte('date', period.from).lte('date', period.to),
+    supabase.from('employees').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('status', 'ACTIVE'),
+    supabase.from('shifts').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('date', period.from).lte('date', period.to),
+    supabase.from('recipes').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
+    supabase.from('daily_recipe_sales').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('date', period.from).lte('date', period.to),
+    supabase.from('menu_reports').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('status', 'ANALYZED').lte('date_from', period.to).gte('date_to', period.from),
+    supabase.from('professional_report_drafts').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('period_from', period.from).eq('period_to', period.to).eq('status', 'READY'),
+    supabase.from('professional_report_drafts').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('period_from', period.from).eq('period_to', period.to).not('published_at', 'is', null),
+    supabase.from('portal_meeting_requests').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).neq('status', 'COMPLETED'),
+  ]) as CountResult[]
+
+  return {
+    salesCount: countValue(checklistRes[0]),
+    expensesCount: countValue(checklistRes[1]),
+    invoiceCount: countValue(checklistRes[2]),
+    invoiceReviewCount: countValue(checklistRes[3]),
+    employeeCount: countValue(checklistRes[4]),
+    shiftCount: countValue(checklistRes[5]),
+    recipeCount: countValue(checklistRes[6]),
+    recipeSalesCount: countValue(checklistRes[7]),
+    menuEngineeringCount: countValue(checklistRes[8]),
+    readyDraftCount: countValue(checklistRes[9]),
+    publishedCount: countValue(checklistRes[10]),
+    openRequestCount: countValue(checklistRes[11]),
+    hasWarning: checklistRes.some(result => result.error),
   }
 }
 
@@ -300,36 +355,13 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
         }
       })
 
-  const checklistRes = await Promise.all([
-    supabase.from('daily_sales').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('date', period.from).lte('date', period.to),
-    supabase.from('operating_expenses').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('expense_date', period.from).lte('expense_date', period.to),
-    supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('status', 'completed').gte('date', period.from).lte('date', period.to),
-    supabase.from('employees').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('status', 'ACTIVE'),
-    supabase.from('shifts').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('date', period.from).lte('date', period.to),
-    supabase.from('recipes').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
-    supabase.from('daily_recipe_sales').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).gte('date', period.from).lte('date', period.to),
-    supabase.from('menu_reports').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('status', 'ANALYZED').gte('date_from', period.from).lte('date_to', period.to),
-    supabase.from('professional_report_drafts').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('period_from', period.from).eq('period_to', period.to).eq('status', 'READY'),
-    supabase.from('professional_report_drafts').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('period_from', period.from).eq('period_to', period.to).not('published_at', 'is', null),
-  ]) as CountResult[]
-
-  const checklistWarnings = checklistRes.some(result => result.error)
+  const checklistCounts = await fetchChecklistCounts(supabase, restaurantId, period)
+  const checklistWarnings = checklistCounts.hasWarning
     ? ['No se pudo completar toda la checklist de preparación.']
     : []
-  const openRequestCount = meetingRequests.filter(request => request.status !== 'COMPLETED').length
   const preparation = buildPreparationChecklist({
     period,
-    salesCount: countValue(checklistRes[0]),
-    expensesCount: countValue(checklistRes[1]),
-    invoiceCount: countValue(checklistRes[2]),
-    employeeCount: countValue(checklistRes[3]),
-    shiftCount: countValue(checklistRes[4]),
-    recipeCount: countValue(checklistRes[5]),
-    recipeSalesCount: countValue(checklistRes[6]),
-    menuEngineeringCount: countValue(checklistRes[7]),
-    readyDraftCount: countValue(checklistRes[8]),
-    publishedCount: countValue(checklistRes[9]),
-    openRequestCount,
+    ...checklistCounts,
   })
 
   return {
@@ -341,6 +373,28 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
       preparation,
       warnings: [...warnings, ...checklistWarnings],
     },
+  }
+}
+
+export async function getPreparationChecklistForPeriod(
+  input: z.input<typeof ChecklistPeriodSchema>
+): Promise<ActionResponse<ConsultantPreparationChecklist>> {
+  const parsed = ChecklistPeriodSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: 'Periodo inválido.' }
+
+  const restaurantId = await getUserRestaurant()
+  if (!restaurantId) return { success: false, error: 'No hay restaurante activo.' }
+
+  const supabase = await createClient()
+  const period = periodFromMonth(parsed.data.month)
+  const checklistCounts = await fetchChecklistCounts(supabase, restaurantId, period)
+
+  return {
+    success: true,
+    data: buildPreparationChecklist({
+      period,
+      ...checklistCounts,
+    }),
   }
 }
 

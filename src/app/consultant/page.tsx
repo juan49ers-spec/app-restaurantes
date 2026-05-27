@@ -102,7 +102,7 @@ export default async function ConsultantWorkspacePage() {
         </div>
       </section>
 
-      <PreparationChecklist checklist={preparation} />
+      <PreparationChecklist initialChecklist={preparation} />
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <MeetingRequestsPanel initialRequests={meetingRequests} />

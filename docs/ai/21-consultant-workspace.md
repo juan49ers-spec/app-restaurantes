@@ -14,7 +14,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 
 1. El consultor entra en `/consultant`.
 2. Ve el restaurante activo y un resumen de informes publicados, solicitudes abiertas y última publicación.
-3. Revisa la checklist del mes actual para saber qué falta antes de publicar un informe.
+3. Revisa la checklist del periodo que está preparando. Por defecto es el mes actual, pero puede navegar a meses anteriores con los controles anterior/siguiente.
 4. Puede ir a `/reports` para preparar un nuevo informe o revisar versiones.
 5. Puede abrir `/portal` para comprobar la experiencia cliente.
 6. Gestiona solicitudes de reunión enviadas desde el portal: pendiente, en revisión o completada.
@@ -36,7 +36,9 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
   - `restaurants.id/name/consultant_*`
   - `professional_report_drafts` publicados (`published_at IS NOT NULL`)
   - `portal_meeting_requests`
-  - conteos del mes actual para checklist de preparación: ventas, gastos, facturas, equipo, turnos, recetas, ventas por receta, Menu Engineering, drafts READY y publicaciones.
+  - conteos del mes actual para checklist de preparación: ventas, gastos, facturas, equipo, turnos, recetas, ventas por receta, Menu Engineering, drafts READY, publicaciones y solicitudes abiertas.
+- `getPreparationChecklistForPeriod(input)` valida el mes con Zod (`YYYY-MM`), resuelve `restaurant_id` con `getUserRestaurant()`, calcula `from/to` del mes pedido y ejecuta las mismas queries de conteo que `getConsultantWorkspace()` pero para el periodo indicado. Devuelve `ConsultantPreparationChecklist`.
+- Los conteos de checklist están extraídos a `fetchChecklistCounts()` para reutilización sin duplicación.
 - `updateConsultantBranding(input)` valida nombre/email/logo con Zod y actualiza solo el restaurante activo.
 - `updateMeetingRequestStatus(input)` valida UUID + estado y actualiza solo solicitudes del restaurante activo.
 - Las fechas visibles usan helpers compartidos en `src/lib/date-format.ts` con zona horaria `Europe/Madrid`. Es una decisión temporal para España y evita errores de hidratación entre servidor y navegador.
@@ -45,6 +47,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 
 - `ConsultantBrandingForm` mantiene estado local del formulario y llama a `updateConsultantBranding`.
 - `MeetingRequestsPanel` actualiza estado de solicitudes de forma optimista e inmutable tras respuesta correcta.
+- `PreparationChecklist` es un componente client. Recibe el checklist del mes actual como `initialChecklist` (server-rendered) y permite navegar entre meses con botones anterior/siguiente. Al cambiar mes, llama a `getPreparationChecklistForPeriod()` y actualiza estado local de forma inmutable. No permite navegar más allá del mes actual.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -55,7 +58,11 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - El estado de reunión no modifica el informe publicado.
 - La identidad del consultor se guarda en `restaurants.consultant_name`, `consultant_email` y `consultant_logo_url`.
 - La URL del logo debe ser URL válida o quedar vacía.
-- La checklist es derivada, no persistida. El estado se calcula desde tablas fuente para el mes actual.
+- La checklist es derivada, no persistida. El estado se calcula desde tablas fuente para el periodo seleccionado.
+- La checklist se puede consultar para cualquier mes pasado o el actual. No se permite navegar al futuro más allá del mes actual.
+- El periodo de checklist se calcula como mes natural: `from = YYYY-MM-01`, `to = último día del mes`.
+- Criterios de checklist: ventas requiere al menos una fila `daily_sales` con `revenue_total > 0`; gastos requiere al menos un `operating_expenses`; facturas queda completo solo si hay facturas `completed` y cero `review_required`/`processing`; equipo requiere empleado activo y turno en periodo; carta requiere recetas y ventas por receta; Menu Engineering acepta reportes `ANALYZED` solapados con el periodo; informes READY/publicados usan periodo exacto; solicitudes abiertas se cuentan globalmente.
+- Los enlaces de resolución solo usan filtros cuando la ruta destino ya los soporta. Para estados parciales, equipo enlaza a `/staff/schedule` si ya hay empleados pero faltan turnos, y carta enlaza a `/stock` si ya hay recetas pero faltan ventas por receta.
 - La checklist guía la preparación, pero no sustituye las reglas de calidad del informe profesional en `/reports`.
 - No se crea todavía una cartera multi-cliente ni una tabla `consultant_clients`.
 
@@ -72,7 +79,9 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 
 - Si no hay informes publicados, muestra estado vacío y acceso a `/reports`.
 - Si no hay solicitudes, muestra estado vacío.
-- Si faltan datos del mes actual, la checklist marca `Pendiente` o `Revisar` y enlaza al módulo que debe resolverlo.
+- Si faltan datos del periodo seleccionado, la checklist marca `Pendiente` o `Revisar` y enlaza al módulo que debe resolverlo.
+- Si `getPreparationChecklistForPeriod()` falla al cambiar de mes, el componente conserva el checklist anterior sin crashear.
+- Si el consultor navega a un mes sin datos, los ítems marcan `Pendiente` o `Revisar` según el criterio de cada bloque; esto es correcto y esperado.
 - Si alguna consulta de conteo de checklist falla, la mesa carga con aviso y marca ese punto como pendiente.
 - Si fallan informes o solicitudes, muestra un aviso y conserva el resto de la mesa operativa.
 - Si una solicitud apunta a un informe despublicado o eliminado, se conserva la solicitud pero sin enlace de reporte.

@@ -120,7 +120,7 @@ type ActionResponse<T> = {
 - **Versiones de informes:** `saveProfessionalReportDraft({ period, narrativeOverrides, status })` regenera el informe en servidor y crea un snapshot nuevo en `professional_report_drafts`.
 - **Historial/exportacion:** `getProfessionalReportDraftHistory(period)`, `getSavedProfessionalReportDraft(id)` y `markProfessionalReportDraftExported(id)` siempre filtran por restaurante activo.
 - **Portal cliente:** `publishReportDraft(id)`, `unpublishReportDraft(id)`, `getPublishedReports()`, `getPublishedReportDetail(id)`, `getPortalContext()` y `requestConsultantMeeting(input)` siempre resuelven `restaurant_id` en servidor. El portal solo muestra drafts con `published_at IS NOT NULL`.
-- **Mesa de consultoría:** `getConsultantWorkspace()`, `updateConsultantBranding(input)` y `updateMeetingRequestStatus(input)` resuelven `restaurant_id` en servidor. Gestionan entrega interna y solicitudes sin convertir el portal cliente en zona de carga de datos.
+- **Mesa de consultoría:** `getConsultantWorkspace()`, `getPreparationChecklistForPeriod(input)`, `updateConsultantBranding(input)` y `updateMeetingRequestStatus(input)` resuelven `restaurant_id` en servidor. Gestionan entrega interna, checklist por periodo y solicitudes sin convertir el portal cliente en zona de carga de datos.
 - **Seed demo reporting:** `seedProfessionalReportDemoData()` resuelve el restaurante en servidor y solo debe usarse como herramienta QA/dev; no acepta `restaurant_id`.
 - **Toggles:** `toggle*`. Ej: `toggleRestaurantModule`, `toggleEmployeeStatus`.
 - **Acciones del super-admin:** prefijo `admin` en el archivo (`admin-billing.ts`) y nombres como `changeRestaurantPlan`, `adjustCredits`, `registerPayment`.

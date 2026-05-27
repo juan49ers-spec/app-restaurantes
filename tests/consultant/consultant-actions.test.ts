@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type QueryError = { message: string; code?: string }
 type QueryResult = { data: unknown; error: QueryError | null; count?: number | null }
-type Filter = ['eq' | 'not' | 'gte' | 'lte', string, unknown, unknown?]
+type Filter = ['eq' | 'neq' | 'not' | 'gte' | 'lte' | 'gt' | 'in', string, unknown, unknown?]
 
 const RESTAURANT_ID = '550e8400-e29b-41d4-a716-446655440000'
 const REQUEST_ID = '33333333-3333-4333-8333-333333333333'
@@ -47,6 +47,21 @@ class MockQuery {
 
   eq(column: string, value: unknown) {
     this.filters.push(['eq', column, value])
+    return this
+  }
+
+  neq(column: string, value: unknown) {
+    this.filters.push(['neq', column, value])
+    return this
+  }
+
+  gt(column: string, value: unknown) {
+    this.filters.push(['gt', column, value])
+    return this
+  }
+
+  in(column: string, value: unknown[]) {
+    this.filters.push(['in', column, value])
     return this
   }
 
@@ -266,6 +281,77 @@ describe('consultant server actions', () => {
     expect(result.data?.preparation.items.find(item => item.id === 'sales')).toEqual(expect.objectContaining({
       status: 'missing',
       count: 0,
+    }))
+  })
+
+  it('loads preparation checklist for a specific month scoped to restaurant', async () => {
+    const { getPreparationChecklistForPeriod } = await import('@/app/actions/consultant')
+
+    const result = await getPreparationChecklistForPeriod({ month: '2026-02' })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.period.month).toBe('2026-02')
+    expect(result.data?.period.from).toBe('2026-02-01')
+    expect(result.data?.period.to).toBe('2026-02-28')
+
+    const salesCall = calls.find(call => call.table === 'daily_sales' && call.head)
+    expect(salesCall?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['gt', 'revenue_total', 0],
+      ['gte', 'date', '2026-02-01'],
+      ['lte', 'date', '2026-02-28'],
+    ]))
+
+    const menuEngineeringCall = calls.find(call => call.table === 'menu_reports' && call.head)
+    expect(menuEngineeringCall?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['eq', 'status', 'ANALYZED'],
+      ['lte', 'date_from', '2026-02-28'],
+      ['gte', 'date_to', '2026-02-01'],
+    ]))
+
+    const draftCall = calls.find(call =>
+      call.table === 'professional_report_drafts' &&
+      call.head &&
+      call.filters.some(filter => filter[0] === 'eq' && filter[1] === 'period_from' && filter[2] === '2026-02-01')
+    )
+    expect(draftCall).toBeDefined()
+  })
+
+  it('rejects invalid month format for checklist period', async () => {
+    const { getPreparationChecklistForPeriod } = await import('@/app/actions/consultant')
+
+    const result = await getPreparationChecklistForPeriod({ month: 'invalid' })
+
+    expect(result).toEqual({ success: false, error: 'Periodo inválido.' })
+    expect(calls).toEqual([])
+  })
+
+  it('returns error when no restaurant for checklist period', async () => {
+    mockRestaurantId = null
+    const { getPreparationChecklistForPeriod } = await import('@/app/actions/consultant')
+
+    const result = await getPreparationChecklistForPeriod({ month: '2026-02' })
+
+    expect(result).toEqual({ success: false, error: 'No hay restaurante activo.' })
+    expect(calls).toEqual([])
+  })
+
+  it('points partial checklist items to the most relevant operational page', async () => {
+    tableResults.shifts = { data: [], error: null }
+    tableResults.daily_recipe_sales = { data: [], error: null }
+    const { getPreparationChecklistForPeriod } = await import('@/app/actions/consultant')
+
+    const result = await getPreparationChecklistForPeriod({ month: '2026-02' })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.items.find(item => item.id === 'staff')).toEqual(expect.objectContaining({
+      status: 'partial',
+      href: '/staff/schedule',
+    }))
+    expect(result.data?.items.find(item => item.id === 'menu')).toEqual(expect.objectContaining({
+      status: 'partial',
+      href: '/stock',
     }))
   })
 

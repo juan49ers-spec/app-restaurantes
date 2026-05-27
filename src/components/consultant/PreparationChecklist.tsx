@@ -1,12 +1,16 @@
+'use client'
+
 import Link from 'next/link'
-import { AlertCircle, CheckCircle2, CircleDashed } from 'lucide-react'
-import type { ConsultantPreparationChecklist, ConsultantChecklistStatus } from '@/app/actions/consultant'
+import { useState, useTransition } from 'react'
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed } from 'lucide-react'
+import { getPreparationChecklistForPeriod, type ConsultantPreparationChecklist, type ConsultantChecklistStatus } from '@/app/actions/consultant'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DEFAULT_BUSINESS_TIME_ZONE } from '@/lib/date-format'
 import { cn } from '@/lib/utils'
 
 interface PreparationChecklistProps {
-  checklist: ConsultantPreparationChecklist
+  initialChecklist: ConsultantPreparationChecklist
 }
 
 const STATUS_COPY: Record<ConsultantChecklistStatus, { label: string; className: string; icon: typeof CheckCircle2 }> = {
@@ -27,15 +31,75 @@ const STATUS_COPY: Record<ConsultantChecklistStatus, { label: string; className:
   },
 }
 
-export function PreparationChecklist({ checklist }: PreparationChecklistProps) {
+function formatMonthLabel(from: string) {
+  const date = new Date(`${from}T00:00:00.000Z`)
+  const label = new Intl.DateTimeFormat('es-ES', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date)
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+function currentMonth() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    month: '2-digit',
+    timeZone: DEFAULT_BUSINESS_TIME_ZONE,
+    year: 'numeric',
+  }).formatToParts(new Date())
+  const year = parts.find(part => part.type === 'year')?.value
+  const month = parts.find(part => part.type === 'month')?.value
+  return year && month ? `${year}-${month}` : new Date().toISOString().slice(0, 7)
+}
+
+export function PreparationChecklist({ initialChecklist }: PreparationChecklistProps) {
+  const [checklist, setChecklist] = useState(initialChecklist)
+  const [isPending, startTransition] = useTransition()
+  const isCurrentMonth = checklist.period.month >= currentMonth()
+
+  function navigateMonth(delta: -1 | 1) {
+    const [year, month] = checklist.period.month.split('-').map(Number)
+    const target = new Date(Date.UTC(year, month - 1 + delta, 1))
+    const targetMonth = target.toISOString().slice(0, 7)
+
+    startTransition(async () => {
+      const response = await getPreparationChecklistForPeriod({ month: targetMonth })
+      if (response.success && response.data) {
+        setChecklist(response.data)
+      }
+    })
+  }
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Preparación del informe</p>
-          <h2 className="mt-1 text-lg font-semibold text-slate-950">
-            Checklist {checklist.period.from} a {checklist.period.to}
-          </h2>
+          <div className="mt-1 flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={isPending}
+              aria-label="Mes anterior"
+              onClick={() => navigateMonth(-1)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="min-w-44 text-center text-lg font-semibold text-slate-950">
+              {formatMonthLabel(checklist.period.from)}
+            </h2>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={isPending || isCurrentMonth}
+              aria-label="Mes siguiente"
+              onClick={() => navigateMonth(1)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             Guía interna para saber si el periodo está preparado antes de guardar y publicar el informe profesional.
           </p>
@@ -46,7 +110,7 @@ export function PreparationChecklist({ checklist }: PreparationChecklistProps) {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className={cn('mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3', isPending && 'opacity-60')}>
         {checklist.items.map(item => {
           const status = STATUS_COPY[item.status]
           const Icon = status.icon
