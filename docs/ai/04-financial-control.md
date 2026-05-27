@@ -51,6 +51,12 @@ getMonthlyTarget(restaurantId, monthYear)
 **Componente cliente principal:** `FinancialControlClient` (en `client.tsx`). Mantiene tab activo, modales, fecha local. Tabs se cargan con `Suspense + lazy`.
 `ImpuestosDashboard` carga el trimestre de forma asíncrona y activa `isLoading` al cambiar de trimestre, evitando setState síncrono dentro del effect. `DesarrolloNegocio` calcula insights como derivado simple de métricas para no depender de memoización frágil.
 
+**Importación CSV (16-lite):**
+- `src/lib/importing/financial-csv.ts` contiene el motor puro de preview para CSV de ventas (`daily_sales`) y gastos (`operating_expenses`).
+- `parseFinancialCsvPreview({ kind, csvText })` no consulta Supabase ni escribe datos. Normaliza cabeceras, detecta separador `,`/`;`, soporta importes con coma decimal española, valida columnas obligatorias y devuelve filas válidas/invalidas, duplicados internos y resumen de totales.
+- Para ventas, el duplicado interno se calcula por `date`. Para gastos, se calcula por `expense_date + category + amount + description`.
+- Esta capa es previa a cualquier server action de importación. Cuando exista la mutación real, deberá resolver `restaurant_id` en servidor y reutilizar los payloads validados por este preview.
+
 ## 4. Reglas de negocio y restricciones
 
 - **Día sin ventas:** se puede guardar `daily_sales` con `revenue_total=0` (cierre del día sin facturación).
@@ -89,6 +95,7 @@ getMonthlyTarget(restaurantId, monthYear)
 - **`labor_cost` en `daily_sales` vs gastos PERSONAL:** son fuentes distintas. Para no double-contar, el dashboard usa una u otra — confirmar en `getResultsDashboardData`.
 - **Compatibilidad de formularios:** algunos formularios cliente siguen llevando `restaurant_id` en sus schemas por compatibilidad, pero las server actions lo ignoran y usan el restaurante activo del servidor.
 - **Lint React Compiler:** los componentes financieros no deben depender de casts `as any` para estilos ni de memoizaciones manuales con dependencias imprecisas; Next/React Compiler lo marca como error de lint.
+- **CSV preview no persiste:** el parser de `src/lib/importing/financial-csv.ts` solo valida y resume. Un CSV con errores no debe llegar a escritura masiva hasta que la UI muestre preview y el usuario confirme.
 
 ## 7. Al añadir/modificar una función aquí
 
