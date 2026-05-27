@@ -1,10 +1,11 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { PortalChapterSection } from '@/components/portal/PortalChapterSection'
 import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
 import { PortalSuggestedActions } from '@/components/portal/PortalSuggestedActions'
-import type { ProfessionalReportPresentation } from '@/lib/reporting'
+import type { ProfessionalReportPresentation, ProfessionalReportSection } from '@/lib/reporting'
 import type { PortalPeriodComparison, PortalSuggestedAction } from '@/lib/portal-insights'
 
 const presentation: ProfessionalReportPresentation = {
@@ -152,5 +153,65 @@ describe('Portal premium components', () => {
     expect(screen.getByText('Acciones sugeridas para revisar')).toBeInTheDocument()
     expect(screen.getByText('Revisar prime cost con el consultor')).toBeInTheDocument()
     expect(screen.getByText('Urgente')).toBeInTheDocument()
+  })
+
+  it('renders a guided chapter section with narrative, metrics and data issues', () => {
+    const section: ProfessionalReportSection = {
+      id: 'profitability',
+      title: 'Rentabilidad',
+      quality: {
+        section: 'profitability',
+        status: 'PARTIAL',
+        confidence: 75,
+        issues: [
+          {
+            id: 'profitability.labor_from_shifts',
+            section: 'profitability',
+            status: 'PARTIAL',
+            severity: 'warning',
+            message: 'El coste laboral usa turnos por falta de gasto de personal.',
+            sourceIds: ['shifts.cost'],
+          },
+        ],
+        evidence: [
+          {
+            sourceId: 'daily_sales.revenue',
+            tables: ['daily_sales'],
+            rowCount: 28,
+            kind: 'actual',
+          },
+        ],
+      },
+      metrics: [
+        {
+          id: 'net_profit',
+          label: 'Resultado estimado',
+          value: 4200,
+          unit: 'eur',
+          kind: 'derived',
+          sourceIds: ['daily_sales.revenue', 'operating_expenses.amount'],
+        },
+      ],
+      narrative: [
+        'El periodo es rentable, pero la calidad depende de completar personal.',
+        'Conviene revisar nóminas antes de cerrar conclusiones.',
+      ],
+    }
+
+    render(
+      <PortalChapterSection
+        chapter={presentation.chapters[0]}
+        sections={[section]}
+        narrativeOverrides={{}}
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: 'Resultados' })).toBeInTheDocument()
+    expect(screen.getByText('Lectura del capítulo')).toBeInTheDocument()
+    expect(screen.getByText(/El periodo es rentable/)).toBeInTheDocument()
+    expect(screen.getByText('PARTIAL · 75% confianza')).toBeInTheDocument()
+    expect(screen.getByText('Resultado estimado')).toBeInTheDocument()
+    expect(screen.getByText('Incidencias de dato')).toBeInTheDocument()
+    expect(screen.getByText(/coste laboral usa turnos/i)).toBeInTheDocument()
   })
 })

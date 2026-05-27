@@ -36,6 +36,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `PortalExecutiveBrief` renderiza una portada ejecutiva reutilizable para `/portal` y `/portal/reports/[id]`. Consume `ProfessionalReportPresentation`, no consulta datos y no recalcula el informe.
 - La lectura principal prioriza conclusiones `critical` o `warning` antes que positivas, porque el portal debe destacar lo que requiere atención del cliente.
 - `PortalChapterNavigation` renderiza navegación accesible por capítulos usando anclas `#chapter-{id}` en el detalle.
+- `PortalChapterSection` renderiza cada capítulo del detalle con lectura principal, bloques de métricas, confianza/evidencias e incidencias de calidad cuando existen. Consume secciones del snapshot publicado y `narrativeOverrides`; no consulta datos ni recalcula métricas.
 - `PortalPeriodComparisonPanel` muestra una comparación del periodo publicado contra el mes natural anterior. Consume `PortalPeriodComparison` ya calculado en servidor.
 - `PortalSuggestedActions` muestra hasta 3 acciones sugeridas a revisar con el consultor. Las acciones salen de `buildPortalSuggestedActions(presentation)`, una función pura basada en tonos de KPIs/conclusiones.
 - `PortalReportSummary` mantiene el histórico publicado con enlaces al detalle web y PDF imprimible.
@@ -69,6 +70,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `READY` no implica visibilidad; la visibilidad depende de `published_at`.
 - Una version `READY` no puede publicarse si el snapshot tiene bloqueos criticos o secciones en conflicto. El servidor aplica este quality gate aunque la UI ya haya mostrado el estado.
 - El detalle del portal consume `report_snapshot`; no recalcula el informe.
+- Los capítulos del detalle muestran calidad de dato e incidencias dentro de cada bloque para que el cliente entienda qué lecturas son firmes y cuáles requieren revisión con el consultor.
 - Abrir `/portal/reports/[id]` marca `viewed_at`. Esta marca no cambia el snapshot, no altera el estado `READY` y no publica/despublica.
 - El dato vivo solo muestra ventas acumuladas del mes actual contra objetivo mensual.
 - El porcentaje del dato vivo se devuelve redondeado a 4 decimales para evitar artefactos de coma flotante.
@@ -109,6 +111,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si una versión se despublica o se vuelve a publicar, `viewed_at` se reinicia para que el nuevo ciclo de entrega empiece como pendiente de lectura.
 - Si el informe tiene conclusiones con tono `warning` o `critical`, la portada las muestra antes que una lectura positiva para orientar la revisión con el consultor.
 - Si un capítulo no tiene secciones disponibles en el snapshot, la navegación puede seguir mostrando el capítulo por contrato de presentación, pero el detalle solo renderiza secciones existentes.
+- Si una sección tiene `quality.issues`, el detalle las muestra como incidencias de dato; no las oculta detrás de la métrica principal.
 - Si falla la comparativa mensual, el portal conserva portada, KPIs, acciones sugeridas e histórico; no debe bloquear la lectura del informe.
 - Si el periodo anterior tiene ventas o gastos a 0, los deltas absolutos se muestran, pero los porcentajes relativos pueden omitirse para no inventar una evolución.
 

@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { getCurrentRestaurant } from '@/app/actions/user'
-import { formatPortalKpiValue, formatPortalMetricValue } from '@/components/portal/format'
+import { formatPortalKpiValue } from '@/components/portal/format'
+import { PortalChapterSection } from '@/components/portal/PortalChapterSection'
 import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
@@ -13,12 +14,6 @@ import type { ProfessionalReportSection } from '@/lib/reporting'
 
 interface PortalReportDetailPageProps {
   params: Promise<{ id: string }>
-}
-
-function sectionNarrative(section: ProfessionalReportSection, overrides: Record<string, string>) {
-  const override = overrides[section.id]
-  if (override) return override.split(/\n{2,}/).map(paragraph => paragraph.trim()).filter(Boolean)
-  return section.narrative
 }
 
 export default async function PortalReportDetailPage({ params }: PortalReportDetailPageProps) {
@@ -87,42 +82,12 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
             .filter((section): section is ProfessionalReportSection => Boolean(section))
 
           return (
-            <section id={`chapter-${chapter.id}`} key={chapter.id} className="scroll-mt-24 rounded-lg border border-slate-200 bg-white p-6">
-              <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{chapter.label}</p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-950">{chapter.title}</h2>
-              <p className="mt-2 text-sm text-slate-600">{chapter.subtitle}</p>
-
-              {chapterSections.map(section => (
-                <div key={section.id} className="mt-6 border-t border-slate-200 pt-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-950">{section.title}</h3>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {section.quality.status} · {section.quality.confidence}% confianza
-                      </p>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      {section.quality.evidence.length} evidencias · {section.quality.issues.length} incidencias
-                    </p>
-                  </div>
-
-                  <div className="mt-4 grid gap-2 md:grid-cols-2">
-                    {section.metrics.map(metric => (
-                      <div key={metric.id} className="rounded-md border border-slate-200 p-3">
-                        <p className="text-xs font-medium text-slate-500">{metric.label}</p>
-                        <p className="mt-2 text-lg font-semibold text-slate-950">{formatPortalMetricValue(metric)}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 space-y-3">
-                    {sectionNarrative(section, draft.narrativeOverrides).map((paragraph, index) => (
-                      <p key={`${section.id}-${index}`} className="text-sm leading-7 text-slate-600">{paragraph}</p>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </section>
+            <PortalChapterSection
+              key={chapter.id}
+              chapter={chapter}
+              sections={chapterSections}
+              narrativeOverrides={draft.narrativeOverrides}
+            />
           )
         })}
       </div>
