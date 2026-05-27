@@ -158,6 +158,19 @@ describe('importFinancialCsv', () => {
     expect(calls).toEqual([])
   })
 
+  it('rejects negative sales revenue before writing to Supabase', async () => {
+    const { importFinancialCsv } = await import('@/app/actions/financial-control')
+
+    const result = await importFinancialCsv({
+      kind: 'sales',
+      csvText: 'date;revenue_total\n2026-02-01;-100',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('El CSV de ventas contiene importes negativos. Revisa revenue_total antes de importar.')
+    expect(calls).toEqual([])
+  })
+
   it('returns an error without writing when there is no active restaurant', async () => {
     mockRestaurantId = null
     const { importFinancialCsv } = await import('@/app/actions/financial-control')

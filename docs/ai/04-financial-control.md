@@ -63,6 +63,7 @@ getMonthlyTarget(restaurantId, monthYear)
 ## 4. Reglas de negocio y restricciones
 
 - **Día sin ventas:** se puede guardar `daily_sales` con `revenue_total=0` (cierre del día sin facturación).
+- **Ventas CSV negativas:** `importFinancialCsv()` bloquea `revenue_total < 0` en ventas. El parser de preview puede leer el número, pero la action aplica la regla de negocio antes de escribir.
 - **`day_status`:** `OPEN` → `CLOSED` (cerrado por el usuario) → `LOCKED` (cerrado por cierre mensual, ya no editable).
 - **Gastos negativos:** permitidos. Útiles para correcciones de inventario.
 - **Categorías de gasto:** enum estricto de 15 valores agrupados en 4 (`PERSONAL`, `COGS`, `OPERATIONS`, `FINANCIAL`). Ver `EXPENSE_GROUPS` en `src/types/schema.ts`.

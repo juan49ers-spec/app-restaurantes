@@ -230,10 +230,21 @@ export async function importFinancialCsv(input: z.input<typeof FinancialCsvImpor
 
     const supabase = await createClient()
     const validPayloads = preview.rows
-        .filter(row => row.status === 'valid' && row.payload)
+        .filter(hasFinancialCsvPayload)
         .map(row => row.payload)
 
     if (parsed.data.kind === 'sales') {
+        const hasNegativeRevenue = validPayloads.some(payload =>
+            'revenue_total' in payload && payload.revenue_total < 0
+        )
+
+        if (hasNegativeRevenue) {
+            return {
+                success: false,
+                error: 'El CSV de ventas contiene importes negativos. Revisa revenue_total antes de importar.',
+            }
+        }
+
         const rows = validPayloads.map(payload => buildSalesImportRow(payload as SalesCsvPayload, restaurantId))
         const { data, error } = await supabase
             .from('daily_sales')
@@ -285,6 +296,12 @@ function buildSalesImportRow(payload: SalesCsvPayload, restaurantId: string) {
         source: 'csv_import',
         updated_at: new Date().toISOString(),
     }
+}
+
+function hasFinancialCsvPayload(row: ReturnType<typeof parseFinancialCsvPreview>['rows'][number]): row is ReturnType<typeof parseFinancialCsvPreview>['rows'][number] & {
+    payload: SalesCsvPayload | ExpenseCsvPayload
+} {
+    return row.status === 'valid' && row.payload !== undefined
 }
 
 function buildExpenseImportRow(payload: ExpenseCsvPayload, restaurantId: string) {

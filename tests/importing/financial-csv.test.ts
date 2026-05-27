@@ -93,4 +93,21 @@ describe('parseFinancialCsvPreview', () => {
       errors: ['No se puede validar la fila porque faltan columnas obligatorias.'],
     })
   })
+
+  it('handles CSV files with UTF-8 BOM prefix', () => {
+    const result = parseFinancialCsvPreview({
+      kind: 'sales',
+      csvText: '\uFEFFdate;revenue_total\n2026-02-01;1000',
+    })
+
+    expect(result.fileErrors).toEqual([])
+    expect(result.validRows).toBe(1)
+    expect(result.rows[0]).toMatchObject({
+      status: 'valid',
+      payload: {
+        date: '2026-02-01',
+        revenue_total: 1000,
+      },
+    })
+  })
 })
