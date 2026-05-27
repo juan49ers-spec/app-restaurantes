@@ -1,7 +1,7 @@
 # 21 — Consultant Workspace
 
 **Ruta:** `/consultant`
-**Archivos clave:** `src/app/consultant/page.tsx`, `src/app/actions/consultant.ts`, `src/components/consultant/PreparationChecklist.tsx`, `src/components/consultant/ConsultantBrandingForm.tsx`, `src/components/consultant/DeliveryWorkflowPanel.tsx`, `src/components/consultant/MeetingRequestsPanel.tsx`
+**Archivos clave:** `src/app/consultant/page.tsx`, `src/app/actions/consultant.ts`, `src/lib/consultant/*`, `src/components/consultant/PreparationChecklist.tsx`, `src/components/consultant/ConsultantBrandingForm.tsx`, `src/components/consultant/DeliveryWorkflowPanel.tsx`, `src/components/consultant/MeetingRequestsPanel.tsx`
 **Transversales relacionados:** [T01](./T01-arquitectura.md), [T02](./T02-base-de-datos.md), [T03](./T03-autenticacion.md), [T06](./T06-server-actions-comunes.md), [T11](./T11-reporting-profesional.md)
 
 ## 1. Propósito y rol en el negocio
@@ -47,6 +47,14 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - `updateConsultantBranding(input)` valida nombre/email/logo con Zod y actualiza solo el restaurante activo.
 - `updateMeetingRequestStatus(input)` valida UUID + estado y actualiza solo solicitudes del restaurante activo.
 - Las fechas visibles usan helpers compartidos en `src/lib/date-format.ts` con zona horaria `Europe/Madrid`. Es una decisión temporal para España y evita errores de hidratación entre servidor y navegador.
+- El archivo de actions conserva las queries, validaciones Zod, `getUserRestaurant()` y `revalidatePath()`. La lógica pura de tipos, mappers, preparación y delivery vive en `src/lib/consultant/` para evitar que `consultant.ts` vuelva a crecer como módulo monolítico.
+
+**Lógica pura:** `src/lib/consultant/*`
+
+- `types.ts` define los contratos `ConsultantWorkspace`, `ConsultantPreparationChecklist`, `ConsultantDeliveryReport` y filas Supabase mapeadas.
+- `mappers.ts` convierte filas de `restaurants` y `professional_report_drafts` a tipos de UI.
+- `delivery.ts` calcula estados derivados de entrega (`READY_TO_PUBLISH`, `PUBLISHED`, `MEETING_REQUESTED`, `FOLLOW_UP_COMPLETE`) sin consultar Supabase.
+- `preparation.ts` calcula periodos mensuales, checklist de preparación y quality gate ligero desde el snapshot `READY` ya cargado. No hace I/O.
 
 **Client components:**
 
@@ -85,6 +93,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - **Portal cliente:** consume los informes publicados y la identidad del consultor.
 - **Base de datos:** usa `restaurants`, `professional_report_drafts` y `portal_meeting_requests`.
 - **Datos operativos:** la checklist lee conteos de `daily_sales`, `operating_expenses`, `invoices`, `employees`, `shifts`, `recipes`, `daily_recipe_sales` y `menu_reports`.
+- **Lógica compartida:** `src/lib/consultant/` mantiene helpers puros reutilizables por actions y tests. No debe importar `createClient()` ni resolver sesión.
 - **Navegación:** aparece en CORE como “Consultoría”.
 - **Futuro multi-cliente:** esta ruta es el punto natural para evolucionar hacia cartera de clientes, pero ahora respeta el modelo actual usuario/restaurante.
 
@@ -115,3 +124,4 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 4. Si se añade cartera multi-cliente, crear diseño de datos explícito antes de tocar UI.
 5. Añadir tests de action para cada nueva mutación.
 6. Probar `/consultant`, `/reports` y `/portal` juntos, porque forman un flujo único de entrega.
+7. Mantener las server actions en `src/app/actions/consultant.ts`; si crece la lógica, extraer helpers puros a `src/lib/consultant/` sin mover mutaciones a subcarpetas de actions.

@@ -29,7 +29,9 @@ describe('PortalMeetingRequestDialog', () => {
       })
     })
     expect(await screen.findByText('Solicitud enviada. Tu consultor la verá en su mesa de trabajo.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Solicitud registrada/i })).toBeDisabled()
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Solicitud registrada/i })).toBeDisabled()
+    })
   })
 
   it('shows an existing request message when the report already has an open request', async () => {
@@ -39,6 +41,8 @@ describe('PortalMeetingRequestDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /Solicitar reunión/i }))
 
     expect(await screen.findByText('Ya hay una solicitud abierta para este informe. Tu consultor la verá en su mesa de trabajo.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Solicitud registrada/i })).toBeDisabled()
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Solicitud registrada/i })).toBeDisabled()
+    })
   })
 })
