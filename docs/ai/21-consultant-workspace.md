@@ -50,7 +50,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - `ConsultantBrandingForm` mantiene estado local del formulario y llama a `updateConsultantBranding`.
 - `MeetingRequestsPanel` actualiza estado de solicitudes de forma optimista e inmutable tras respuesta correcta.
 - `PreparationChecklist` es un componente client. Recibe el checklist del mes actual como `initialChecklist` (server-rendered) y permite navegar entre meses con botones anterior/siguiente. Al cambiar mes, llama a `getPreparationChecklistForPeriod()` y actualiza estado local de forma inmutable. No permite navegar más allá del mes actual.
-- `DeliveryWorkflowPanel` es server-rendered. Recibe informes READY recientes ya cruzados con solicitudes del portal y muestra el siguiente paso: publicar desde informes, revisar portal, atender solicitud o ver entrega cerrada.
+- `DeliveryWorkflowPanel` es un componente client ligero. Recibe informes READY recientes ya cruzados con solicitudes del portal, filtra localmente por estado (`Todos`, `Abiertos`, `Publicados`, `Cerrados`) y muestra timeline visual: READY → Portal → Reunión → Cierre. No hace queries ni decide permisos.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -70,6 +70,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - El flujo de entrega es derivado, no persistido. Se calcula desde `professional_report_drafts.status`, `published_at` y `portal_meeting_requests.status`.
 - Estados del flujo de entrega: `READY_TO_PUBLISH` si el informe READY no está publicado; `PUBLISHED` si ya está visible sin solicitudes abiertas; `MEETING_REQUESTED` si el cliente pidió reunión y está pendiente/en revisión; `FOLLOW_UP_COMPLETE` si la solicitud asociada ya se completó.
 - El panel de entrega no publica ni despublica directamente. La publicación sigue viviendo en `/reports`, donde existe la revisión del snapshot y los controles internos.
+- Los filtros del flujo de entrega son solo estado de UI local. No cambian URL, no hacen queries y no alteran el estado de las solicitudes.
 - No se crea todavía una cartera multi-cliente ni una tabla `consultant_clients`.
 
 ## 5. Dependencias e implicaciones cruzadas
@@ -87,6 +88,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - Si no hay solicitudes, muestra estado vacío.
 - Si faltan datos del periodo seleccionado, la checklist marca `Pendiente` o `Revisar` y enlaza al módulo que debe resolverlo.
 - Si no hay informes READY, el flujo de entrega muestra estado vacío operativo.
+- Si un filtro del flujo no contiene entregas, muestra un estado vacío local sin alterar los datos cargados.
 - Si un informe READY no está publicado, el flujo enlaza a `/reports` con su periodo para publicarlo desde la mesa de revisión.
 - Si un informe publicado tiene solicitudes abiertas, el flujo enlaza al panel de solicitudes dentro de `/consultant`.
 - Si `getPreparationChecklistForPeriod()` falla al cambiar de mes, el componente conserva el checklist anterior sin crashear.

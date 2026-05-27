@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useMemo, useState } from 'react'
 import { CheckCircle2, Clock3, ExternalLink, FileCheck2, Send } from 'lucide-react'
 import type { ConsultantDeliveryReport, ConsultantDeliveryStatus } from '@/app/actions/consultant'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +12,8 @@ import { cn } from '@/lib/utils'
 interface DeliveryWorkflowPanelProps {
   reports: ConsultantDeliveryReport[]
 }
+
+type DeliveryFilter = 'all' | 'open' | 'published' | 'closed'
 
 const STATUS_COPY: Record<ConsultantDeliveryStatus, { label: string; className: string; icon: typeof FileCheck2 }> = {
   READY_TO_PUBLISH: {
@@ -33,6 +38,20 @@ const STATUS_COPY: Record<ConsultantDeliveryStatus, { label: string; className: 
   },
 }
 
+const FILTER_COPY: Record<DeliveryFilter, string> = {
+  all: 'Todos',
+  open: 'Abiertos',
+  published: 'Publicados',
+  closed: 'Cerrados',
+}
+
+const TIMELINE_STEPS = [
+  { id: 'ready', label: 'READY' },
+  { id: 'published', label: 'Portal' },
+  { id: 'requested', label: 'Reunion' },
+  { id: 'closed', label: 'Cierre' },
+] as const
+
 function buildStatusDetail(report: ConsultantDeliveryReport) {
   if (report.status === 'READY_TO_PUBLISH') return 'El informe esta marcado como READY y pendiente de publicacion.'
   if (report.status === 'MEETING_REQUESTED') return `${report.openRequestCount} solicitud(es) abiertas del cliente.`
@@ -40,7 +59,72 @@ function buildStatusDetail(report: ConsultantDeliveryReport) {
   return report.publishedAt ? `Visible en portal desde ${formatDateEs(report.publishedAt)}.` : 'Visible en portal.'
 }
 
+function isStepComplete(report: ConsultantDeliveryReport, step: typeof TIMELINE_STEPS[number]['id']) {
+  if (step === 'ready') return true
+  if (step === 'published') return report.status !== 'READY_TO_PUBLISH'
+  if (step === 'requested') return report.status === 'MEETING_REQUESTED' || report.status === 'FOLLOW_UP_COMPLETE'
+  return report.status === 'FOLLOW_UP_COMPLETE'
+}
+
+function isStepActive(report: ConsultantDeliveryReport, step: typeof TIMELINE_STEPS[number]['id']) {
+  if (report.status === 'READY_TO_PUBLISH') return step === 'ready'
+  if (report.status === 'PUBLISHED') return step === 'published'
+  if (report.status === 'MEETING_REQUESTED') return step === 'requested'
+  return step === 'closed'
+}
+
+function matchesFilter(report: ConsultantDeliveryReport, filter: DeliveryFilter) {
+  if (filter === 'all') return true
+  if (filter === 'open') return report.status === 'READY_TO_PUBLISH' || report.status === 'MEETING_REQUESTED'
+  if (filter === 'published') return report.status === 'PUBLISHED'
+  return report.status === 'FOLLOW_UP_COMPLETE'
+}
+
+function filterCount(reports: ConsultantDeliveryReport[], filter: DeliveryFilter) {
+  return reports.filter(report => matchesFilter(report, filter)).length
+}
+
+function DeliveryTimeline({ report }: { report: ConsultantDeliveryReport }) {
+  return (
+    <div className="mt-4 grid grid-cols-4 gap-2">
+      {TIMELINE_STEPS.map((step, index) => {
+        const complete = isStepComplete(report, step.id)
+        const active = isStepActive(report, step.id)
+
+        return (
+          <div key={step.id} className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <span
+                className={cn(
+                  'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold',
+                  complete ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-400',
+                  active && 'ring-2 ring-slate-300 ring-offset-2'
+                )}
+              >
+                {index + 1}
+              </span>
+              <span className={cn('truncate text-xs font-medium', complete ? 'text-slate-800' : 'text-slate-400')}>
+                {step.label}
+              </span>
+            </div>
+            {index < TIMELINE_STEPS.length - 1 && (
+              <span className={cn('hidden h-px flex-1 sm:block', complete ? 'bg-slate-300' : 'bg-slate-100')} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function DeliveryWorkflowPanel({ reports }: DeliveryWorkflowPanelProps) {
+  const [filter, setFilter] = useState<DeliveryFilter>('all')
+  const visibleReports = useMemo(
+    () => reports.filter(report => matchesFilter(report, filter)),
+    [filter, reports]
+  )
+  const priorityCount = filterCount(reports, 'open')
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -51,23 +135,57 @@ export function DeliveryWorkflowPanel({ reports }: DeliveryWorkflowPanelProps) {
             Vista operativa del camino: guardar READY, publicar en portal, recibir solicitud y cerrar seguimiento.
           </p>
         </div>
-        <Badge variant="secondary" className="w-fit rounded-md">
-          {reports.length} entregas
-        </Badge>
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          <Badge variant="secondary" className="w-fit rounded-md">
+            {reports.length} entregas
+          </Badge>
+          {priorityCount > 0 && (
+            <Badge variant="outline" className="w-fit rounded-md border-amber-200 bg-amber-50 text-amber-700">
+              {priorityCount} requieren accion
+            </Badge>
+          )}
+        </div>
       </div>
+
+      {reports.length > 0 && (
+        <div className="mt-5 flex flex-wrap gap-2">
+          {(Object.keys(FILTER_COPY) as DeliveryFilter[]).map(item => (
+            <Button
+              key={item}
+              type="button"
+              size="sm"
+              variant={filter === item ? 'default' : 'outline'}
+              onClick={() => setFilter(item)}
+            >
+              {FILTER_COPY[item]} ({filterCount(reports, item)})
+            </Button>
+          ))}
+        </div>
+      )}
 
       <div className="mt-5 grid gap-3">
         {reports.length === 0 ? (
           <div className="rounded-md border border-dashed border-slate-200 p-5 text-sm text-slate-500">
             Aun no hay informes READY para iniciar una entrega al cliente.
           </div>
+        ) : visibleReports.length === 0 ? (
+          <div className="rounded-md border border-dashed border-slate-200 p-5 text-sm text-slate-500">
+            No hay entregas en este filtro.
+          </div>
         ) : (
-          reports.map(report => {
+          visibleReports.map(report => {
             const status = STATUS_COPY[report.status]
             const Icon = status.icon
+            const needsAction = report.status === 'READY_TO_PUBLISH' || report.status === 'MEETING_REQUESTED'
 
             return (
-              <article key={report.id} className="rounded-md border border-slate-200 p-4">
+              <article
+                key={report.id}
+                className={cn(
+                  'rounded-md border p-4',
+                  needsAction ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200'
+                )}
+              >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -82,6 +200,7 @@ export function DeliveryWorkflowPanel({ reports }: DeliveryWorkflowPanelProps) {
                     <p className="mt-2 text-sm text-slate-600">
                       Version {report.version} · {buildStatusDetail(report)}
                     </p>
+                    <DeliveryTimeline report={report} />
                   </div>
 
                   <div className="flex flex-wrap gap-2 lg:justify-end">
