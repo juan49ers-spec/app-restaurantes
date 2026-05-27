@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import dynamic from "next/dynamic"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { DailySalesForm } from "@/components/financial-control/DailySalesForm"
+import { FinancialCsvImportPanel } from "@/components/financial-control/FinancialCsvImportPanel"
 import { Button } from "@/components/ui/button"
 import { MonthlyPerformanceWidget } from "@/components/financial-control/MonthlyPerformanceWidget"
 
@@ -150,6 +151,8 @@ export function FinancialControlClient({
                     </button>
                 </div>
             </div>
+
+            <FinancialCsvImportPanel />
 
             {/* Dynamic Content Area */}
             <AnimatePresence mode="wait">
