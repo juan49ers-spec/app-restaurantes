@@ -1,11 +1,11 @@
-import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getCurrentRestaurant } from '@/app/actions/user'
 import { formatPortalKpiValue, formatPortalMetricValue } from '@/components/portal/format'
+import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
+import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
-import { Button } from '@/components/ui/button'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
-import { buildPortalContextFallback, getPortalContextForRestaurant, getPublishedReportDetailForRestaurant } from '@/lib/portal'
+import { getPublishedReportDetailForRestaurant } from '@/lib/portal'
 import type { ProfessionalReportSection } from '@/lib/reporting'
 
 interface PortalReportDetailPageProps {
@@ -22,16 +22,8 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
   const { id } = await params
   const restaurant = await getCurrentRestaurant()
   if (!restaurant) redirect('/login')
-  const restaurantWithConsultant = restaurant as typeof restaurant & {
-    consultant_name?: string | null
-    consultant_email?: string | null
-    consultant_logo_url?: string | null
-  }
 
-  const [detailRes, contextRes] = await Promise.all([
-    getPublishedReportDetailForRestaurant(id, restaurant.id),
-    getPortalContextForRestaurant(restaurant.id),
-  ])
+  const detailRes = await getPublishedReportDetailForRestaurant(id, restaurant.id)
 
   if (!detailRes.success || !detailRes.data) {
     notFound()
@@ -40,32 +32,17 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
   const draft = detailRes.data
   const report = draft.report
   const presentation = buildProfessionalReportPresentation(report)
-  const context = contextRes.data ?? buildPortalContextFallback({
-    restaurantId: restaurant.id,
-    restaurantName: restaurant.name,
-    consultantName: restaurantWithConsultant.consultant_name,
-    consultantEmail: restaurantWithConsultant.consultant_email,
-    consultantLogoUrl: restaurantWithConsultant.consultant_logo_url,
-  })
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="space-y-6">
-        <header className="rounded-lg border border-slate-200 bg-white p-6">
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            {context.consultantName ?? 'Informe publicado'}
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold text-slate-950">{presentation.title}</h1>
-          <p className="mt-2 text-sm text-slate-600">{presentation.periodLabel} · Versión {draft.version}</p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Button asChild variant="outline">
-              <Link href="/portal">Volver al portal</Link>
-            </Button>
-            <Button asChild>
-              <Link href={`/reports/print/${draft.id}`} target="_blank" rel="noreferrer">Descargar PDF</Link>
-            </Button>
-          </div>
-        </header>
+        <PortalExecutiveBrief
+          presentation={presentation}
+          reportId={draft.id}
+          version={draft.version}
+          status={draft.status}
+          mode="detail"
+        />
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {presentation.kpis.map(kpi => (
@@ -95,7 +72,7 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
             .filter((section): section is ProfessionalReportSection => Boolean(section))
 
           return (
-            <section key={chapter.id} className="rounded-lg border border-slate-200 bg-white p-6">
+            <section id={`chapter-${chapter.id}`} key={chapter.id} className="scroll-mt-24 rounded-lg border border-slate-200 bg-white p-6">
               <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{chapter.label}</p>
               <h2 className="mt-2 text-2xl font-semibold text-slate-950">{chapter.title}</h2>
               <p className="mt-2 text-sm text-slate-600">{chapter.subtitle}</p>
@@ -136,11 +113,19 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
       </div>
 
       <aside className="space-y-4">
-        <PortalMeetingRequestDialog reportId={draft.id} />
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <p className="text-sm font-semibold text-slate-950">Calidad del informe</p>
-          <p className="mt-3 text-3xl font-semibold text-slate-950">{report.quality.confidence}%</p>
-          <p className="mt-2 text-sm text-slate-600">{report.quality.status}</p>
+        <div className="lg:sticky lg:top-6">
+          <div className="space-y-4">
+            <PortalChapterNavigation chapters={presentation.chapters} />
+            <PortalMeetingRequestDialog reportId={draft.id} />
+            <div className="rounded-lg border border-slate-200 bg-white p-5">
+              <p className="text-sm font-semibold text-slate-950">Calidad del informe</p>
+              <p className="mt-3 text-3xl font-semibold text-slate-950">{report.quality.confidence}%</p>
+              <p className="mt-2 text-sm text-slate-600">{report.quality.status}</p>
+              <p className="mt-3 text-xs leading-5 text-slate-500">
+                Esta calidad pertenece al snapshot publicado. El portal no recalcula datos vivos del informe.
+              </p>
+            </div>
+          </div>
         </div>
       </aside>
     </main>

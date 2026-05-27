@@ -13,11 +13,12 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 ## 2. Viaje del usuario
 
 1. El usuario entra en `/portal`.
-2. Ve el último informe publicado, KPIs ejecutivos, conclusiones y acceso al PDF.
+2. Ve una portada ejecutiva del último informe publicado: lectura principal, KPIs destacados, prioridades de revisión y acceso al PDF.
 3. Puede abrir el detalle web del informe.
-4. Puede consultar el histórico de informes publicados.
-5. Puede solicitar una reunión de revisión.
-6. Puede volver a ControlHub para operar la app interna.
+4. En el detalle, navega por capítulos mediante anclas internas sin salir del portal.
+5. Puede consultar el histórico de informes publicados.
+6. Puede solicitar una reunión de revisión.
+7. Puede volver a ControlHub para operar la app interna.
 
 ## 3. Flujo técnico de datos
 
@@ -26,6 +27,13 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Usa `getCurrentRestaurant()` para validar restaurante activo y mostrar identidad del consultor.
 - Si no hay restaurante, redirige a `/login`.
 - Renderiza una cabecera limpia sin sidebar operativo, con nombre/logo del consultor cuando existen.
+
+**Componentes premium:** `src/components/portal/*`
+
+- `PortalExecutiveBrief` renderiza una portada ejecutiva reutilizable para `/portal` y `/portal/reports/[id]`. Consume `ProfessionalReportPresentation`, no consulta datos y no recalcula el informe.
+- La lectura principal prioriza conclusiones `critical` o `warning` antes que positivas, porque el portal debe destacar lo que requiere atención del cliente.
+- `PortalChapterNavigation` renderiza navegación accesible por capítulos usando anclas `#chapter-{id}` en el detalle.
+- `PortalReportSummary` mantiene el histórico publicado con enlaces al detalle web y PDF imprimible.
 
 **Actions:** `src/app/actions/portal.ts`
 
@@ -61,13 +69,15 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - No se crean duplicados si el cliente vuelve a pulsar "Solicitar reunión" para el mismo informe mientras haya una solicitud `PENDING` o `ACKNOWLEDGED`.
 - La solicitud aparece en `/consultant` para seguimiento del consultor.
 - Los enlaces PDF desde el portal abren la vista imprimible en una pestaña nueva para no sacar al cliente del área limpia.
+- La portada ejecutiva del portal muestra solo una lectura principal y una selección de KPIs/prioridades. El detalle completo vive en `/portal/reports/[id]`.
+- La navegación por capítulos del detalle es solo UI local basada en `presentation.chapters`; no cambia URL de datos ni dispara queries nuevas.
 - `restaurant_id` nunca viaja desde cliente.
 
 ## 5. Dependencias e implicaciones cruzadas
 
 - **Reports:** `/reports` publica o despublica versiones.
 - **Consultant Workspace:** `/consultant` gestiona solicitudes de reunión e identidad del consultor.
-- **Reporting profesional:** el portal usa `ProfessionalRestaurantReport` y `buildProfessionalReportPresentation()`.
+- **Reporting profesional:** el portal usa `ProfessionalRestaurantReport` y `buildProfessionalReportPresentation()`. Los componentes premium consumen la presentación ya derivada y no acceden a Supabase.
 - **Financial Control:** aporta ventas diarias y objetivos mensuales para el dato vivo.
 - **Base de datos:** depende de `professional_report_drafts`, `restaurants` y `portal_meeting_requests`.
 - **Layout:** `AppLayout` exime `/portal` para no mostrar sidebar operativo.
@@ -82,6 +92,8 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si falla una solicitud de reunión, el formulario muestra error sin romper el portal.
 - Si ya existe una solicitud abierta para el informe, el formulario informa al cliente y no inserta otra fila.
 - Si una versión se despublica mientras el cliente la ve, una recarga deja de mostrarla.
+- Si el informe tiene conclusiones con tono `warning` o `critical`, la portada las muestra antes que una lectura positiva para orientar la revisión con el consultor.
+- Si un capítulo no tiene secciones disponibles en el snapshot, la navegación puede seguir mostrando el capítulo por contrato de presentación, pero el detalle solo renderiza secciones existentes.
 
 ## 7. Al añadir/modificar una función aquí
 

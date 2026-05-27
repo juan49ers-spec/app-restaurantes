@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentRestaurant } from '@/app/actions/user'
 import { formatPortalKpiValue } from '@/components/portal/format'
+import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
 import { PortalReportSummary } from '@/components/portal/PortalReportSummary'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
 import { buildPortalContextFallback, getPortalContextForRestaurant, getPublishedReportDetailForRestaurant, getPublishedReportsForRestaurant } from '@/lib/portal'
@@ -56,34 +56,13 @@ export default async function PortalPage() {
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Último informe publicado</p>
-              <h1 className="mt-3 text-3xl font-semibold text-slate-950">{presentation.title}</h1>
-              <p className="mt-2 text-sm text-slate-600">{presentation.periodLabel}</p>
-            </div>
-            <Badge variant="secondary" className="rounded-md">{detail.status}</Badge>
-          </div>
-
-          <div className="mt-6 grid gap-3">
-            {presentation.conclusions.slice(0, 3).map(conclusion => (
-              <div key={conclusion.id} className="rounded-md bg-slate-50 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-950">{conclusion.title}</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">{conclusion.body}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href={`/portal/reports/${latest.id}`}>Ver informe</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/reports/print/${latest.id}`} target="_blank" rel="noreferrer">Descargar PDF</Link>
-            </Button>
-          </div>
-        </div>
+        <PortalExecutiveBrief
+          presentation={presentation}
+          reportId={latest.id}
+          version={detail.version}
+          status={detail.status}
+          mode="home"
+        />
 
         <PortalMeetingRequestDialog reportId={latest.id} />
       </section>
