@@ -24,7 +24,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 10. Si no hay bloqueos criticos, puede pulsar "Guardar listo para publicar" para crear una version `READY`.
 11. Cuando una version esta `READY`, puede publicarla en el portal cliente si el quality gate del snapshot no detecta bloqueos criticos.
 12. Desde "Versiones" abre "Exportar", que lleva a `/reports/print/[draftId]`.
-13. En la vista imprimible pulsa "Imprimir / guardar PDF" para usar el dialogo nativo del navegador.
+13. En la vista imprimible pulsa "Guardar PDF / imprimir" para usar el dialogo nativo del navegador.
 
 ## 3. Flujo tecnico de datos
 
@@ -54,8 +54,8 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 
 - Carga una version guardada con `getSavedProfessionalReportDraft(draftId)`.
 - Carga `getCurrentRestaurant()` para incorporar la marca visible del consultor (`consultant_name`, `consultant_email`, `consultant_logo_url`) sin modificar el snapshot.
-- Renderiza `ProfessionalReportPrintDocument`, un documento HTML imprimible con portada, KPIs ejecutivos, índice, conclusiones numeradas, capitulos, metricas, incidencias, narrativas revisadas y anexo de calidad de dato.
-- Usa `PrintReportButton` para marcar `exported_at` y abrir `window.print()`.
+- Renderiza `ProfessionalReportPrintDocument`, un documento HTML imprimible con portada, KPIs ejecutivos, bloque de referencia, índice, conclusiones numeradas, capitulos, metricas, incidencias, narrativas revisadas, pie de documento imprimible y anexo de calidad de dato.
+- Usa `PrintReportButton` para marcar `exported_at` y abrir `window.print()` con `try/finally`, de forma que el botón no quede bloqueado si la marca de exportación falla inesperadamente.
 
 **Persistencia:** `professional_report_drafts`
 

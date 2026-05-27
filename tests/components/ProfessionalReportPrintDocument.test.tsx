@@ -84,8 +84,10 @@ describe('ProfessionalReportPrintDocument', () => {
     )
 
     expect(screen.getByText('Casa Juan')).toBeInTheDocument()
-    expect(screen.getByText('ControlHub Consulting')).toBeInTheDocument()
+    expect(screen.getAllByText('ControlHub Consulting')).toHaveLength(2)
     expect(screen.getByText(/consultor@controlhub.es/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Casa Juan · 2026-02-01 a 2026-02-28 · v3/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Calidad:/)).toBeInTheDocument()
     expect(screen.getByText('Índice')).toBeInTheDocument()
     expect(screen.getByText('Conclusiones ejecutivas')).toBeInTheDocument()
     expect(screen.getByText('Anexo de calidad de dato')).toBeInTheDocument()

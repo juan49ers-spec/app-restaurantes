@@ -73,7 +73,7 @@ Desde Fase 9, la publicación al cliente es explícita: `status = READY` solo in
 - La UI muestra calidad global, evidencias, incidencias y metricas.
 - La UI muestra la capa ejecutiva previa a exportacion.
 - La narrativa es editable y puede persistirse como override por seccion.
-- La ruta `/reports/print/[draftId]` renderiza el snapshot guardado mediante `ProfessionalReportPrintDocument`. La salida HTML imprimible incluye portada con marca del consultor, KPIs, índice, conclusiones, capítulos, métricas, incidencias y anexo de calidad de dato.
+- La ruta `/reports/print/[draftId]` renderiza el snapshot guardado mediante `ProfessionalReportPrintDocument`. La salida HTML imprimible incluye portada con marca del consultor, bloque de referencia/version, KPIs, índice, conclusiones, capítulos, métricas, incidencias, pie imprimible y anexo de calidad de dato.
 
 **Seed demo de verificacion:** `src/app/actions/seed-professional-report-demo.ts`.
 

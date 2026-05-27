@@ -64,6 +64,7 @@ export function ProfessionalReportPrintDocument({
   const presentation = buildProfessionalReportPresentation(report)
   const consultantName = branding?.consultantName || 'ControlHub'
   const consultantEmail = branding?.consultantEmail
+  const documentReference = `${report.restaurant.name} · ${presentation.periodLabel} · v${draft.version}`
 
   return (
     <article className="mx-auto max-w-5xl bg-white px-8 py-10 shadow-sm print-document print:px-0 print:shadow-none">
@@ -103,9 +104,21 @@ export function ProfessionalReportPrintDocument({
             bottom: 0;
             left: 0;
             right: 0;
+            padding-top: 8px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 10px;
+            color: #64748b;
+            background: white;
           }
         }
       `}</style>
+
+      <div className="hidden print-footer print:block">
+        <div className="flex items-center justify-between gap-4">
+          <span>{documentReference}</span>
+          <span>{consultantName}</span>
+        </div>
+      </div>
 
       <header className="print-page relative overflow-hidden border-b border-slate-300 pb-10">
         <div className="absolute right-0 top-0 h-36 w-36 border-r-8 border-t-8 border-emerald-700" aria-hidden="true" />
@@ -149,6 +162,11 @@ export function ProfessionalReportPrintDocument({
       </header>
 
       <section className="print-page border-b border-slate-200 py-10">
+        <div className="mb-8 grid gap-3 border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 sm:grid-cols-3">
+          <p><span className="font-semibold text-slate-950">Referencia:</span> {documentReference}</p>
+          <p><span className="font-semibold text-slate-950">Estado:</span> {draft.status}</p>
+          <p><span className="font-semibold text-slate-950">Calidad:</span> {report.quality.confidence}% · {report.quality.status}</p>
+        </div>
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Resumen ejecutivo</p>
         <h2 className="mt-4 text-3xl font-semibold leading-tight text-slate-950">
           {report.executiveSummary.headline}
