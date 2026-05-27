@@ -17,6 +17,7 @@ Inventario operativo en tiempo real. Cuántas unidades tengo de cada ingrediente
    - Botón "Inicializar Stock" — crea filas faltantes en `inventory_stock` para ingredientes que aún no la tienen.
    - Botón "Entrada Manual" → `ManualStockEntryDialog` para añadir stock no vinculado a una factura.
 3. **Tab "Ventas del Día":**
+   - `RecipeSalesCsvImportPanel`: importa ventas por receta desde CSV para alimentar informes y Menu Engineering sin descontar stock.
    - `DailyRecipeSalesForm`: selecciona fecha, añade recetas con cantidades vendidas.
    - Botón "Preview de Impacto" → `previewStockImpact`: muestra qué ingredientes consumiría sin guardar.
    - Botón "Procesar" → `processRecipeSales`: RPC atómico que explota recetas en consumo, deduce stock, registra movimientos.
@@ -29,8 +30,10 @@ Inventario operativo en tiempo real. Cuántas unidades tengo de cada ingrediente
 - `getRecipesForSales(restaurantId)` — dropdown de recetas.
 - `getIngredientConsumption(recipeId, qty)` — explota receta recursivamente (hasta 5 niveles) en ingredientes maestros.
 - `previewStockImpact(restaurantId, date, sales[])` — calcula sin escribir.
+- `validateRecipeSalesCsvImport({ csvText })` — preflight server-side para CSV de ventas por receta. Revalida parser, resuelve `restaurant_id`, cruza `recipe_id`/`recipe_name` contra `recipes` del restaurante y detecta duplicados existentes en `daily_recipe_sales`.
 
 **Escritura:**
+- `importRecipeSalesCsv({ csvText })` — importa filas en `daily_recipe_sales` con `restaurant_id` server-side. No llama al RPC de stock y no descuenta inventario; está pensado para carga histórica/consultoría, informes y Menu Engineering.
 - `upsertStock(ingredientId, current_qty, min_qty)` — edición inline.
 - `processRecipeSales(restaurantId, date, sales[])` — RPC atómico `process_daily_sales_atomic`. Atómicamente:
   - Para cada receta vendida, explota a ingredientes (con sub-recetas y waste).
@@ -50,6 +53,7 @@ Inventario operativo en tiempo real. Cuántas unidades tengo de cada ingrediente
 - **No-negativos:** `increment_inventory_stock` usa `GREATEST(0, current_qty + delta)` (o equivalente). Stock nunca queda < 0.
 - **`min_qty`:** umbral configurable por ingrediente. Si `current_qty < min_qty` → alerta rojo en dashboard.
 - **RPC atómico:** `process_daily_sales_atomic` garantiza que TODAS las deducciones se aplican o NINGUNA. Si una falla (ingrediente faltante, etc.), rollback completo.
+- **CSV histórico sin stock:** `importRecipeSalesCsv()` escribe `daily_recipe_sales` pero no crea `stock_movements` ni toca `inventory_stock`. Sirve para preparar informes históricos sin alterar el stock actual. Para descontar stock operativo, usar `processRecipeSales()`.
 - **Explosión de receta:** hasta 5 niveles de sub-recetas. Más profundo → corte silencioso (riesgo de subestimar consumo).
 - **Yield factor:** se respeta — `quantity_net = quantity_gross * yield_factor` al consumir.
 - **Fallback de RPC:** si `increment_inventory_stock` falla, hay un path de update manual en `stock-actions.ts` (líneas ~425-448).
@@ -75,6 +79,7 @@ Inventario operativo en tiempo real. Cuántas unidades tengo de cada ingrediente
 - **Inicializar stock 2 veces:** la función debe ser idempotente (no duplica filas).
 - **Receta con sub-receta circular** (A usa B y B usa A): bucle infinito en explosión. No hay detección actual.
 - **Cambiar `quantity_sold` en una venta ya procesada:** no se revierte automáticamente. Hay que registrar un movimiento de ajuste manual.
+- **Importar CSV de un día ya registrado:** se bloquea si ya existe `(restaurant_id, date, recipe_id)` para evitar sobrescrituras accidentales. El usuario debe corregir el CSV o revisar el día manualmente.
 - **Borrar movimiento de stock:** no implementado en UI; tendría que ajustarse `current_qty` manualmente al borrar.
 - **Stock no inicializado:** si un ingrediente no tiene fila en `inventory_stock`, el dashboard no lo muestra. "Inicializar Stock" lo crea.
 - **Eliminar ingrediente con stock:** soft delete del ingrediente deja la fila `inventory_stock` huérfana visualmente (no se ve).

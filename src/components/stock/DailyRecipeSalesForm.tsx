@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 
 import { processRecipeSales, getRecipesForSales, getDailyRecipeSales, previewStockImpact } from "@/app/actions/stock-actions"
 import { AlertTriangle, ArrowRight } from "lucide-react"
+import { RecipeSalesCsvImportPanel } from "@/components/stock/RecipeSalesCsvImportPanel"
 
 interface RecipeOption {
     id: string
@@ -134,6 +135,8 @@ export function DailyRecipeSalesForm() {
 
     return (
         <div className="space-y-6">
+            <RecipeSalesCsvImportPanel />
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">

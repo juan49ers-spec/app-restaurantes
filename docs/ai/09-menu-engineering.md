@@ -13,6 +13,7 @@ Analizar la rentabilidad y popularidad de los platos del menú para tomar decisi
 1. Entra a `/menu-engineering`. Ve lista de reportes (DRAFT y ANALYZED).
 2. **Crear** → `/menu-engineering/new`. Indica nombre y opcionalmente rango de fechas.
    - Si das fechas: el sistema lee `daily_recipe_sales` y precarga cantidades vendidas por receta.
+   - `daily_recipe_sales` puede venir del flujo operativo de `/stock` o de la importación CSV histórica de ventas por receta.
    - Si no: tienes que rellenar las cantidades a mano.
    - Snapshots: para cada receta activa, guarda `cost_per_unit` y `price_per_unit` del momento.
 3. Navega a `/menu-engineering/[id]`. Ve `SalesInputGrid` con las recetas y sus cantidades editables.
@@ -79,7 +80,7 @@ Clasificación:
 - **Tablas:** `menu_reports`, `menu_report_items`, `recipes` (lectura snapshot), `daily_recipe_sales` (lectura opcional).
 - **Otras páginas afectadas:**
   - `/recipes` — cambios de coste/precio NO afectan reportes ya creados (snapshots).
-  - `/stock` — `daily_recipe_sales` se rellena allí cuando el usuario registra ventas por receta.
+  - `/stock` — `daily_recipe_sales` se rellena allí cuando el usuario registra ventas por receta o importa CSV histórico. La importación CSV no descuenta stock; solo alimenta análisis.
   - `/financial-control` — `total_sales` del reporte debería cuadrar con `revenue_total` del mismo rango (no se cruza automáticamente).
   - `/reports` — consume snapshots `ANALYZED` para la seccion `menu_engineering`, sin recalcular ni aceptar datos de cliente.
 - **Transversales:**

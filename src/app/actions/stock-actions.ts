@@ -4,6 +4,25 @@ import { createClient } from "@/lib/supabaseServer"
 import { getUserRestaurant } from "./utils"
 import { revalidatePath } from "next/cache"
 import { RecipeIngredient } from "@/types/schema"
+import { z } from "zod"
+import {
+    parseRecipeSalesCsvPreview,
+    type RecipeSalesCsvPayload,
+} from "@/lib/importing/recipe-sales-csv"
+
+const RecipeSalesCsvImportSchema = z.object({
+    csvText: z.string().min(1, 'CSV vacío'),
+})
+
+type RecipeSalesCsvPreflight = {
+    canImport: boolean
+    existingRows: {
+        key: string
+        rowNumbers: number[]
+        message: string
+    }[]
+    summary: ReturnType<typeof parseRecipeSalesCsvPreview>['summary']
+}
 
 type IngredientData = {
     id: string
@@ -19,6 +38,236 @@ function isIngredientData(data: unknown): data is IngredientData {
         typeof d.name === 'string' &&
         (d.base_unit === 'kg' || d.base_unit === 'l' || d.base_unit === 'u')
     )
+}
+
+export async function validateRecipeSalesCsvImport(input: z.input<typeof RecipeSalesCsvImportSchema>): Promise<{
+    success: boolean
+    data?: RecipeSalesCsvPreflight
+    error?: string
+}> {
+    const parsed = RecipeSalesCsvImportSchema.safeParse(input)
+    if (!parsed.success) return { success: false, error: 'CSV inválido.' }
+
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return { success: false, error: 'No hay restaurante activo para importar ventas por receta.' }
+
+    const preview = parseRecipeSalesCsvPreview(parsed.data)
+    const validationError = recipeSalesCsvValidationError(preview)
+    if (validationError) return { success: false, error: validationError }
+
+    const supabase = await createClient()
+    const resolved = await resolveRecipeSalesRows(supabase, preview, restaurantId)
+    if (!resolved.success) return { success: false, error: resolved.error }
+
+    const existingRows = await safeFindExistingRecipeSalesRows(supabase, preview, resolved.rows, resolved.recipeNames, restaurantId)
+    if (!existingRows.success) return { success: false, error: existingRows.error }
+
+    return {
+        success: true,
+        data: {
+            canImport: existingRows.rows.length === 0,
+            existingRows: existingRows.rows,
+            summary: preview.summary,
+        },
+    }
+}
+
+export async function importRecipeSalesCsv(input: z.input<typeof RecipeSalesCsvImportSchema>): Promise<{
+    success: boolean
+    data?: {
+        importedRows: number
+        summary: ReturnType<typeof parseRecipeSalesCsvPreview>['summary']
+    }
+    error?: string
+}> {
+    const parsed = RecipeSalesCsvImportSchema.safeParse(input)
+    if (!parsed.success) return { success: false, error: 'CSV inválido.' }
+
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return { success: false, error: 'No hay restaurante activo para importar ventas por receta.' }
+
+    const preview = parseRecipeSalesCsvPreview(parsed.data)
+    const validationError = recipeSalesCsvValidationError(preview)
+    if (validationError) return { success: false, error: validationError }
+
+    const supabase = await createClient()
+    const resolved = await resolveRecipeSalesRows(supabase, preview, restaurantId)
+    if (!resolved.success) return { success: false, error: resolved.error }
+
+    const existingRows = await safeFindExistingRecipeSalesRows(supabase, preview, resolved.rows, resolved.recipeNames, restaurantId)
+    if (!existingRows.success) return { success: false, error: existingRows.error }
+
+    if (existingRows.rows.length > 0) {
+        return { success: false, error: 'El CSV contiene ventas por receta que ya existen. Revisa duplicados antes de importar.' }
+    }
+
+    const rows = resolved.rows.map(row => ({
+        restaurant_id: restaurantId,
+        date: row.date,
+        recipe_id: row.recipe_id,
+        quantity_sold: row.quantity_sold,
+    }))
+
+    const { data, error } = await supabase
+        .from('daily_recipe_sales')
+        .upsert(rows, { onConflict: 'restaurant_id,date,recipe_id' })
+        .select()
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath('/stock')
+    revalidatePath('/menu-engineering')
+    revalidatePath('/reports')
+    revalidatePath('/consultant')
+
+    return {
+        success: true,
+        data: {
+            importedRows: Array.isArray(data) ? data.length : rows.length,
+            summary: preview.summary,
+        },
+    }
+}
+
+function recipeSalesCsvValidationError(preview: ReturnType<typeof parseRecipeSalesCsvPreview>) {
+    if (preview.fileErrors.length > 0 || preview.invalidRows > 0) {
+        return 'El CSV contiene errores. Revisa el preview antes de importar.'
+    }
+
+    if (preview.duplicates.length > 0) {
+        return 'El CSV contiene duplicados internos. Revisa el preview antes de importar.'
+    }
+
+    if (preview.validRows === 0) {
+        return 'El CSV no contiene ventas válidas.'
+    }
+
+    return null
+}
+
+type ResolvedRecipeSale = {
+    date: string
+    recipe_id: string
+    quantity_sold: number
+    rowNumber: number
+}
+
+async function resolveRecipeSalesRows(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    preview: ReturnType<typeof parseRecipeSalesCsvPreview>,
+    restaurantId: string,
+): Promise<{
+    success: true
+    rows: ResolvedRecipeSale[]
+    recipeNames: Map<string, string>
+} | { success: false; error: string }> {
+    const validRows = preview.rows.filter((row): row is typeof row & { payload: RecipeSalesCsvPayload } =>
+        row.status === 'valid' && row.payload !== undefined
+    )
+
+    const { data, error } = await supabase
+        .from('recipes')
+        .select('id, name')
+        .eq('restaurant_id', restaurantId)
+
+    if (error) return { success: false, error: error.message }
+
+    const recipes = (data ?? []) as { id: string; name: string }[]
+    const recipesById = new Map(recipes.map(recipe => [recipe.id, recipe]))
+    const recipesByName = new Map(recipes.map(recipe => [normalizeRecipeName(recipe.name), recipe]))
+    const recipeNames = new Map(recipes.map(recipe => [recipe.id, recipe.name]))
+    const rows: ResolvedRecipeSale[] = []
+
+    for (const row of validRows) {
+        const payload = row.payload
+        const recipe = payload.recipe_id
+            ? recipesById.get(payload.recipe_id)
+            : recipesByName.get(normalizeRecipeName(payload.recipe_name ?? ''))
+
+        if (!recipe) {
+            return { success: false, error: 'El CSV contiene recetas que no existen en este restaurante.' }
+        }
+
+        rows.push({
+            date: payload.date,
+            recipe_id: recipe.id,
+            quantity_sold: payload.quantity_sold,
+            rowNumber: row.rowNumber,
+        })
+    }
+
+    return { success: true, rows, recipeNames }
+}
+
+async function findExistingRecipeSalesRows(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    preview: ReturnType<typeof parseRecipeSalesCsvPreview>,
+    rows: ResolvedRecipeSale[],
+    recipeNames: Map<string, string>,
+    restaurantId: string,
+) {
+    const dates = [...new Set(rows.map(row => row.date))]
+    const recipeIds = [...new Set(rows.map(row => row.recipe_id))]
+
+    const { data, error } = await supabase
+        .from('daily_recipe_sales')
+        .select('date, recipe_id')
+        .eq('restaurant_id', restaurantId)
+        .in('date', dates)
+        .in('recipe_id', recipeIds)
+
+    if (error) throw new Error(error.message)
+
+    const rowNumbersByKey = new Map(rows.map(row => [`${row.date}|${row.recipe_id}`, [row.rowNumber]]))
+    const csvKeys = new Set(rowNumbersByKey.keys())
+
+    return ((data ?? []) as { date: string; recipe_id: string }[])
+        .filter(row => csvKeys.has(`${row.date}|${row.recipe_id}`))
+        .map(row => {
+            const key = `${row.date}|${row.recipe_id}`
+            return {
+                key,
+                rowNumbers: rowNumbersByKey.get(key) ?? rowNumbersForResolvedKey(preview, row.date, row.recipe_id),
+                message: `Ya existen ventas para ${recipeNames.get(row.recipe_id) ?? row.recipe_id} el ${row.date}.`,
+            }
+        })
+}
+
+async function safeFindExistingRecipeSalesRows(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    preview: ReturnType<typeof parseRecipeSalesCsvPreview>,
+    rows: ResolvedRecipeSale[],
+    recipeNames: Map<string, string>,
+    restaurantId: string,
+): Promise<{
+    success: true
+    rows: Awaited<ReturnType<typeof findExistingRecipeSalesRows>>
+} | { success: false; error: string }> {
+    try {
+        return {
+            success: true,
+            rows: await findExistingRecipeSalesRows(supabase, preview, rows, recipeNames, restaurantId),
+        }
+    } catch {
+        return {
+            success: false,
+            error: 'No se pudieron comprobar duplicados existentes. Inténtalo de nuevo antes de importar.',
+        }
+    }
+}
+
+function rowNumbersForResolvedKey(
+    preview: ReturnType<typeof parseRecipeSalesCsvPreview>,
+    date: string,
+    recipeId: string,
+) {
+    return preview.rows
+        .filter(row => row.status === 'valid' && row.payload?.date === date && row.payload.recipe_id === recipeId)
+        .map(row => row.rowNumber)
+}
+
+function normalizeRecipeName(name: string) {
+    return name.trim().toLowerCase()
 }
 
 // ── Get Full Inventory (stock + ingredient info) ──
