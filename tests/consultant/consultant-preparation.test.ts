@@ -85,7 +85,44 @@ describe('buildPreparationChecklist', () => {
       label: 'Calcular Menu Engineering',
       href: '/menu-engineering',
       severity: 'warning',
-      reason: 'El informe puede avanzar, pero falta completar este bloque para mejorar la entrega.',
+      reason: 'Sin una matriz BCG analizada, las recomendaciones de carta quedan menos accionables para el cliente.',
+    })
+  })
+
+  it('weights operational blockers higher than delivery warnings in completion percentage', () => {
+    const missingPublication = buildChecklist({ publishedCount: 0 })
+    const missingSales = buildChecklist({ salesCount: 0, publishedCount: 1 })
+
+    expect(missingPublication.completionPct).toBe(95)
+    expect(missingSales.completionPct).toBe(84)
+    expect(missingSales.completionPct).toBeLessThan(missingPublication.completionPct)
+  })
+
+  it('counts partial preparation items as half of their weighted value', () => {
+    const checklist = buildChecklist({
+      recipeCount: 12,
+      recipeSalesCount: 0,
+      publishedCount: 1,
+    })
+
+    expect(checklist.completionPct).toBe(95)
+    expect(checklist.items.find(item => item.id === 'menu')?.status).toBe('partial')
+  })
+
+  it('explains recipe sales warnings with a contextual reason', () => {
+    const checklist = buildChecklist({
+      recipeCount: 12,
+      recipeSalesCount: 0,
+      menuEngineeringCount: 1,
+      publishedCount: 1,
+    })
+
+    expect(checklist.nextAction).toEqual({
+      itemId: 'menu',
+      label: 'Cargar ventas por receta',
+      href: '/stock',
+      severity: 'warning',
+      reason: 'Hay recetas, pero faltan ventas por receta; el análisis de mix, margen y carta quedará incompleto.',
     })
   })
 })

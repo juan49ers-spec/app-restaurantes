@@ -52,10 +52,13 @@ function nextActionFromItems(items: ConsultantPreparationChecklistItem[]): Consu
     label: nextItem.actionLabel,
     href: nextItem.href,
     severity: nextItem.severity,
-    reason: nextItem.severity === 'blocker'
-      ? blockerReason(nextItem.id)
-      : 'El informe puede avanzar, pero falta completar este bloque para mejorar la entrega.',
+    reason: reasonForItem(nextItem),
   }
+}
+
+function reasonForItem(item: ConsultantPreparationChecklistItem) {
+  if (item.severity === 'blocker') return blockerReason(item.id)
+  return warningReason(item)
 }
 
 function blockerReason(itemId: string) {
@@ -63,6 +66,52 @@ function blockerReason(itemId: string) {
   if (itemId === 'expenses') return 'Sin gastos no se puede validar la rentabilidad real del periodo.'
   if (itemId === 'ready_report') return 'Sin una versión READY no hay snapshot validado para publicar en el portal.'
   return 'Este bloqueo debe resolverse antes de entregar el informe al cliente.'
+}
+
+function warningReason(item: ConsultantPreparationChecklistItem) {
+  if (item.id === 'invoices') {
+    return 'Las facturas deben quedar revisadas para reforzar compras y proveedores; las cabeceras CSV históricas no sustituyen líneas de factura ni movimientos de stock.'
+  }
+  if (item.id === 'staff') {
+    return 'Hay datos de equipo o turnos incompletos; el coste laboral puede quedar parcial en el informe.'
+  }
+  if (item.id === 'menu') {
+    return 'Hay recetas, pero faltan ventas por receta; el análisis de mix, margen y carta quedará incompleto.'
+  }
+  if (item.id === 'menu_engineering') {
+    return 'Sin una matriz BCG analizada, las recomendaciones de carta quedan menos accionables para el cliente.'
+  }
+  if (item.id === 'published_report') {
+    return 'El informe READY todavía no está visible en el portal cliente.'
+  }
+  if (item.id === 'meeting_requests') {
+    return 'Quedan solicitudes abiertas del cliente; conviene atenderlas para cerrar el seguimiento.'
+  }
+  return 'El informe puede avanzar, pero falta completar este bloque para mejorar la entrega.'
+}
+
+function checklistItemWeight(itemId: string) {
+  if (itemId === 'sales' || itemId === 'expenses' || itemId === 'ready_report') return 3
+  if (itemId === 'invoices' || itemId === 'staff' || itemId === 'menu' || itemId === 'menu_engineering') return 2
+  return 1
+}
+
+function statusCompletionFactor(status: ConsultantChecklistStatus) {
+  if (status === 'complete') return 1
+  if (status === 'partial') return 0.5
+  return 0
+}
+
+function weightedCompletionPct(items: ConsultantPreparationChecklistItem[]) {
+  const totalWeight = items.reduce((total, item) => total + checklistItemWeight(item.id), 0)
+  if (totalWeight === 0) return 0
+
+  const completedWeight = items.reduce(
+    (total, item) => total + checklistItemWeight(item.id) * statusCompletionFactor(item.status),
+    0,
+  )
+
+  return Math.round((completedWeight / totalWeight) * 100)
 }
 
 export function buildPreparationChecklist(input: {
@@ -194,7 +243,7 @@ export function buildPreparationChecklist(input: {
 
   return {
     period,
-    completionPct: Math.round((readyCount / items.length) * 100),
+    completionPct: weightedCompletionPct(items),
     readyCount,
     totalCount: items.length,
     qualityGate: input.qualityGate,

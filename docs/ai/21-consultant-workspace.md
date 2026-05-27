@@ -55,7 +55,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - `types.ts` define los contratos `ConsultantWorkspace`, `ConsultantPreparationChecklist`, `ConsultantDeliveryReport` y filas Supabase mapeadas.
 - `mappers.ts` convierte filas de `restaurants` y `professional_report_drafts` a tipos de UI.
 - `delivery.ts` calcula estados derivados de entrega (`READY_TO_PUBLISH`, `PUBLISHED`, `MEETING_REQUESTED`, `FOLLOW_UP_COMPLETE`) sin consultar Supabase.
-- `preparation.ts` calcula periodos mensuales, checklist de preparación, severidad de cada punto, siguiente acción recomendada y quality gate ligero desde el snapshot `READY` ya cargado. No hace I/O.
+- `preparation.ts` calcula periodos mensuales, checklist de preparación, severidad de cada punto, porcentaje ponderado de avance, siguiente acción recomendada y quality gate ligero desde el snapshot `READY` ya cargado. No hace I/O.
 
 **Client components:**
 
@@ -79,6 +79,8 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - Criterios de checklist: ventas requiere al menos una fila `daily_sales` con `revenue_total > 0`; gastos requiere al menos un `operating_expenses`; facturas queda completo solo si hay facturas `completed` y cero `review_required`/`processing`; equipo requiere empleado activo y turno en periodo; carta requiere recetas y ventas por receta; Menu Engineering acepta reportes `ANALYZED` solapados con el periodo; informes READY/publicados usan periodo exacto; solicitudes abiertas se cuentan globalmente.
 - Cada ítem de checklist tiene severidad derivada: ventas, gastos e informe `READY` son `blocker` si no están completos; facturas, equipo, carta, Menu Engineering, publicación y solicitudes abiertas son `warning`; los puntos completos quedan como `info`.
 - La siguiente acción se deriva en `buildPreparationChecklist()`: toma el primer ítem no completo con severidad `blocker`; si no hay bloqueantes, toma el primer `warning`; si todo está completo, queda `null`.
+- La razón de la siguiente acción se calcula por ítem. Los bloqueantes explican por qué impiden publicar con confianza; los avisos explican la consecuencia concreta de seguir sin ese dato (facturas, turnos, carta, BCG, publicación o solicitudes).
+- `completionPct` es ponderado, no un simple conteo de ítems. Ventas, gastos e informe `READY` pesan más que avisos de entrega; facturas, equipo, carta y Menu Engineering tienen peso intermedio; publicación y solicitudes tienen peso menor. Los estados `partial` aportan medio peso.
 - La UI no decide prioridades: solo renderiza `nextAction`, `severity` y `actionLabel` ya calculados por la lógica pura. La presentación agrupa los ítems en tres regiones accesibles: `Bloqueantes`, `Recomendados` y `Listos`.
 - Los enlaces de resolución solo usan filtros cuando la ruta destino ya los soporta. Para estados parciales, equipo enlaza a `/staff/schedule` si ya hay empleados pero faltan turnos, y carta enlaza a `/stock` si ya hay recetas pero faltan ventas por receta.
 - La checklist guía la preparación, pero no sustituye las reglas de calidad del informe profesional en `/reports`.
@@ -97,6 +99,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - **Portal cliente:** consume los informes publicados y la identidad del consultor.
 - **Base de datos:** usa `restaurants`, `professional_report_drafts` y `portal_meeting_requests`.
 - **Datos operativos:** la checklist lee conteos de `daily_sales`, `operating_expenses`, `invoices`, `employees`, `shifts`, `recipes`, `daily_recipe_sales` y `menu_reports`.
+- **Importadores CSV:** ventas, gastos, ventas por receta, turnos y cabeceras de factura alimentan estos conteos. Las cabeceras de factura importadas cuentan como facturas revisadas si quedan `completed`, pero no sustituyen líneas de factura, movimientos de stock ni gastos operativos.
 - **Lógica compartida:** `src/lib/consultant/` mantiene helpers puros reutilizables por actions y tests. No debe importar `createClient()` ni resolver sesión.
 - **Navegación:** aparece en CORE como “Consultoría”.
 - **Futuro multi-cliente:** esta ruta es el punto natural para evolucionar hacia cartera de clientes, pero ahora respeta el modelo actual usuario/restaurante.
@@ -109,6 +112,8 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - Si hay varios puntos incompletos, la siguiente acción muestra primero el bloqueo operativo más importante. Por ejemplo, ventas faltantes tienen prioridad sobre crear una versión `READY`, y `READY` tiene prioridad sobre publicar.
 - Si no hay bloqueantes pero sí avisos, la siguiente acción muestra el primer aviso pendiente para mejorar la entrega sin bloquear la preparación.
 - Si todos los puntos están completos, la checklist no muestra bloque de siguiente acción.
+- Si un punto está `partial`, suma medio peso al porcentaje de preparación. Esto evita castigar igual un bloque parcialmente cargado que un bloque totalmente ausente.
+- Si hay facturas importadas solo como cabecera histórica, la checklist puede marcar facturas como revisadas, pero los análisis de compras/stock seguirán dependiendo de sus tablas específicas.
 - Si hay un `READY` con warnings, la checklist lo muestra como publicable con advertencias; si hay bloqueos, lo muestra como bloqueado y enlaza a `/reports`.
 - Si no hay `READY`, la checklist no inventa calidad de informe y muestra una llamada a crear una versión lista.
 - Si no hay informes READY, el flujo de entrega muestra estado vacío operativo.

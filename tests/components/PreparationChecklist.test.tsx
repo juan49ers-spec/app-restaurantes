@@ -36,7 +36,7 @@ const baseChecklist: ConsultantPreparationChecklist = {
     label: 'Calcular Menu Engineering',
     href: '/menu-engineering',
     severity: 'warning',
-    reason: 'El informe puede avanzar, pero falta completar este bloque para mejorar la entrega.',
+    reason: 'Sin una matriz BCG analizada, las recomendaciones de carta quedan menos accionables para el cliente.',
   },
   items: [
     {
@@ -127,7 +127,7 @@ describe('PreparationChecklist', () => {
 
     expect(screen.getByText('Siguiente acción')).toBeInTheDocument()
     expect(screen.getByText('Calcular Menu Engineering')).toBeInTheDocument()
-    expect(screen.getByText(/falta completar este bloque/i)).toBeInTheDocument()
+    expect(screen.getByText(/matriz BCG analizada/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Calcular Menu Engineering/i })).toHaveAttribute(
       'href',
       '/menu-engineering'
