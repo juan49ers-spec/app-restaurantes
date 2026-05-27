@@ -90,6 +90,8 @@ describe('ProfessionalReportPrintDocument', () => {
     expect(screen.getByText(/Calidad:/)).toBeInTheDocument()
     expect(screen.getByText('Índice')).toBeInTheDocument()
     expect(screen.getByText('Conclusiones ejecutivas')).toBeInTheDocument()
+    expect(screen.getByText('Plan de revisión recomendado')).toBeInTheDocument()
+    expect(screen.getByText(/Confirmar con el cliente si los datos del periodo están completos/)).toBeInTheDocument()
     expect(screen.getByText('Anexo de calidad de dato')).toBeInTheDocument()
     expect(screen.getAllByText('Resultado estimado')).toHaveLength(2)
     expect(screen.getByText('Ventas diarias')).toBeInTheDocument()

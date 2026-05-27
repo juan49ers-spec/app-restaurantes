@@ -1,5 +1,6 @@
 import { formatCurrency, formatPct } from '@/lib/utils'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
+import { buildConsultantBriefing } from '@/lib/reporting/consultant-briefing'
 import type {
   PresentationKpi,
   ProfessionalReportSection,
@@ -62,6 +63,7 @@ export function ProfessionalReportPrintDocument({
 }: ProfessionalReportPrintDocumentProps) {
   const report = draft.report
   const presentation = buildProfessionalReportPresentation(report)
+  const consultantBriefing = buildConsultantBriefing(presentation)
   const consultantName = branding?.consultantName || 'ControlHub'
   const consultantEmail = branding?.consultantEmail
   const documentReference = `${report.restaurant.name} · ${presentation.periodLabel} · v${draft.version}`
@@ -223,6 +225,41 @@ export function ProfessionalReportPrintDocument({
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="print-section border-b border-slate-200 py-10">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Plan de revisión recomendado</p>
+        <h2 className="mt-4 text-2xl font-semibold text-slate-950">{consultantBriefing.headline}</h2>
+        <p className="mt-3 text-base leading-7 text-slate-700">{consultantBriefing.opening}</p>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          <div className="border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Prioridades</p>
+            <ul className="mt-3 space-y-3 text-sm leading-6 text-slate-700">
+              {consultantBriefing.priorities.map(priority => (
+                <li key={priority.title}>
+                  <span className="font-semibold text-slate-950">{priority.title}:</span> {priority.body}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Preguntas</p>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+              {consultantBriefing.questions.map(question => (
+                <li key={question}>{question}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Siguientes pasos</p>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+              {consultantBriefing.nextSteps.map(step => (
+                <li key={step}>{step}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 

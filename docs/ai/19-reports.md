@@ -54,7 +54,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 
 - Carga una version guardada con `getSavedProfessionalReportDraft(draftId)`.
 - Carga `getCurrentRestaurant()` para incorporar la marca visible del consultor (`consultant_name`, `consultant_email`, `consultant_logo_url`) sin modificar el snapshot.
-- Renderiza `ProfessionalReportPrintDocument`, un documento HTML imprimible con portada, KPIs ejecutivos, bloque de referencia, índice, conclusiones numeradas, capitulos, metricas, incidencias, narrativas revisadas, pie de documento imprimible y anexo de calidad de dato.
+- Renderiza `ProfessionalReportPrintDocument`, un documento HTML imprimible con portada, KPIs ejecutivos, bloque de referencia, índice, conclusiones numeradas, plan de revisión recomendado para la reunión, capitulos, metricas, incidencias, narrativas revisadas, pie de documento imprimible y anexo de calidad de dato.
 - Usa `PrintReportButton` para marcar `exported_at` y abrir `window.print()` con `try/finally`, de forma que el botón no quede bloqueado si la marca de exportación falla inesperadamente.
 
 **Persistencia:** `professional_report_drafts`
@@ -116,6 +116,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - `publishReportDraft` vuelve a validar en servidor el `restaurant.id` del snapshot antes de evaluar el gate. La UI no es fuente de verdad.
 - La exportacion actual es HTML imprimible/PDF de navegador, no generacion binaria server-side. El template debe estar preparado para A4 mediante CSS print y consumir siempre el snapshot guardado.
 - La marca visible del PDF pertenece al consultor configurado en `restaurants.consultant_*`; si no existe, se usa una identidad neutra de ControlHub.
+- El plan de revisión recomendado del PDF se genera con `buildConsultantBriefing(presentation)`: es determinista, no usa IA y prioriza conclusiones críticas/warning para orientar la reunión sin inventar causalidad.
 - La seed demo de informes no debe exponerse como funcionalidad normal de cliente. Es herramienta de verificacion/dev. El endpoint devuelve `401` si no hay usuario autenticado, `403` si la seed no esta habilitada en el entorno y `429` si se excede el limite por usuario/IP.
 
 ## 5. Dependencias e implicaciones cruzadas

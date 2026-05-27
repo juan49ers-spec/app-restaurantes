@@ -78,8 +78,9 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si falla la carga del dato vivo, no debe romper ni vaciar el portal.
 - La solicitud de reunión no envía email en esta fase; solo crea registro interno.
 - No se crean duplicados si el cliente vuelve a pulsar "Solicitar reunión" para el mismo informe mientras haya una solicitud `PENDING` o `ACKNOWLEDGED`.
+- La base de datos refuerza ese anti-duplicado con un índice parcial único por `restaurant_id + report_id` para solicitudes abiertas.
 - La solicitud aparece en `/consultant` para seguimiento del consultor.
-- Los enlaces PDF desde el portal abren la vista imprimible en una pestaña nueva para no sacar al cliente del área limpia.
+- Los enlaces PDF desde el portal abren la vista imprimible en una pestaña nueva para no sacar al cliente del área limpia. Esa vista incluye el plan de revisión recomendado generado de forma determinista desde el snapshot.
 - La portada ejecutiva del portal muestra solo una lectura principal y una selección de KPIs/prioridades. El detalle completo vive en `/portal/reports/[id]`.
 - La navegación por capítulos del detalle es solo UI local basada en `presentation.chapters`; no cambia URL de datos ni dispara queries nuevas.
 - La comparativa mensual es lectura derivada, no modifica el snapshot y no cambia la calidad del informe. Usa `daily_sales.revenue_total` y `operating_expenses.amount` del restaurante activo para el periodo publicado y el mes natural anterior.

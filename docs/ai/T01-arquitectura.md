@@ -35,7 +35,7 @@ src/
 │   ├── login/                   ← Único punto sin auth obligatoria
 │   ├── onboarding/              ← Crear restaurante por primera vez
 │   ├── admin/                   ← Panel super-admin (NAV_ITEMS hardcoded en AdminShell)
-│   ├── api/                     ← Endpoints internos (debug, invoices/uploads, seed-ops)
+│   ├── api/                     ← Endpoints internos (health, debug, invoices/uploads, seed-ops)
 │   ├── actions/                 ← Server Actions agrupadas por dominio (ver T06)
 │   ├── financial-control/       ← Hub financiero con 4 tabs lazy-loaded
 │   ├── reports/                 ← Mesa de revision de informes profesionales
@@ -139,6 +139,7 @@ src/
 - `npm run typecheck` usa `tsconfig.typecheck.json`, que excluye `.next/dev/**`. Next 16 puede volver a añadir `.next/dev/types/**/*.ts` al `tsconfig.json` durante `next build`, pero el gate de TypeScript no debe depender de artefactos de `next dev`.
 - `npm run verify` ejecuta los gates principales en secuencia: typecheck, lint estricto, tests y build. Evita lanzar `npm test` y `npm run build` en paralelo porque JSDOM + Next build compiten por CPU/memoria y pueden provocar timeouts espurios en tests de componentes.
 - Vitest usa `testTimeout=10000` para dar margen realista a tests React/JSDOM bajo carga. Un timeout aislado sigue siendo fallo a investigar; no se debe ocultar subiendo tiempos por test sin entender la causa.
+- `/api/health` es el endpoint mínimo de salud para producción. Comprueba conectividad con Supabase, devuelve `200`/`503`, usa `Cache-Control: no-store` y no expone variables de entorno ni secretos.
 - `eslint.config.mjs` usa la configuración flat nativa de `eslint-config-next` y excluye artefactos generados/no relevantes como `test-bundle.js`.
 - `src/app/error.tsx` y `src/app/global-error.tsx` deben ser autocontenidos. No importes componentes UI internos ni iconos externos allí: si el boundary falla compilando, oculta la causa original y deja la app sin pantalla de error fiable.
 - Hay docs viejos en `docs/` (`ARCHITECTURE.md`, `FEATURES.md`, etc.) que pueden estar desactualizados. **No se modifican.** Cuando sirvan, verificar contra el código.

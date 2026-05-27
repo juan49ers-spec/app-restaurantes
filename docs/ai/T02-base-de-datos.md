@@ -89,6 +89,7 @@
 - `idx_professional_report_drafts_published` — listado del portal cliente por publicación descendente.
 - `idx_professional_report_drafts_viewed` — seguimiento de informes vistos por restaurante.
 - `idx_portal_meeting_requests_restaurant_created` — historial de solicitudes de reunión por restaurante.
+- `idx_unique_open_portal_meeting_request` — anti-duplicado de solicitudes abiertas (`PENDING`/`ACKNOWLEDGED`) por restaurante e informe.
 
 ## RPCs (funciones SQL)
 

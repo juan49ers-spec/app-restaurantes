@@ -43,6 +43,13 @@ Desde Fase 12, Reporting incorpora un quality gate puro en `src/lib/reporting/qu
 - No consulta Supabase y no altera el snapshot base.
 - Eleva el cumplimiento de objetivos a KPI ejecutivo cuando `monthly_targets` existe.
 
+**Plan de revision del consultor:** `src/lib/reporting/consultant-briefing.ts`.
+
+- Consume `ProfessionalReportPresentation`.
+- No consulta Supabase, no llama a IA y no recalcula metricas.
+- Genera prioridades, preguntas y siguientes pasos deterministas para orientar la reunion de revision con el cliente.
+- Prioriza conclusiones `critical`/`warning`; si no existen, usa las conclusiones principales del informe.
+
 **Quality gate:** `src/lib/reporting/quality-gate.ts`.
 
 - Consume solo `ProfessionalRestaurantReport`.
@@ -73,7 +80,7 @@ Desde Fase 9, la publicación al cliente es explícita: `status = READY` solo in
 - La UI muestra calidad global, evidencias, incidencias y metricas.
 - La UI muestra la capa ejecutiva previa a exportacion.
 - La narrativa es editable y puede persistirse como override por seccion.
-- La ruta `/reports/print/[draftId]` renderiza el snapshot guardado mediante `ProfessionalReportPrintDocument`. La salida HTML imprimible incluye portada con marca del consultor, bloque de referencia/version, KPIs, índice, conclusiones, capítulos, métricas, incidencias, pie imprimible y anexo de calidad de dato.
+- La ruta `/reports/print/[draftId]` renderiza el snapshot guardado mediante `ProfessionalReportPrintDocument`. La salida HTML imprimible incluye portada con marca del consultor, bloque de referencia/version, KPIs, índice, conclusiones, plan de revisión recomendado, capítulos, métricas, incidencias, pie imprimible y anexo de calidad de dato.
 
 **Seed demo de verificacion:** `src/app/actions/seed-professional-report-demo.ts`.
 
@@ -105,6 +112,7 @@ Desde Fase 9, la publicación al cliente es explícita: `status = READY` solo in
 - La publicación en portal solo puede hacerse sobre versiones guardadas. El portal consume snapshots publicados y no recalcula el informe.
 - Publicar en portal exige snapshot guardado `READY`, pertenencia al restaurante activo y quality gate sin bloqueos. La validacion se repite en servidor aunque la UI ya haya mostrado el estado.
 - La salida actual es imprimible por navegador con CSS orientado a A4; si se anade PDF server-side, debe consumir el mismo snapshot y la misma estructura documental.
+- El plan de revision del PDF debe ser determinista y basado en la presentacion del snapshot. No debe introducir recomendaciones externas al informe ni depender de IA generativa.
 - Si existen bloqueos criticos, las conclusiones deben hablar de calidad de dato antes que de decisiones comerciales.
 
 ## 5. Dependencias e implicaciones cruzadas
