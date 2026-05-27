@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type QueryError = { message: string; code?: string }
 type QueryResult = { data: unknown; error: QueryError | null }
-type Filter = ['eq' | 'gte' | 'lte' | 'not', string, unknown, unknown?]
+type Filter = ['eq' | 'gte' | 'lte' | 'not' | 'in', string, unknown, unknown?]
 
 const RESTAURANT_ID = '550e8400-e29b-41d4-a716-446655440000'
 const OTHER_RESTAURANT_ID = '550e8400-e29b-41d4-a716-446655440999'
@@ -15,6 +15,7 @@ let calls: Array<{
   filters: Filter[]
   select?: string
   orders: Array<{ column: string; ascending?: boolean }>
+  limitValue?: number
   updateValue?: Record<string, unknown>
   insertValue?: Record<string, unknown>
 }> = []
@@ -63,10 +64,22 @@ class MockQuery {
     return this
   }
 
+  in(column: string, value: unknown[]) {
+    this.filters.push(['in', column, value])
+    return this
+  }
+
   order(column: string, options?: { ascending?: boolean }) {
     this.orders.push({ column, ascending: options?.ascending })
     return this
   }
+
+  limit(value: number) {
+    this.limitValue = value
+    return this
+  }
+
+  private limitValue?: number
 
   maybeSingle() {
     return Promise.resolve(this.resolve())
@@ -86,6 +99,7 @@ class MockQuery {
       filters: this.filters,
       select: this.selectValue,
       orders: this.orders,
+      limitValue: this.limitValue,
       updateValue: this.operation === 'update' ? this.mutationValue : undefined,
       insertValue: this.operation === 'insert' ? this.mutationValue : undefined,
     })
@@ -180,6 +194,10 @@ describe('portal server actions', () => {
         data: { revenue_target: 6000 },
         error: null,
       },
+      portal_meeting_requests: {
+        data: null,
+        error: null,
+      },
     }
   })
 
@@ -262,8 +280,19 @@ describe('portal server actions', () => {
 
     const result = await requestConsultantMeeting({ reportId: REPORT_ID, message: ' Revisamos la carta. ' })
 
-    expect(result.success).toBe(true)
-    const insertCall = calls.find(call => call.table === 'portal_meeting_requests')
+    expect(result).toEqual({ success: true, data: { id: '22222222-2222-4222-8222-222222222222', reused: false } })
+    const duplicateCheckCall = calls.find(call =>
+      call.table === 'portal_meeting_requests' &&
+      call.filters.some(filter => filter[0] === 'in')
+    )
+    expect(duplicateCheckCall?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['eq', 'report_id', REPORT_ID],
+      ['in', 'status', ['PENDING', 'ACKNOWLEDGED']],
+    ]))
+    expect(duplicateCheckCall?.limitValue).toBe(1)
+
+    const insertCall = calls.find(call => call.table === 'portal_meeting_requests' && call.insertValue)
     expect(insertCall?.insertValue).toEqual({
       restaurant_id: RESTAURANT_ID,
       report_id: REPORT_ID,
@@ -271,5 +300,22 @@ describe('portal server actions', () => {
       status: 'PENDING',
       created_by: 'user-1',
     })
+  })
+
+  it('reuses an open meeting request instead of creating a duplicate', async () => {
+    tableResults.professional_report_drafts = { data: { id: REPORT_ID }, error: null }
+    tableResults.portal_meeting_requests = {
+      data: { id: '33333333-3333-4333-8333-333333333333' },
+      error: null,
+    }
+    const { requestConsultantMeeting } = await import('@/app/actions/portal')
+
+    const result = await requestConsultantMeeting({ reportId: REPORT_ID, message: 'Nueva nota' })
+
+    expect(result).toEqual({
+      success: true,
+      data: { id: '33333333-3333-4333-8333-333333333333', reused: true },
+    })
+    expect(calls.some(call => call.table === 'portal_meeting_requests' && call.insertValue)).toBe(false)
   })
 })

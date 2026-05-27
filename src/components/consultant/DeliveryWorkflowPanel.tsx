@@ -1,0 +1,108 @@
+import Link from 'next/link'
+import { CheckCircle2, Clock3, ExternalLink, FileCheck2, Send } from 'lucide-react'
+import type { ConsultantDeliveryReport, ConsultantDeliveryStatus } from '@/app/actions/consultant'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { formatDateEs } from '@/lib/date-format'
+import { cn } from '@/lib/utils'
+
+interface DeliveryWorkflowPanelProps {
+  reports: ConsultantDeliveryReport[]
+}
+
+const STATUS_COPY: Record<ConsultantDeliveryStatus, { label: string; className: string; icon: typeof FileCheck2 }> = {
+  READY_TO_PUBLISH: {
+    label: 'Listo para publicar',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+    icon: FileCheck2,
+  },
+  PUBLISHED: {
+    label: 'Publicado',
+    className: 'border-sky-200 bg-sky-50 text-sky-700',
+    icon: Send,
+  },
+  MEETING_REQUESTED: {
+    label: 'Reunion solicitada',
+    className: 'border-violet-200 bg-violet-50 text-violet-700',
+    icon: Clock3,
+  },
+  FOLLOW_UP_COMPLETE: {
+    label: 'Seguimiento cerrado',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    icon: CheckCircle2,
+  },
+}
+
+function buildStatusDetail(report: ConsultantDeliveryReport) {
+  if (report.status === 'READY_TO_PUBLISH') return 'El informe esta marcado como READY y pendiente de publicacion.'
+  if (report.status === 'MEETING_REQUESTED') return `${report.openRequestCount} solicitud(es) abiertas del cliente.`
+  if (report.status === 'FOLLOW_UP_COMPLETE') return `${report.completedRequestCount} solicitud(es) completadas tras la entrega.`
+  return report.publishedAt ? `Visible en portal desde ${formatDateEs(report.publishedAt)}.` : 'Visible en portal.'
+}
+
+export function DeliveryWorkflowPanel({ reports }: DeliveryWorkflowPanelProps) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Flujo de entrega</p>
+          <h2 className="text-lg font-semibold text-slate-950">Informes listos y seguimiento cliente</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            Vista operativa del camino: guardar READY, publicar en portal, recibir solicitud y cerrar seguimiento.
+          </p>
+        </div>
+        <Badge variant="secondary" className="w-fit rounded-md">
+          {reports.length} entregas
+        </Badge>
+      </div>
+
+      <div className="mt-5 grid gap-3">
+        {reports.length === 0 ? (
+          <div className="rounded-md border border-dashed border-slate-200 p-5 text-sm text-slate-500">
+            Aun no hay informes READY para iniciar una entrega al cliente.
+          </div>
+        ) : (
+          reports.map(report => {
+            const status = STATUS_COPY[report.status]
+            const Icon = status.icon
+
+            return (
+              <article key={report.id} className="rounded-md border border-slate-200 p-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Icon className="h-4 w-4 text-slate-500" />
+                      <p className="font-medium text-slate-950">
+                        {report.periodFrom} a {report.periodTo}
+                      </p>
+                      <Badge variant="outline" className={cn('rounded-md', status.className)}>
+                        {status.label}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600">
+                      Version {report.version} · {buildStatusDetail(report)}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 lg:justify-end">
+                    {report.publishedAt && (
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/reports/print/${report.id}`} target="_blank" rel="noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                          PDF
+                        </Link>
+                      </Button>
+                    )}
+                    <Button asChild size="sm" variant={report.status === 'READY_TO_PUBLISH' || report.status === 'MEETING_REQUESTED' ? 'default' : 'outline'}>
+                      <Link href={report.nextActionHref}>{report.nextActionLabel}</Link>
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            )
+          })
+        )}
+      </div>
+    </section>
+  )
+}

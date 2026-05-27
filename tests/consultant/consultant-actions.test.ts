@@ -18,6 +18,7 @@ let calls: Array<{
   orders: Array<{ column: string; ascending?: boolean }>
   countMode?: string
   head?: boolean
+  limitValue?: number
 }> = []
 
 class MockQuery {
@@ -85,6 +86,13 @@ class MockQuery {
     return this
   }
 
+  limit(value: number) {
+    this.limitValue = value
+    return this
+  }
+
+  private limitValue?: number
+
   maybeSingle() {
     return Promise.resolve(this.resolve())
   }
@@ -106,6 +114,7 @@ class MockQuery {
       orders: this.orders,
       countMode: this.countMode,
       head: this.head,
+      limitValue: this.limitValue,
     })
 
     if (this.operation === 'update' && this.table === 'restaurants') {
@@ -229,17 +238,57 @@ describe('consultant server actions', () => {
       consultantName: 'Zinergia',
     }))
     expect(result.data?.meetingRequests[0].report?.id).toBe(REPORT_ID)
+    expect(result.data?.deliveryReports[0]).toEqual(expect.objectContaining({
+      id: REPORT_ID,
+      status: 'MEETING_REQUESTED',
+      openRequestCount: 1,
+      nextActionHref: '/consultant',
+    }))
     expect(calls.find(call => call.table === 'restaurants')?.filters).toContainEqual(['eq', 'id', RESTAURANT_ID])
     expect(calls.find(call => call.table === 'professional_report_drafts')?.filters).toEqual(expect.arrayContaining([
       ['eq', 'restaurant_id', RESTAURANT_ID],
       ['not', 'published_at', 'is', null],
     ]))
     expect(calls.find(call => call.table === 'portal_meeting_requests')?.filters).toContainEqual(['eq', 'restaurant_id', RESTAURANT_ID])
+    const readyReportCall = calls.find(call =>
+      call.table === 'professional_report_drafts' &&
+      call.filters.some(filter => filter[0] === 'eq' && filter[1] === 'status' && filter[2] === 'READY')
+    )
+    expect(readyReportCall?.filters).toContainEqual(['eq', 'restaurant_id', RESTAURANT_ID])
+    expect(readyReportCall?.limitValue).toBe(6)
     expect(calls.find(call => call.table === 'daily_sales' && call.head)?.filters).toEqual(expect.arrayContaining([
       ['eq', 'restaurant_id', RESTAURANT_ID],
       ['gte', 'date', expect.any(String)],
       ['lte', 'date', expect.any(String)],
     ]))
+  })
+
+  it('marks ready unpublished reports as pending publication in the delivery workflow', async () => {
+    tableResults.professional_report_drafts = {
+      data: [{
+        id: REPORT_ID,
+        period_from: '2026-02-01',
+        period_to: '2026-02-28',
+        version: 2,
+        status: 'READY',
+        published_at: null,
+      }],
+      error: null,
+    }
+    tableResults.portal_meeting_requests = { data: [], error: null }
+    const { getConsultantWorkspace } = await import('@/app/actions/consultant')
+
+    const result = await getConsultantWorkspace()
+
+    expect(result.success).toBe(true)
+    expect(result.data?.deliveryReports).toEqual([
+      expect.objectContaining({
+        id: REPORT_ID,
+        status: 'READY_TO_PUBLISH',
+        nextActionHref: '/reports?from=2026-02-01&to=2026-02-28',
+        nextActionLabel: 'Publicar desde informes',
+      }),
+    ])
   })
 
   it('returns a clean error when there is no active restaurant', async () => {
@@ -265,6 +314,7 @@ describe('consultant server actions', () => {
     expect(result.data?.meetingRequests).toEqual([])
     expect(result.data?.warnings).toEqual([
       'No se pudieron cargar los informes publicados.',
+      'No se pudo cargar el flujo de entrega.',
       'No se pudieron cargar las solicitudes de reunión.',
       'No se pudo completar toda la checklist de preparación.',
     ])

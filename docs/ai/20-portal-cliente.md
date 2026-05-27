@@ -32,7 +32,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `getPublishedReports()` lista solo drafts con `published_at IS NOT NULL`.
 - `getPublishedReportDetail(id)` carga el snapshot completo solo si está publicado y pertenece al restaurante activo.
 - `getPortalContext()` carga restaurante, datos del consultor y ventas acumuladas del mes vs objetivo.
-- `requestConsultantMeeting(input)` crea una fila `portal_meeting_requests`.
+- `requestConsultantMeeting(input)` crea una fila `portal_meeting_requests` solo si no existe ya una solicitud abierta (`PENDING` o `ACKNOWLEDGED`) para ese informe y restaurante. Si existe, devuelve la solicitud existente con `reused: true`.
 - `publishReportDraft(id)` y `unpublishReportDraft(id)` se usan desde la mesa interna.
 
 **Consultas server-side:** `src/lib/portal.ts`
@@ -57,6 +57,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si no hay objetivo mensual, no se muestra la card de dato vivo.
 - Si falla la carga del dato vivo, no debe romper ni vaciar el portal.
 - La solicitud de reunión no envía email en esta fase; solo crea registro interno.
+- No se crean duplicados si el cliente vuelve a pulsar "Solicitar reunión" para el mismo informe mientras haya una solicitud `PENDING` o `ACKNOWLEDGED`.
 - La solicitud aparece en `/consultant` para seguimiento del consultor.
 - Los enlaces PDF desde el portal abren la vista imprimible en una pestaña nueva para no sacar al cliente del área limpia.
 - `restaurant_id` nunca viaja desde cliente.
@@ -77,6 +78,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si un informe existe pero no está publicado, no aparece ni puede abrirse por URL.
 - Si el objetivo mensual no existe o es 0, no se muestra progreso vivo.
 - Si falla una solicitud de reunión, el formulario muestra error sin romper el portal.
+- Si ya existe una solicitud abierta para el informe, el formulario informa al cliente y no inserta otra fila.
 - Si una versión se despublica mientras el cliente la ve, una recarga deja de mostrarla.
 
 ## 7. Al añadir/modificar una función aquí

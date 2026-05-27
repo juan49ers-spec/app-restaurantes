@@ -101,7 +101,7 @@ export async function getPortalContext(): Promise<ActionResponse<PortalContext>>
     return getPortalContextForRestaurant(restaurantId)
 }
 
-export async function requestConsultantMeeting(input: z.input<typeof MeetingRequestSchema>): Promise<ActionResponse<{ id: string }>> {
+export async function requestConsultantMeeting(input: z.input<typeof MeetingRequestSchema>): Promise<ActionResponse<{ id: string; reused: boolean }>> {
     const parsed = MeetingRequestSchema.safeParse(input)
     if (!parsed.success) return { success: false, error: 'Solicitud inválida.' }
 
@@ -123,6 +123,19 @@ export async function requestConsultantMeeting(input: z.input<typeof MeetingRequ
     if (reportError) return { success: false, error: 'No se pudo validar el informe.' }
     if (!report) return { success: false, error: 'Informe publicado no encontrado.' }
 
+    const { data: existingRequest, error: existingRequestError } = await supabase
+        .from('portal_meeting_requests')
+        .select('id')
+        .eq('restaurant_id', restaurantId)
+        .eq('report_id', parsed.data.reportId)
+        .in('status', ['PENDING', 'ACKNOWLEDGED'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+    if (existingRequestError) return { success: false, error: 'No se pudo validar si ya existe una solicitud abierta.' }
+    if (existingRequest) return { success: true, data: { id: existingRequest.id, reused: true } }
+
     const { data, error } = await supabase
         .from('portal_meeting_requests')
         .insert({
@@ -140,5 +153,5 @@ export async function requestConsultantMeeting(input: z.input<typeof MeetingRequ
     revalidatePath('/portal')
     revalidatePath(`/portal/reports/${parsed.data.reportId}`)
 
-    return { success: true, data: { id: data.id } }
+    return { success: true, data: { id: data.id, reused: false } }
 }

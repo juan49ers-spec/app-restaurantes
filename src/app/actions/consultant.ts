@@ -55,6 +55,25 @@ export interface ConsultantMeetingRequest {
   report: ConsultantPublishedReport | null
 }
 
+export type ConsultantDeliveryStatus =
+  | 'READY_TO_PUBLISH'
+  | 'PUBLISHED'
+  | 'MEETING_REQUESTED'
+  | 'FOLLOW_UP_COMPLETE'
+
+export interface ConsultantDeliveryReport {
+  id: string
+  periodFrom: string
+  periodTo: string
+  version: number
+  publishedAt: string | null
+  status: ConsultantDeliveryStatus
+  openRequestCount: number
+  completedRequestCount: number
+  nextActionHref: string
+  nextActionLabel: string
+}
+
 export type ConsultantChecklistStatus = 'complete' | 'partial' | 'missing'
 
 export interface ConsultantPreparationChecklistItem {
@@ -82,6 +101,7 @@ export interface ConsultantWorkspace {
   restaurant: ConsultantWorkspaceRestaurant
   publishedReports: ConsultantPublishedReport[]
   meetingRequests: ConsultantMeetingRequest[]
+  deliveryReports: ConsultantDeliveryReport[]
   preparation: ConsultantPreparationChecklist
   warnings: string[]
 }
@@ -102,6 +122,8 @@ type PublishedReportRow = {
   status: ConsultantPublishedReport['status']
   published_at: string | null
 }
+
+type ReadyReportRow = PublishedReportRow
 
 type MeetingRequestRow = {
   id: string
@@ -135,6 +157,76 @@ function mapPublishedReport(row: PublishedReportRow): ConsultantPublishedReport 
     status: row.status,
     publishedAt: row.published_at ?? '',
   }
+}
+
+function buildDeliveryReports(
+  rows: ReadyReportRow[],
+  meetingRequests: ConsultantMeetingRequest[]
+): ConsultantDeliveryReport[] {
+  return rows.map(row => {
+    const requests = meetingRequests.filter(request => request.reportId === row.id)
+    const openRequestCount = requests.filter(request => request.status !== 'COMPLETED').length
+    const completedRequestCount = requests.filter(request => request.status === 'COMPLETED').length
+    const periodHref = `/reports?from=${row.period_from}&to=${row.period_to}`
+
+    if (!row.published_at) {
+      return {
+        id: row.id,
+        periodFrom: row.period_from,
+        periodTo: row.period_to,
+        version: row.version,
+        publishedAt: null,
+        status: 'READY_TO_PUBLISH',
+        openRequestCount,
+        completedRequestCount,
+        nextActionHref: periodHref,
+        nextActionLabel: 'Publicar desde informes',
+      }
+    }
+
+    if (openRequestCount > 0) {
+      return {
+        id: row.id,
+        periodFrom: row.period_from,
+        periodTo: row.period_to,
+        version: row.version,
+        publishedAt: row.published_at,
+        status: 'MEETING_REQUESTED',
+        openRequestCount,
+        completedRequestCount,
+        nextActionHref: '/consultant',
+        nextActionLabel: 'Atender solicitud',
+      }
+    }
+
+    if (completedRequestCount > 0) {
+      return {
+        id: row.id,
+        periodFrom: row.period_from,
+        periodTo: row.period_to,
+        version: row.version,
+        publishedAt: row.published_at,
+        status: 'FOLLOW_UP_COMPLETE',
+        openRequestCount,
+        completedRequestCount,
+        nextActionHref: `/portal/reports/${row.id}`,
+        nextActionLabel: 'Ver entrega',
+      }
+    }
+
+    return {
+      id: row.id,
+      periodFrom: row.period_from,
+      periodTo: row.period_to,
+      version: row.version,
+      publishedAt: row.published_at,
+      status: 'PUBLISHED',
+      openRequestCount,
+      completedRequestCount,
+      nextActionHref: `/portal/reports/${row.id}`,
+      nextActionLabel: 'Revisar portal',
+    }
+  })
 }
 
 function periodFromMonth(month: string) {
@@ -310,7 +402,7 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
 
   const supabase = await createClient()
   const period = currentMonthPeriod()
-  const [restaurantRes, reportsRes, requestsRes] = await Promise.all([
+  const [restaurantRes, reportsRes, readyReportsRes, requestsRes] = await Promise.all([
     supabase
       .from('restaurants')
       .select('id, name, consultant_name, consultant_email, consultant_logo_url')
@@ -323,6 +415,13 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
       .not('published_at', 'is', null)
       .order('published_at', { ascending: false }),
     supabase
+      .from('professional_report_drafts')
+      .select('id, period_from, period_to, version, status, published_at')
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'READY')
+      .order('updated_at', { ascending: false })
+      .limit(6),
+    supabase
       .from('portal_meeting_requests')
       .select('id, report_id, message, status, created_at')
       .eq('restaurant_id', restaurantId)
@@ -334,6 +433,7 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
 
   const warnings = [
     reportsRes.error ? 'No se pudieron cargar los informes publicados.' : null,
+    readyReportsRes.error ? 'No se pudo cargar el flujo de entrega.' : null,
     requestsRes.error ? 'No se pudieron cargar las solicitudes de reunión.' : null,
   ].filter((warning): warning is string => Boolean(warning))
 
@@ -354,6 +454,9 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
           report: request.report_id ? reportsById.get(request.report_id) ?? null : null,
         }
       })
+  const deliveryReports = readyReportsRes.error
+    ? []
+    : buildDeliveryReports((readyReportsRes.data || []) as ReadyReportRow[], meetingRequests)
 
   const checklistCounts = await fetchChecklistCounts(supabase, restaurantId, period)
   const checklistWarnings = checklistCounts.hasWarning
@@ -370,6 +473,7 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
       restaurant: mapRestaurant(restaurantRes.data as RestaurantRow),
       publishedReports,
       meetingRequests,
+      deliveryReports,
       preparation,
       warnings: [...warnings, ...checklistWarnings],
     },

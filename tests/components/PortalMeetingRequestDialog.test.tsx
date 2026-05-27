@@ -14,7 +14,7 @@ describe('PortalMeetingRequestDialog', () => {
   })
 
   it('submits a meeting request with an optional message', async () => {
-    requestConsultantMeeting.mockResolvedValueOnce({ success: true, data: { id: 'request-1' } })
+    requestConsultantMeeting.mockResolvedValueOnce({ success: true, data: { id: 'request-1', reused: false } })
     render(<PortalMeetingRequestDialog reportId="11111111-1111-4111-8111-111111111111" />)
 
     fireEvent.change(screen.getByPlaceholderText('Mensaje opcional para tu consultor'), {
@@ -28,6 +28,17 @@ describe('PortalMeetingRequestDialog', () => {
         message: 'Quiero revisar el informe esta semana.',
       })
     })
-    expect(await screen.findByText('Solicitud enviada.')).toBeInTheDocument()
+    expect(await screen.findByText('Solicitud enviada. Tu consultor la verá en su mesa de trabajo.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Solicitud registrada/i })).toBeDisabled()
+  })
+
+  it('shows an existing request message when the report already has an open request', async () => {
+    requestConsultantMeeting.mockResolvedValueOnce({ success: true, data: { id: 'request-1', reused: true } })
+    render(<PortalMeetingRequestDialog reportId="11111111-1111-4111-8111-111111111111" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Solicitar reunión/i }))
+
+    expect(await screen.findByText('Ya hay una solicitud abierta para este informe. Tu consultor la verá en su mesa de trabajo.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Solicitud registrada/i })).toBeDisabled()
   })
 })
