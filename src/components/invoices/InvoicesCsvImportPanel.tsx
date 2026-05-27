@@ -6,6 +6,7 @@ import { importInvoicesCsv, validateInvoicesCsvImport } from "@/app/actions/invo
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { ImportIssuesDownloadButton } from "@/components/importing/ImportIssuesDownloadButton"
 import { INVOICES_CSV_TEMPLATE, parseInvoicesCsvPreview } from "@/lib/importing/invoices-csv"
 import { cn } from "@/lib/utils"
 
@@ -142,6 +143,7 @@ export function InvoicesCsvImportPanel() {
 
                 <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
                     <PreviewSummary preview={preview} />
+                    {preview && <ImportIssuesDownloadButton preview={preview} filename="incidencias-facturas.csv" />}
                     <PreflightStatus state={preflight} signature={previewSignature} />
 
                     {message && (

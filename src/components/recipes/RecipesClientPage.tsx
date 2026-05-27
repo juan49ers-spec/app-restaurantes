@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Search, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { RecipesCsvImportPanel } from "./RecipesCsvImportPanel"
 
 interface Props {
     initialRecipes: RecipeWithCost[]
@@ -35,6 +36,8 @@ export function RecipesClientPage({ initialRecipes }: Props) {
 
             {/* KPI Cards */}
             <RecipeSummaryCards recipes={initialRecipes} />
+
+            <RecipesCsvImportPanel />
 
             {/* Search and Filter Bar */}
             <div className="flex items-center space-x-2 bg-white/50 p-1 rounded-lg">

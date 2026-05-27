@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { EmployeeModal } from "@/components/staff/EmployeeModal"
+import { EmployeesCsvImportPanel } from "@/components/staff/EmployeesCsvImportPanel"
 import { toggleEmployeeStatus } from "@/app/actions/staff"
 import { toast } from "sonner"
 
@@ -139,6 +140,8 @@ export function ClientEmployeesView({ initialEmployees, restaurantId }: ClientEm
                     </Card>
                 ))}
             </div>
+
+            <EmployeesCsvImportPanel />
 
             {/* Employee List - Zen Mode Desktop */}
             <div className="space-y-2">

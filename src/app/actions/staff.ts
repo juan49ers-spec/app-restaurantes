@@ -6,13 +6,31 @@ import { Employee, Shift } from "@/types/schema"
 import { getUserRestaurant } from "./utils"
 import { z } from "zod"
 import {
+    parseEmployeesCsvPreview,
+    type EmployeesCsvPayload,
+} from "@/lib/importing/employees-csv"
+import {
     parseShiftsCsvPreview,
     type ShiftsCsvPayload,
 } from "@/lib/importing/shifts-csv"
 
+const EmployeesCsvImportSchema = z.object({
+    csvText: z.string().min(1, "CSV vacío"),
+})
+
 const ShiftsCsvImportSchema = z.object({
     csvText: z.string().min(1, "CSV vacío"),
 })
+
+type EmployeesCsvPreflight = {
+    canImport: boolean
+    existingRows: {
+        key: string
+        rowNumbers: number[]
+        message: string
+    }[]
+    summary: ReturnType<typeof parseEmployeesCsvPreview>["summary"]
+}
 
 type ShiftsCsvPreflight = {
     canImport: boolean
@@ -22,6 +40,172 @@ type ShiftsCsvPreflight = {
         message: string
     }[]
     summary: ReturnType<typeof parseShiftsCsvPreview>["summary"]
+}
+
+export async function validateEmployeesCsvImport(input: z.input<typeof EmployeesCsvImportSchema>): Promise<{
+    success: boolean
+    data?: EmployeesCsvPreflight
+    error?: string
+}> {
+    const parsed = EmployeesCsvImportSchema.safeParse(input)
+    if (!parsed.success) return { success: false, error: "CSV inválido." }
+
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return { success: false, error: "No hay restaurante activo para importar empleados." }
+
+    const preview = parseEmployeesCsvPreview(parsed.data)
+    const validationError = employeesCsvValidationError(preview)
+    if (validationError) return { success: false, error: validationError }
+
+    const supabase = await createClient()
+    const existingRows = await findExistingEmployeeRows(supabase, preview, restaurantId)
+    if (!existingRows.success) return { success: false, error: existingRows.error }
+
+    return {
+        success: true,
+        data: {
+            canImport: existingRows.rows.length === 0,
+            existingRows: existingRows.rows,
+            summary: preview.summary,
+        },
+    }
+}
+
+export async function importEmployeesCsv(input: z.input<typeof EmployeesCsvImportSchema>): Promise<{
+    success: boolean
+    data?: {
+        importedRows: number
+        summary: ReturnType<typeof parseEmployeesCsvPreview>["summary"]
+    }
+    error?: string
+}> {
+    const parsed = EmployeesCsvImportSchema.safeParse(input)
+    if (!parsed.success) return { success: false, error: "CSV inválido." }
+
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return { success: false, error: "No hay restaurante activo para importar empleados." }
+
+    const preview = parseEmployeesCsvPreview(parsed.data)
+    const validationError = employeesCsvValidationError(preview)
+    if (validationError) return { success: false, error: validationError }
+
+    const supabase = await createClient()
+    const existingRows = await findExistingEmployeeRows(supabase, preview, restaurantId)
+    if (!existingRows.success) return { success: false, error: existingRows.error }
+    if (existingRows.rows.length > 0) {
+        return { success: false, error: "El CSV contiene empleados que ya existen. Revisa duplicados antes de importar." }
+    }
+
+    const rows = preview.rows
+        .filter((row): row is typeof row & { payload: EmployeesCsvPayload } => row.status === "valid" && row.payload !== undefined)
+        .map(row => ({
+            restaurant_id: restaurantId,
+            first_name: row.payload.first_name,
+            last_name: row.payload.last_name,
+            role: row.payload.role,
+            email: row.payload.email,
+            phone: row.payload.phone,
+            contract_type: row.payload.contract_type,
+            contract_hours_weekly: row.payload.contract_hours_weekly,
+            wage_type: row.payload.wage_type,
+            hourly_rate: row.payload.hourly_rate,
+            monthly_base_salary: row.payload.monthly_base_salary,
+            status: row.payload.status,
+            is_active: row.payload.status === "ACTIVE",
+            color_code: row.payload.color_code,
+            system_access_level: "NONE",
+        }))
+
+    const { data, error } = await supabase
+        .from("employees")
+        .insert(rows)
+        .select()
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/staff/employees")
+    revalidatePath("/staff/schedule")
+    revalidatePath("/consultant")
+    revalidatePath("/reports")
+
+    return {
+        success: true,
+        data: {
+            importedRows: Array.isArray(data) ? data.length : rows.length,
+            summary: preview.summary,
+        },
+    }
+}
+
+function employeesCsvValidationError(preview: ReturnType<typeof parseEmployeesCsvPreview>) {
+    if (preview.fileErrors.length > 0 || preview.invalidRows > 0) {
+        return "El CSV contiene errores. Revisa el preview antes de importar."
+    }
+
+    if (preview.duplicates.length > 0) {
+        return "El CSV contiene duplicados internos. Revisa el preview antes de importar."
+    }
+
+    if (preview.validRows === 0) {
+        return "El CSV no contiene empleados válidos."
+    }
+
+    return null
+}
+
+async function findExistingEmployeeRows(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    preview: ReturnType<typeof parseEmployeesCsvPreview>,
+    restaurantId: string,
+): Promise<{
+    success: true
+    rows: EmployeesCsvPreflight["existingRows"]
+} | { success: false; error: string }> {
+    const validRows = preview.rows.filter((row): row is typeof row & { payload: EmployeesCsvPayload } =>
+        row.status === "valid" && row.payload !== undefined
+    )
+    const rowNumbersByName = new Map(validRows.map(row => [normalizeEmployeeName(`${row.payload.first_name} ${row.payload.last_name}`), [row.rowNumber]]))
+    const rowNumbersByEmail = new Map(
+        validRows
+            .filter(row => row.payload.email)
+            .map(row => [row.payload.email?.toLowerCase() ?? "", [row.rowNumber]])
+    )
+
+    const { data, error } = await supabase
+        .from("employees")
+        .select("id, first_name, last_name, email")
+        .eq("restaurant_id", restaurantId)
+
+    if (error) {
+        return {
+            success: false,
+            error: "No se pudieron comprobar empleados existentes. Inténtalo de nuevo antes de importar.",
+        }
+    }
+
+    const rows: EmployeesCsvPreflight["existingRows"] = []
+    for (const employee of (data ?? []) as { id: string; first_name: string; last_name: string; email?: string | null }[]) {
+        const email = employee.email?.toLowerCase()
+        if (email && rowNumbersByEmail.has(email)) {
+            rows.push({
+                key: `email:${email}`,
+                rowNumbers: rowNumbersByEmail.get(email) ?? [],
+                message: `Ya existe un empleado con email ${email}.`,
+            })
+            continue
+        }
+
+        const nameKey = normalizeEmployeeName(`${employee.first_name} ${employee.last_name}`)
+        if (rowNumbersByName.has(nameKey)) {
+            rows.push({
+                key: `name:${nameKey}`,
+                rowNumbers: rowNumbersByName.get(nameKey) ?? [],
+                message: `Ya existe un empleado llamado ${employee.first_name} ${employee.last_name}.`,
+            })
+        }
+    }
+
+    return { success: true, rows }
 }
 
 export async function validateShiftsCsvImport(input: z.input<typeof ShiftsCsvImportSchema>): Promise<{

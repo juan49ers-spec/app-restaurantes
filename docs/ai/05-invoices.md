@@ -15,7 +15,7 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
    - **Revisión**: facturas pendientes (status `processing` o `review_required`).
    - **Histórico**: facturas `completed`.
 2. **Subir:**
-   - `InvoicesCsvImportPanel`: permite importar cabeceras históricas desde CSV para marcar facturas ya revisadas como `completed` sin OCR.
+   - `InvoicesCsvImportPanel`: permite importar cabeceras históricas desde CSV para marcar facturas ya revisadas como `completed` sin OCR. Si hay errores o duplicados internos, permite descargar incidencias como CSV.
    - Arrastra archivos (PDF, JPG, PNG).
    - Click "Procesar N Facturas".
    - Por cada archivo: upload a Supabase Storage → crea fila `invoices` con `status='processing'` → llama OpenAI Vision → guarda resultado en `scanned_data` → status pasa a `review_required` (o `error`).
@@ -53,6 +53,7 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
 2. `validateInvoicesCsvImport({ csvText })` revalida el parser en servidor, resuelve `restaurant_id` con `getUserRestaurant()`, cruza proveedores contra `suppliers` del restaurante y detecta duplicados exactos.
 3. `importInvoicesCsv({ csvText })` repite todo el preflight antes de escribir e inserta filas en `invoices` con `status='completed'` y `scanned_data.source='csv_import'`.
 4. Este flujo **solo crea cabeceras históricas**. No crea `invoice_items`, no genera `stock_movements`, no actualiza `inventory_stock` y no inserta `operating_expenses`.
+5. `ImportIssuesDownloadButton` exporta errores de archivo, filas inválidas y duplicados internos del preview para corregir el CSV fuera de la app.
 
 **Revisar y guardar (`updateInvoice`):**
 
@@ -84,6 +85,7 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
   - `error` → OCR falló. Usuario debe reintentar.
 - **OCR completo:** las facturas que deben afectar stock, precio de ingredientes, aliases y gastos operativos pasan por GPT-4o + review humana.
 - **CSV de cabeceras:** existe como flujo limitado para histórico/checklist. Solo marca facturas ya revisadas como `completed`; no sustituye la review cuando se necesita impacto en stock/gastos.
+- **CSV incidencias:** la descarga de incidencias no escribe datos ni comprueba BD; solo convierte el preview local en un CSV de ayuda para corrección.
 - **Créditos:** cada OCR consume 1 crédito. Sin créditos, no se puede subir.
 - **`supplier_id` obligatorio** al guardar review.
 - **Mapeo opcional por item:** se puede ignorar líneas (`mappingValue='ignore'`). No afectan stock.

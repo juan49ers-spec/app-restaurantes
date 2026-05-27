@@ -6,6 +6,7 @@ import { importRecipeSalesCsv, validateRecipeSalesCsvImport } from "@/app/action
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { ImportIssuesDownloadButton } from "@/components/importing/ImportIssuesDownloadButton"
 import {
     parseRecipeSalesCsvPreview,
     RECIPE_SALES_CSV_TEMPLATE,
@@ -122,6 +123,7 @@ export function RecipeSalesCsvImportPanel() {
 
                 <div className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                     <RecipeSalesPreview preview={preview} />
+                    {preview && <ImportIssuesDownloadButton preview={preview} filename="incidencias-ventas-receta.csv" />}
                     <PreflightStatus state={preflight} signature={signature} />
                     {message && (
                         <div

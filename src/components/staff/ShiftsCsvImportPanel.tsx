@@ -6,6 +6,7 @@ import { importShiftsCsv, validateShiftsCsvImport } from "@/app/actions/staff"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { ImportIssuesDownloadButton } from "@/components/importing/ImportIssuesDownloadButton"
 import { SHIFTS_CSV_TEMPLATE, parseShiftsCsvPreview } from "@/lib/importing/shifts-csv"
 import { cn } from "@/lib/utils"
 
@@ -143,6 +144,7 @@ export function ShiftsCsvImportPanel({ onImported }: { onImported?: () => void }
 
                 <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-white/10 dark:bg-white/5">
                     <PreviewSummary preview={preview} />
+                    {preview && <ImportIssuesDownloadButton preview={preview} filename="incidencias-turnos.csv" />}
                     <PreflightStatus state={preflight} signature={previewSignature} />
 
                     {message && (

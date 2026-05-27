@@ -12,8 +12,9 @@ Las fichas técnicas (escandallos) de los platos del menú. Documentan la fórmu
 
 1. Entra a `/recipes`. Ve `ResumeSummaryCards` (KPIs: total recetas, margen promedio, coste promedio) y tabla.
 2. Búsqueda por nombre (debounced).
-3. Click "Nueva Receta" → `/recipes/new/edit`. Click en fila → `/recipes/[id]/edit`.
-4. **Editor full-screen** (`RecipeEditorClient`):
+3. Puede importar cabeceras de recetas desde CSV con preview, descarga de plantilla, descarga de incidencias y comprobación de duplicados antes de escribir.
+4. Click "Nueva Receta" → `/recipes/new/edit`. Click en fila → `/recipes/[id]/edit`.
+5. **Editor full-screen** (`RecipeEditorClient`):
    - Tabs:
      - **Receta**: nombre, precio venta, margen objetivo, tiempo prep, rendimiento (yields).
      - **Sensibilidad de precio**: curva coste vs precio.
@@ -37,6 +38,14 @@ Las fichas técnicas (escandallos) de los platos del menú. Documentan la fórmu
 **Escritura:**
 - `saveRecipe(payload)` — llama RPC `upsert_recipe_with_ingredients` (atómico). Si falla, no se guarda nada.
 - `deleteRecipe(id)` — borra recipe + `recipe_ingredients` (cascade).
+- `validateRecipesCsvImport({ csvText })` — revalida CSV en servidor, resuelve `restaurant_id` y comprueba nombres ya existentes.
+- `importRecipesCsv({ csvText })` — importa cabeceras de receta en `recipes` con `restaurant_id` server-side tras repetir validación y preflight. No crea `recipe_ingredients`, no crea ingredientes maestros y no toca stock.
+
+**Importación CSV de cabeceras:**
+
+- `RecipesCsvImportPanel` vive en `RecipesClientPage`.
+- `parseRecipesCsvPreview()` es un motor puro en `src/lib/importing/recipes-csv.ts`: normaliza cabeceras, soporta decimales españoles, valida `name`, `selling_price`, `current_cost`, `target_margin_pct`, `prep_time_minutes`, `yields` y `hourly_rate`, detecta duplicados internos por nombre normalizado y resume precio/coste medio.
+- El panel ofrece plantilla descargable e incidencias CSV descargables mediante `ImportIssuesDownloadButton`.
 
 **Hook clave:** `useRecipeCalculator` (ver [T05](./T05-hooks-y-providers.md)) — orquesta el estado del editor: ingredientes, escalado, métricas derivadas (`totalCost`, `laborCost`, `primeCost`, `calculatedMargin`, `suggestedPrice`).
 
@@ -52,6 +61,8 @@ Las fichas técnicas (escandallos) de los platos del menú. Documentan la fórmu
 - **Labor cost** existe en el esquema (`hourly_rate`, `prep_time_minutes`) pero no toda la UI lo suma al coste mostrado consistentemente.
 - **Allergens** se agregan en los ingredientes y se propagan automáticamente a la receta (lectura derivada).
 - **Idempotency key** en `saveRecipe` previene duplicados si el cliente reintenta.
+- **CSV de recetas:** importa solo cabeceras históricas/operativas (`recipes`). Es útil para preparar carta, ventas por receta y Menu Engineering cuando el consultor tiene un Excel de carta con coste/precio. No sustituye el escandallo completo con ingredientes.
+- **Duplicado CSV de receta:** se bloquea si el CSV contiene nombres duplicados internamente o si ya existe una receta con el mismo nombre normalizado en el restaurante activo.
 - Visible en sidebar solo si `active_addons.includes('operativa')`. La ruta `/recipes` no aparece en sidebar como entrada propia — se accede vía `/escandallos` tab.
 
 ## 5. Dependencias e implicaciones cruzadas
@@ -70,6 +81,7 @@ Las fichas técnicas (escandallos) de los platos del menú. Documentan la fórmu
 ## 6. Casos límite y errores conocidos
 
 - **Receta sin ingredientes:** se puede guardar (no hay validación). Coste = 0.
+- **CSV de recetas sin ingredientes:** las recetas importadas pueden tener `current_cost` y `selling_price`, pero no `recipe_ingredients`. Sirven para informes y ventas por receta; no sirven para explosión de stock hasta completar el escandallo.
 - **Receta sin precio de venta:** margen no calculable, ratios = 0.
 - **Sub-receta cambia coste:** los padres no se actualizan automáticamente. Workaround manual: tocar y guardar la receta padre.
 - **Ingrediente borrado (soft delete):** sigue apareciendo en recetas que lo usaban (porque `is_active=false` no elimina la fila). Puede mostrar precio desactualizado.
@@ -87,6 +99,8 @@ Las fichas técnicas (escandallos) de los platos del menú. Documentan la fórmu
 
 **Archivos que suelen cambiar a la vez:**
 - `src/app/actions/recipes.ts` — lecturas.
+- `src/components/recipes/RecipesCsvImportPanel.tsx` — importación CSV de cabeceras.
+- `src/lib/importing/recipes-csv.ts` — parser puro de CSV de recetas.
 - `src/app/actions/saveRecipe.ts` — escritura atómica.
 - `src/components/recipes/RecipeEditorClient.tsx` — UI principal.
 - `src/components/recipes/IngredientSelector.tsx` — picker.

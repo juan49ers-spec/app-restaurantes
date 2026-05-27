@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { ImportIssuesDownloadButton } from "@/components/importing/ImportIssuesDownloadButton"
 import {
     FINANCIAL_CSV_TEMPLATES,
     parseFinancialCsvPreview,
@@ -200,6 +201,7 @@ export function FinancialCsvImportPanel() {
 
                 <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-white/10 dark:bg-white/5">
                     <PreviewSummary kind={kind} preview={preview} />
+                    {preview && <ImportIssuesDownloadButton preview={preview} filename={`incidencias-${kind}.csv`} />}
                     <PreflightStatus state={preflight} signature={previewSignature} />
 
                     {message && (

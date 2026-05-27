@@ -100,7 +100,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - **Portal cliente:** consume los informes publicados y la identidad del consultor.
 - **Base de datos:** usa `restaurants`, `professional_report_drafts` y `portal_meeting_requests`.
 - **Datos operativos:** la checklist lee conteos de `daily_sales`, `operating_expenses`, `invoices`, `employees`, `shifts`, `recipes`, `daily_recipe_sales` y `menu_reports`.
-- **Importadores CSV:** ventas, gastos, ventas por receta, turnos y cabeceras de factura alimentan estos conteos. Las cabeceras de factura importadas cuentan como facturas revisadas si quedan `completed`, pero no sustituyen líneas de factura, movimientos de stock ni gastos operativos.
+- **Importadores CSV:** ventas, gastos, cabeceras de recetas, empleados, ventas por receta, turnos y cabeceras de factura alimentan estos conteos. Las cabeceras de receta permiten preparar carta sin escandallo completo; los empleados importados permiten preparar turnos; las cabeceras de factura importadas cuentan como facturas revisadas si quedan `completed`, pero no sustituyen líneas de factura, movimientos de stock ni gastos operativos.
 - **Lógica compartida:** `src/lib/consultant/` mantiene helpers puros reutilizables por actions y tests. No debe importar `createClient()` ni resolver sesión.
 - **Navegación:** aparece en CORE como “Consultoría”.
 - **Futuro multi-cliente:** esta ruta es el punto natural para evolucionar hacia cartera de clientes, pero ahora respeta el modelo actual usuario/restaurante.
