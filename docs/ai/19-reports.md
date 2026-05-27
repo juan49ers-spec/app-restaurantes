@@ -22,7 +22,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 8. Edita la narrativa de cada seccion.
 9. Pulsa "Guardar revision". La action regenera los datos en servidor, guarda un snapshot y conserva las narrativas editadas.
 10. Si no hay bloqueos criticos, puede pulsar "Guardar listo para publicar" para crear una version `READY`.
-11. Cuando una version esta `READY`, puede publicarla en el portal cliente o despublicarla.
+11. Cuando una version esta `READY`, puede publicarla en el portal cliente si el quality gate del snapshot no detecta bloqueos criticos.
 12. Desde "Versiones" abre "Exportar", que lleva a `/reports/print/[draftId]`.
 13. En la vista imprimible pulsa "Imprimir / guardar PDF" para usar el dialogo nativo del navegador.
 
@@ -43,6 +43,7 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 
 - Renderiza KPIs de calidad del informe.
 - Renderiza la capa ejecutiva construida por `buildProfessionalReportPresentation(report)`.
+- Evalua el quality gate con `evaluateProfessionalReportQualityGate(report)` y muestra si el informe esta listo, publicable con advertencias o bloqueado.
 - Agrupa secciones en tabs.
 - Permite editar narrativa.
 - Guarda versiones mediante `saveProfessionalReportDraft`: revision normal (`DRAFT`/`REVIEWED`) o version `READY` cuando no hay bloqueos criticos.
@@ -64,6 +65,14 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - RLS limita filas al restaurante propietario.
 
 **Motor:** todo calculo viene de `src/lib/reporting/`; la UI no recalcula rentabilidad.
+
+**Quality gate:** `src/lib/reporting/quality-gate.ts`
+
+- Es una funcion pura sobre `ProfessionalRestaurantReport`.
+- Convierte incidencias criticas en bloqueos de publicacion.
+- Permite publicar con advertencias cuando los problemas no son criticos.
+- Trata secciones `CONFLICT` como bloqueo defensivo aunque falte una incidencia global.
+- Se usa tanto en la UI de revision como en `publishReportDraft()` antes de actualizar `published_at`.
 
 **Datos demo de verificacion:** `src/app/actions/seed-professional-report-demo.ts` + `src/app/api/seed-reporting-demo/route.ts`
 
@@ -102,6 +111,8 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - "Guardar revision" crea `DRAFT` si hay bloqueos criticos y `REVIEWED` si no los hay.
 - "Guardar listo para publicar" solo esta habilitado sin bloqueos criticos y crea una version `READY`.
 - `READY` significa listo internamente. Solo `published_at IS NOT NULL` hace visible una version en `/portal`.
+- Publicar exige dos condiciones: la fila debe pertenecer al restaurante activo y estar `READY`, y el snapshot guardado debe pasar `evaluateProfessionalReportQualityGate()` sin bloqueos.
+- `publishReportDraft` vuelve a validar en servidor el `restaurant.id` del snapshot antes de evaluar el gate. La UI no es fuente de verdad.
 - La exportacion actual es HTML imprimible/PDF de navegador, no generacion binaria server-side.
 - La seed demo de informes no debe exponerse como funcionalidad normal de cliente. Es herramienta de verificacion/dev. El endpoint devuelve `401` si no hay usuario autenticado, `403` si la seed no esta habilitada en el entorno y `429` si se excede el limite por usuario/IP.
 
@@ -127,6 +138,8 @@ No sustituye al control financiero diario. Es una capa superior orientada a diag
 - Si una version guardada no pertenece al restaurante activo, la print page devuelve `notFound()`.
 - Si `markProfessionalReportDraftExported` falla, el HTML sigue siendo imprimible; solo no quedaria marcado `exported_at`.
 - Si hay bloqueos criticos, las conclusiones ejecutivas priorizan calidad de dato y no recomendaciones de negocio.
+- Si una version `READY` fue guardada antes de endurecer el criterio, `publishReportDraft` la bloquea si el snapshot contiene incidencias criticas o conflicto de seccion.
+- Si falla la publicacion por quality gate, la version sigue guardada como `READY`, pero no se hace visible en `/portal`.
 - Si no existen objetivos mensuales, el informe vuelve a umbrales profesionales por defecto solo en la capa ejecutiva.
 - Si no hay ventas por receta, el informe puede seguir siendo revisable, pero la carta queda incompleta.
 - Si ventas por receta y ventas diarias no cuadran, se muestra cobertura de carta contra ventas diarias para evitar conclusiones falsas de mix.

@@ -8,6 +8,21 @@ const RESTAURANT_ID = '550e8400-e29b-41d4-a716-446655440000'
 const OTHER_RESTAURANT_ID = '550e8400-e29b-41d4-a716-446655440999'
 const REPORT_ID = '11111111-1111-4111-8111-111111111111'
 
+const validReportSnapshot = {
+  schemaVersion: 'professional-report/v1',
+  generatedAt: '2026-03-01T10:00:00.000Z',
+  restaurant: { id: RESTAURANT_ID, name: 'Txiquita Tasca' },
+  period: { from: '2026-02-01', to: '2026-02-28', days: 28 },
+  quality: { status: 'OK', confidence: 90, issues: [] },
+  sourceMap: [],
+  executiveSummary: {
+    headline: 'Informe preparado',
+    keyFindings: [],
+    blockingIssues: [],
+  },
+  sections: [],
+}
+
 let mockRestaurantId: string | null = RESTAURANT_ID
 let tableResults: Record<string, QueryResult> = {}
 let calls: Array<{
@@ -165,7 +180,7 @@ describe('portal server actions', () => {
             version: 1,
             status: 'READY',
             schema_version: 'professional-report/v1',
-            report_snapshot: { restaurant: { id: RESTAURANT_ID, name: 'Txiquita Tasca' }, sections: [], sourceMap: [] },
+            report_snapshot: validReportSnapshot,
             narrative_overrides: {},
             created_at: '2026-03-01T10:00:00.000Z',
             updated_at: '2026-03-01T10:00:00.000Z',
@@ -202,11 +217,25 @@ describe('portal server actions', () => {
   })
 
   it('publishes only READY drafts owned by the active restaurant', async () => {
+    tableResults.professional_report_drafts = {
+      data: { id: REPORT_ID, report_snapshot: validReportSnapshot },
+      error: null,
+    }
     const { publishReportDraft } = await import('@/app/actions/portal')
 
     const result = await publishReportDraft(REPORT_ID)
 
     expect(result.success).toBe(true)
+    const validationCall = calls.find(item =>
+      item.table === 'professional_report_drafts' &&
+      item.select === 'id, report_snapshot'
+    )
+    expect(validationCall?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'id', REPORT_ID],
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['eq', 'status', 'READY'],
+    ]))
+
     const call = calls.find(item => item.table === 'professional_report_drafts' && item.updateValue)
     expect(call?.filters).toEqual(expect.arrayContaining([
       ['eq', 'id', REPORT_ID],
@@ -216,6 +245,39 @@ describe('portal server actions', () => {
     expect(call?.updateValue).toEqual(expect.objectContaining({
       published_by: 'user-1',
     }))
+  })
+
+  it('rejects publishing when the saved report snapshot has critical blockers', async () => {
+    tableResults.professional_report_drafts = {
+      data: {
+        id: REPORT_ID,
+        report_snapshot: {
+          ...validReportSnapshot,
+          quality: {
+            status: 'MISSING',
+            confidence: 30,
+            issues: [{
+              id: 'sales.missing',
+              section: 'sales',
+              status: 'MISSING',
+              severity: 'critical',
+              message: 'No hay ventas cargadas para el periodo.',
+              sourceIds: ['daily_sales'],
+            }],
+          },
+        },
+      },
+      error: null,
+    }
+    const { publishReportDraft } = await import('@/app/actions/portal')
+
+    const result = await publishReportDraft(REPORT_ID)
+
+    expect(result).toEqual({
+      success: false,
+      error: 'El informe tiene bloqueos criticos y no puede publicarse.',
+    })
+    expect(calls.some(item => item.table === 'professional_report_drafts' && item.updateValue)).toBe(false)
   })
 
   it('rejects publishing a draft from another restaurant', async () => {

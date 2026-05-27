@@ -1,5 +1,7 @@
 export { buildProfessionalRestaurantReport } from './build-professional-report'
 export { buildProfessionalReportPresentation } from './professional-report-presentation'
+export { evaluateProfessionalReportQualityGate } from './quality-gate'
 export { PROFESSIONAL_REPORT_SOURCE_MAP } from './source-map'
 export type * from './types'
 export type * from './professional-report-presentation'
+export type * from './quality-gate'

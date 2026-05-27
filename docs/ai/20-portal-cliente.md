@@ -33,7 +33,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `getPublishedReportDetail(id)` carga el snapshot completo solo si está publicado y pertenece al restaurante activo.
 - `getPortalContext()` carga restaurante, datos del consultor y ventas acumuladas del mes vs objetivo.
 - `requestConsultantMeeting(input)` crea una fila `portal_meeting_requests` solo si no existe ya una solicitud abierta (`PENDING` o `ACKNOWLEDGED`) para ese informe y restaurante. Si existe, devuelve la solicitud existente con `reused: true`.
-- `publishReportDraft(id)` y `unpublishReportDraft(id)` se usan desde la mesa interna.
+- `publishReportDraft(id)` y `unpublishReportDraft(id)` se usan desde la mesa interna. Publicar valida que el draft esta `READY`, pertenece al restaurante activo y que el snapshot supera `evaluateProfessionalReportQualityGate()` sin bloqueos.
 
 **Consultas server-side:** `src/lib/portal.ts`
 
@@ -51,6 +51,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 
 - El portal solo muestra informes publicados.
 - `READY` no implica visibilidad; la visibilidad depende de `published_at`.
+- Una version `READY` no puede publicarse si el snapshot tiene bloqueos criticos o secciones en conflicto. El servidor aplica este quality gate aunque la UI ya haya mostrado el estado.
 - El detalle del portal consume `report_snapshot`; no recalcula el informe.
 - El dato vivo solo muestra ventas acumuladas del mes actual contra objetivo mensual.
 - El porcentaje del dato vivo se devuelve redondeado a 4 decimales para evitar artefactos de coma flotante.
@@ -76,6 +77,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 
 - Si no hay informes publicados, se muestra estado vacío.
 - Si un informe existe pero no está publicado, no aparece ni puede abrirse por URL.
+- Si el consultor intenta publicar un snapshot bloqueado, la action devuelve error y no actualiza `published_at`.
 - Si el objetivo mensual no existe o es 0, no se muestra progreso vivo.
 - Si falla una solicitud de reunión, el formulario muestra error sin romper el portal.
 - Si ya existe una solicitud abierta para el informe, el formulario informa al cliente y no inserta otra fila.

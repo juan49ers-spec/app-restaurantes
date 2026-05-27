@@ -24,13 +24,14 @@ import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { cn, formatCurrency, formatPct } from '@/lib/utils'
-import { buildProfessionalReportPresentation } from '@/lib/reporting'
+import { buildProfessionalReportPresentation, evaluateProfessionalReportQualityGate } from '@/lib/reporting'
 import type {
   SavedProfessionalReportDraft,
 } from '@/app/actions/professional-reporting'
 import type {
   DataQualityStatus,
   PresentationKpi,
+  ProfessionalReportQualityGate,
   ProfessionalReportSection,
   ProfessionalRestaurantReport,
   ReportMetric,
@@ -90,6 +91,23 @@ const DRAFT_STATUS_COPY: Record<SavedProfessionalReportDraft['status'], string> 
   DRAFT: 'Borrador',
   REVIEWED: 'Revisado',
   READY: 'Listo',
+}
+
+const MAX_GATE_ITEMS_VISIBLE = 4
+
+const QUALITY_GATE_COPY: Record<ProfessionalReportQualityGate['status'], { label: string; className: string }> = {
+  READY: {
+    label: 'Listo',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  },
+  WARNING: {
+    label: 'Con advertencias',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+  },
+  BLOCKED: {
+    label: 'Bloqueado',
+    className: 'border-red-200 bg-red-50 text-red-700',
+  },
 }
 
 function formatMetricValue(metric: ReportMetric) {
@@ -158,6 +176,71 @@ function MetricGrid({ metrics }: { metrics: ReportMetric[] }) {
   )
 }
 
+function QualityGatePanel({ gate }: { gate: ProfessionalReportQualityGate }) {
+  const copy = QUALITY_GATE_COPY[gate.status]
+  const items = [...gate.blockers, ...gate.warnings].slice(0, MAX_GATE_ITEMS_VISIBLE)
+
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              {gate.canPublish ? <ShieldCheck className="h-5 w-5 text-emerald-600" /> : <TriangleAlert className="h-5 w-5 text-red-600" />}
+              <h2 className="text-lg font-semibold text-slate-950">Quality gate de publicación</h2>
+            </div>
+            <span className={cn('inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold', copy.className)}>
+              {copy.label}
+            </span>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-slate-600">{gate.summary}</p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <p className="text-lg font-semibold text-slate-950">{gate.blockers.length}</p>
+            <p className="text-[11px] font-medium uppercase text-slate-500">Bloqueos</p>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <p className="text-lg font-semibold text-slate-950">{gate.warnings.length}</p>
+            <p className="text-[11px] font-medium uppercase text-slate-500">Avisos</p>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <p className="text-lg font-semibold text-slate-950">{gate.info.length}</p>
+            <p className="text-[11px] font-medium uppercase text-slate-500">Info</p>
+          </div>
+        </div>
+      </div>
+
+      {items.length > 0 && (
+        <div className="mt-5 grid gap-2">
+          {items.map(item => (
+            <div
+              key={item.id}
+              className={cn(
+                'rounded-md border px-3 py-2 text-sm',
+                item.severity === 'blocker'
+                  ? 'border-red-100 bg-red-50 text-red-700'
+                  : 'border-amber-100 bg-amber-50 text-amber-700'
+              )}
+            >
+              <div className="flex items-start gap-2">
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-medium">{item.title}</p>
+                  <p className="mt-1 leading-5">{item.message}</p>
+                  {item.sourceIds.length > 0 && (
+                    <p className="mt-1 text-xs opacity-80">{item.sourceIds.join(', ')}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 function SectionPanel({
   section,
   draftValue,
@@ -223,7 +306,7 @@ function SectionPanel({
           <p className="text-xs font-semibold uppercase text-slate-500">Evidencia</p>
           <div className="mt-3 space-y-3">
             {section.quality.evidence.length === 0 ? (
-              <p className="text-sm text-slate-500">Sin evidencia directa para esta seccion.</p>
+              <p className="text-sm text-slate-500">Sin evidencia directa para esta sección.</p>
             ) : (
               section.quality.evidence.map(item => (
                 <div key={`${item.sourceId}-${item.tables.join('.')}`} className="border-l-2 border-slate-200 pl-3">
@@ -264,10 +347,11 @@ export function ProfessionalReportReview({ initialPeriod, report, error, savedDr
       .filter((section): section is ProfessionalReportSection => Boolean(section))
   }, [report])
   const presentation = useMemo(() => report ? buildProfessionalReportPresentation(report) : null, [report])
+  const qualityGate = useMemo(() => report ? evaluateProfessionalReportQualityGate(report) : null, [report])
 
   const readySections = report?.sections.filter(section => section.quality.status === 'OK').length ?? 0
   const totalSections = report?.sections.length ?? 0
-  const criticalIssues = report?.quality.issues.filter(issue => issue.severity === 'critical').length ?? 0
+  const criticalIssues = qualityGate?.blockers.length ?? 0
 
   function applyPeriod() {
     startTransition(() => {
@@ -281,7 +365,7 @@ export function ProfessionalReportReview({ initialPeriod, report, error, savedDr
     setIsSaving(true)
     setSaveState(null)
 
-    const status: DraftSaveStatus = requestedStatus ?? (criticalIssues === 0 ? 'REVIEWED' : 'DRAFT')
+    const status: DraftSaveStatus = requestedStatus ?? (qualityGate?.canPublish ? 'REVIEWED' : 'DRAFT')
     const response = await saveProfessionalReportDraft({
       period: {
         from: report.period.from,
@@ -393,7 +477,7 @@ export function ProfessionalReportReview({ initialPeriod, report, error, savedDr
               <div className="rounded-lg border border-slate-200 bg-white p-5">
                 <div className="flex items-center gap-2 text-slate-500">
                   <TriangleAlert className="h-4 w-4" />
-                  <p className="text-sm font-medium">Bloqueos criticos</p>
+                  <p className="text-sm font-medium">Bloqueos críticos</p>
                 </div>
                 <p className="mt-4 text-3xl font-semibold text-slate-950">{criticalIssues}</p>
                 <p className="mt-2 text-sm text-slate-500">Incidencias que impiden una conclusion firme.</p>
@@ -444,6 +528,8 @@ export function ProfessionalReportReview({ initialPeriod, report, error, savedDr
                 </div>
               </div>
             </section>
+
+            {qualityGate && <QualityGatePanel gate={qualityGate} />}
 
             {presentation && (
               <section className="rounded-lg border border-slate-200 bg-white p-6">
@@ -498,7 +584,7 @@ export function ProfessionalReportReview({ initialPeriod, report, error, savedDr
                       <Save className="h-4 w-4" />
                       {isSaving ? 'Guardando' : 'Guardar revision'}
                     </Button>
-                    <Button onClick={() => saveDraft('READY')} disabled={isSaving || criticalIssues > 0}>
+                    <Button onClick={() => saveDraft('READY')} disabled={isSaving || !qualityGate?.canPublish}>
                       <CheckCircle2 className="h-4 w-4" />
                       Guardar listo para publicar
                     </Button>

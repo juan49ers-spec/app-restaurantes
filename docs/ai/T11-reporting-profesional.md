@@ -22,6 +22,8 @@ Desde Fase 7, Menu Engineering ya tiene una formula BCG unica en libreria, actio
 
 Desde Fase 8, Reporting incorpora `menu_engineering` como seccion separada de la carta descriptiva. Esta seccion no recalcula BCG: consume el ultimo `menu_reports` con `status=ANALYZED` del restaurante activo cuyo `date_from/date_to` queda dentro del periodo del informe. Si no existe snapshot, la seccion queda `PARTIAL` y no inventa cuadrantes.
 
+Desde Fase 12, Reporting incorpora un quality gate puro en `src/lib/reporting/quality-gate.ts`. El gate decide si un snapshot puede publicarse en portal cliente: bloquea incidencias criticas y secciones `CONFLICT`, permite publicar con advertencias no criticas y expone el mismo criterio para UI y servidor.
+
 ## 3. Flujo técnico de datos
 
 **Motor puro:** `src/lib/reporting/build-professional-report.ts`.
@@ -40,6 +42,14 @@ Desde Fase 8, Reporting incorpora `menu_engineering` como seccion separada de la
 - Puede derivar ratios de lectura ejecutiva, pero siempre desde metricas ya presentes en el informe y manteniendo `sourceIds`.
 - No consulta Supabase y no altera el snapshot base.
 - Eleva el cumplimiento de objetivos a KPI ejecutivo cuando `monthly_targets` existe.
+
+**Quality gate:** `src/lib/reporting/quality-gate.ts`.
+
+- Consume solo `ProfessionalRestaurantReport`.
+- No consulta Supabase.
+- No recalcula metricas.
+- Devuelve `READY`, `WARNING` o `BLOCKED`, con listas separadas de bloqueos, avisos e informacion.
+- Lo usa `ProfessionalReportReview` para orientar al consultor y `publishReportDraft` para impedir publicar snapshots con bloqueos.
 
 **Server action de lectura:** `src/app/actions/professional-reporting.ts`.
 
@@ -93,6 +103,7 @@ Desde Fase 9, la publicación al cliente es explícita: `status = READY` solo in
 - El guardado queda cubierto por tests de regeneracion server-side, saneamiento de narrativa, verificacion de pertenencia y retry por version duplicada.
 - La exportacion visible debe abrir una version guardada. No debe exportar estado local sin snapshot.
 - La publicación en portal solo puede hacerse sobre versiones guardadas. El portal consume snapshots publicados y no recalcula el informe.
+- Publicar en portal exige snapshot guardado `READY`, pertenencia al restaurante activo y quality gate sin bloqueos. La validacion se repite en servidor aunque la UI ya haya mostrado el estado.
 - La salida actual es imprimible por navegador; si se anade PDF server-side, debe consumir el mismo snapshot.
 - Si existen bloqueos criticos, las conclusiones deben hablar de calidad de dato antes que de decisiones comerciales.
 
@@ -121,6 +132,7 @@ Desde Fase 9, la publicación al cliente es explícita: `status = READY` solo in
 - La Fase 7 unifica la formula BCG de Menu Engineering, pero reporting aun no incorpora esos cuadrantes en el entregable profesional.
 - La Fase 7.2 cierra deuda menor de formulas y QA: `getStats().avgMargin` vuelve a margen ponderado, la brecha semanal queda acotada, el endpoint demo distingue auth/rate limit y se cubren edge cases de Menu Engineering.
 - La Fase 8 incorpora BCG al informe profesional como snapshot trazable, no como recalculo en UI.
+- La Fase 12 incorpora quality gate compartido para preparar y publicar informes sin duplicar criterios entre UI y servidor.
 - Si dos guardados simultaneos chocan por version, la action reintenta una vez.
 
 ## 7. Al añadir/modificar reporting

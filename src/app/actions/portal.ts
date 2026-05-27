@@ -12,6 +12,7 @@ import {
     type PublishedReportSummary,
     type PortalContext,
 } from '@/lib/portal'
+import { evaluateProfessionalReportQualityGate, type ProfessionalRestaurantReport } from '@/lib/reporting'
 import { getUserRestaurant } from './utils'
 
 export type { PublishedReportDetail, PublishedReportSummary, PortalContext } from '@/lib/portal'
@@ -32,6 +33,31 @@ export async function publishReportDraft(id: string): Promise<ActionResponse<{ i
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) return { success: false, error: 'Usuario no autenticado.' }
+
+    const { data: draft, error: draftError } = await supabase
+        .from('professional_report_drafts')
+        .select('id, report_snapshot')
+        .eq('id', parsed.data)
+        .eq('restaurant_id', restaurantId)
+        .eq('status', 'READY')
+        .maybeSingle()
+
+    if (draftError || !draft) return { success: false, error: 'No se pudo publicar el informe.' }
+
+    const reportSnapshot = draft.report_snapshot as Partial<ProfessionalRestaurantReport> | null
+    if (
+        !reportSnapshot?.restaurant?.id ||
+        reportSnapshot.restaurant.id !== restaurantId ||
+        !reportSnapshot.quality ||
+        !Array.isArray(reportSnapshot.sections)
+    ) {
+        return { success: false, error: 'No se pudo publicar el informe.' }
+    }
+
+    const qualityGate = evaluateProfessionalReportQualityGate(reportSnapshot as ProfessionalRestaurantReport)
+    if (!qualityGate.canPublish) {
+        return { success: false, error: 'El informe tiene bloqueos criticos y no puede publicarse.' }
+    }
 
     const publishedAt = new Date().toISOString()
     const { data, error } = await supabase
