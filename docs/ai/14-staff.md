@@ -25,13 +25,14 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 
 ### `/staff/schedule`
 1. Calendario semanal (`ShiftBoard`) — empleados × días.
-2. **Drag & drop** (@dnd-kit) para asignar turnos.
-3. **Crear turno** → `ShiftForm`:
+2. `ShiftsCsvImportPanel` permite importar turnos desde CSV para preparar costes laborales de periodos históricos o planificados.
+3. **Drag & drop** (@dnd-kit) para asignar turnos.
+4. **Crear turno** → `ShiftForm`:
    - Fecha, hora inicio, hora fin, descanso (minutos).
    - Tipo: DESAYUNO/ALMUERZO/CENA/EVENTO/OTRO.
    - Cálculo automático: `estimated_cost = horas * hourly_rate`.
-4. **Forecast diario:** combina turnos planificados + ventas históricas → status `OPTIMAL`/`OVERSTAFFED`/`UNDERSTAFFED`.
-5. **Vista de eficiencia:** `getStaffEfficiency` muestra `moneyLostToOverstaffing`, sugerencias con confianza 1-5 estrellas.
+5. **Forecast diario:** combina turnos planificados + ventas históricas → status `OPTIMAL`/`OVERSTAFFED`/`UNDERSTAFFED`.
+6. **Vista de eficiencia:** `getStaffEfficiency` muestra `moneyLostToOverstaffing`, sugerencias con confianza 1-5 estrellas.
 
 ### `/staff/policies`
 1. Tabla buscable de políticas. CRUD.
@@ -45,10 +46,12 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 - `getStaffingForecast(date)` — combina `shifts` + `daily_sales` históricos.
 - `getStaffEfficiency()` — análisis de sobre-plantilla con sugerencias.
 - `getPolicies()`.
+- `validateShiftsCsvImport({ csvText })` — preflight server-side del CSV de turnos. Revalida parser, resuelve `restaurant_id`, cruza `employee_id`/`employee_name` contra `employees` del restaurante, calcula coste estimado con tarifa actual y detecta duplicados existentes por pareja exacta empleado-fecha-hora.
 
 **Escritura:**
 - `upsertEmployee(payload)`, `toggleEmployeeStatus(id)`, `deleteEmployee(id)` — resuelven el restaurante activo en servidor e ignoran cualquier `restaurant_id` enviado por cliente.
 - `upsertShift(payload)` — resuelve el restaurante activo en servidor; calcula o conserva `estimated_cost` según el flujo actual.
+- `importShiftsCsv({ csvText })` — importa filas nuevas en `shifts` con `restaurant_id` server-side tras repetir validación y preflight. No crea empleados; solo usa empleados existentes.
 - `deleteShift(id)` — borra solo si el turno pertenece al restaurante activo.
 - `upsertPolicy(payload)`, `deletePolicy(id)`.
 
@@ -60,6 +63,9 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 
 - **Convenio Colectivo Hostelería 2024-25:** las tarifas sugeridas vienen de `HOURLY_RATE_SUGGESTIONS` (rango mín-máx por rol). UI muestra rango pero no fuerza límites.
 - **`estimated_cost` = horas × hourly_rate.** Sin descuentos (SS, IRPF).
+- **CSV de turnos:** acepta `employee_id` o `employee_name`; el servidor resuelve siempre contra `employees` del restaurante activo. Si el empleado no existe, está INACTIVE o el nombre es ambiguo, bloquea la importación.
+- **Import CSV no crea empleados.** Alta de personal sigue siendo un flujo separado en `/staff/employees`.
+- **Duplicado de turno CSV:** se considera duplicado si ya existe mismo `employee_id`, `date`, `start_time` y `end_time`.
 - **`actual_cost`:** se calcula con `actual_start_time` y `actual_end_time` si están informados (time tracking).
 - **Conflictos de turnos:** no hay validación de solapamiento (mismo empleado, mismo día, horas superpuestas). Drag-drop permite cualquier cosa.
 - **`labor_cost_pct` óptimo:** 35% sobre ventas (target hospitality ES). `staff-optimization.ts` marca sobre-plantilla si > 45%.
@@ -86,6 +92,9 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 - **Solapamiento de turnos no detectado:** un empleado puede tener 2 turnos a la vez. Bug de negocio potencial.
 - **Cambio de `hourly_rate` no recalcula turnos ya creados:** `estimated_cost` se guardó como snapshot. Hay que re-guardar el turno para refrescar.
 - **Empleado desactivado con turnos futuros:** los turnos siguen activos. No se cancelan automáticamente.
+- **Importar CSV con empleado inactivo:** se bloquea para evitar planificar costes sobre personal no vigente.
+- **Importar CSV de un turno ya existente:** se bloquea antes de escribir. El consultor debe corregir el CSV o editar el turno manualmente.
+- **Dos empleados con mismo nombre completo:** la importación por `employee_name` se bloquea. Usar `employee_id` en CSV cuando existan nombres repetidos.
 - **Tarifa fuera de rango del convenio:** UI no lo bloquea, solo informa.
 - **system_access_level:** se guarda pero la auth real sigue siendo por email (ver [T03](./T03-autenticacion.md)). No se aplica como permiso de la app.
 - **Políticas no publicadas (`is_published=false`):** visibles solo para gerencia (en teoría — verificar filtros en UI).

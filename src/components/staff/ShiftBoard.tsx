@@ -31,6 +31,7 @@ import { ShiftCard } from "./ShiftCard"
 import { ShiftContextMenuPortal } from "./ShiftContextMenuPortal"
 import { SkeletonTable } from "@/components/shared/LoadingSkeletons"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
+import { ShiftsCsvImportPanel } from "./ShiftsCsvImportPanel"
 
 interface ShiftBoardProps {
     restaurantId: string
@@ -299,6 +300,8 @@ export function ShiftBoard({ restaurantId }: ShiftBoardProps) {
     return (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="space-y-6">
+                <ShiftsCsvImportPanel onImported={fetchData} />
+
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2 border-b">
                     <div className="flex items-center gap-4 bg-card border rounded-lg p-1 shadow-sm overflow-hidden min-w-fit">
                         <button

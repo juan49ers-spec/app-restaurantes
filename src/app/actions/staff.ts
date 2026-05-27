@@ -4,6 +4,298 @@ import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { Employee, Shift } from "@/types/schema"
 import { getUserRestaurant } from "./utils"
+import { z } from "zod"
+import {
+    parseShiftsCsvPreview,
+    type ShiftsCsvPayload,
+} from "@/lib/importing/shifts-csv"
+
+const ShiftsCsvImportSchema = z.object({
+    csvText: z.string().min(1, "CSV vacío"),
+})
+
+type ShiftsCsvPreflight = {
+    canImport: boolean
+    existingRows: {
+        key: string
+        rowNumbers: number[]
+        message: string
+    }[]
+    summary: ReturnType<typeof parseShiftsCsvPreview>["summary"]
+}
+
+export async function validateShiftsCsvImport(input: z.input<typeof ShiftsCsvImportSchema>): Promise<{
+    success: boolean
+    data?: ShiftsCsvPreflight
+    error?: string
+}> {
+    const parsed = ShiftsCsvImportSchema.safeParse(input)
+    if (!parsed.success) return { success: false, error: "CSV inválido." }
+
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return { success: false, error: "No hay restaurante activo para importar turnos." }
+
+    const preview = parseShiftsCsvPreview(parsed.data)
+    const validationError = shiftsCsvValidationError(preview)
+    if (validationError) return { success: false, error: validationError }
+
+    const supabase = await createClient()
+    const resolved = await resolveShiftRows(supabase, preview, restaurantId)
+    if (!resolved.success) return { success: false, error: resolved.error }
+
+    const existingRows = await safeFindExistingShiftRows(supabase, resolved.rows, resolved.employeeNames, restaurantId)
+    if (!existingRows.success) return { success: false, error: existingRows.error }
+
+    return {
+        success: true,
+        data: {
+            canImport: existingRows.rows.length === 0,
+            existingRows: existingRows.rows,
+            summary: preview.summary,
+        },
+    }
+}
+
+export async function importShiftsCsv(input: z.input<typeof ShiftsCsvImportSchema>): Promise<{
+    success: boolean
+    data?: {
+        importedRows: number
+        summary: ReturnType<typeof parseShiftsCsvPreview>["summary"]
+    }
+    error?: string
+}> {
+    const parsed = ShiftsCsvImportSchema.safeParse(input)
+    if (!parsed.success) return { success: false, error: "CSV inválido." }
+
+    const restaurantId = await getUserRestaurant()
+    if (!restaurantId) return { success: false, error: "No hay restaurante activo para importar turnos." }
+
+    const preview = parseShiftsCsvPreview(parsed.data)
+    const validationError = shiftsCsvValidationError(preview)
+    if (validationError) return { success: false, error: validationError }
+
+    const supabase = await createClient()
+    const resolved = await resolveShiftRows(supabase, preview, restaurantId)
+    if (!resolved.success) return { success: false, error: resolved.error }
+
+    const existingRows = await safeFindExistingShiftRows(supabase, resolved.rows, resolved.employeeNames, restaurantId)
+    if (!existingRows.success) return { success: false, error: existingRows.error }
+    if (existingRows.rows.length > 0) {
+        return { success: false, error: "El CSV contiene turnos que ya existen. Revisa duplicados antes de importar." }
+    }
+
+    const rows = resolved.rows.map(row => ({
+        restaurant_id: restaurantId,
+        employee_id: row.employee_id,
+        date: row.date,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        break_minutes: row.break_minutes,
+        shift_type: row.shift_type,
+        status: row.status,
+        estimated_cost: row.estimated_cost,
+        notes: row.notes,
+    }))
+
+    const { data, error } = await supabase
+        .from("shifts")
+        .insert(rows)
+        .select()
+
+    if (error) return { success: false, error: error.message }
+
+    revalidatePath("/staff/schedule")
+    revalidatePath("/consultant")
+    revalidatePath("/reports")
+
+    return {
+        success: true,
+        data: {
+            importedRows: Array.isArray(data) ? data.length : rows.length,
+            summary: preview.summary,
+        },
+    }
+}
+
+function shiftsCsvValidationError(preview: ReturnType<typeof parseShiftsCsvPreview>) {
+    if (preview.fileErrors.length > 0 || preview.invalidRows > 0) {
+        return "El CSV contiene errores. Revisa el preview antes de importar."
+    }
+
+    if (preview.duplicates.length > 0) {
+        return "El CSV contiene duplicados internos. Revisa el preview antes de importar."
+    }
+
+    if (preview.validRows === 0) {
+        return "El CSV no contiene turnos válidos."
+    }
+
+    return null
+}
+
+type ResolvedShiftRow = {
+    employee_id: string
+    date: string
+    start_time: string
+    end_time: string
+    break_minutes: number
+    shift_type?: string
+    status: string
+    estimated_cost: number
+    notes?: string
+    rowNumber: number
+}
+
+async function resolveShiftRows(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    preview: ReturnType<typeof parseShiftsCsvPreview>,
+    restaurantId: string,
+): Promise<{
+    success: true
+    rows: ResolvedShiftRow[]
+    employeeNames: Map<string, string>
+} | { success: false; error: string }> {
+    const validRows = preview.rows.filter((row): row is typeof row & { payload: ShiftsCsvPayload } =>
+        row.status === "valid" && row.payload !== undefined
+    )
+
+    const { data, error } = await supabase
+        .from("employees")
+        .select("id, first_name, last_name, hourly_rate, status")
+        .eq("restaurant_id", restaurantId)
+
+    if (error) return { success: false, error: error.message }
+
+    const employees = (data ?? []) as {
+        id: string
+        first_name: string
+        last_name: string
+        hourly_rate: number | null
+        status?: string | null
+    }[]
+
+    const employeesById = new Map(employees.map(employee => [employee.id, employee]))
+    const employeeNameCounts = new Map<string, number>()
+    for (const employee of employees) {
+        const key = normalizeEmployeeName(`${employee.first_name} ${employee.last_name}`)
+        employeeNameCounts.set(key, (employeeNameCounts.get(key) ?? 0) + 1)
+    }
+
+    const employeesByName = new Map(employees.map(employee => [normalizeEmployeeName(`${employee.first_name} ${employee.last_name}`), employee]))
+    const employeeNames = new Map(employees.map(employee => [employee.id, `${employee.first_name} ${employee.last_name}`.trim()]))
+    const rows: ResolvedShiftRow[] = []
+
+    for (const row of validRows) {
+        const payload = row.payload
+        const employeeNameKey = normalizeEmployeeName(payload.employee_name ?? "")
+        if (!payload.employee_id && employeeNameKey && (employeeNameCounts.get(employeeNameKey) ?? 0) > 1) {
+            return { success: false, error: "El CSV contiene nombres de empleado ambiguos. Usa employee_id para esos turnos." }
+        }
+
+        const employee = payload.employee_id
+            ? employeesById.get(payload.employee_id)
+            : employeesByName.get(employeeNameKey)
+
+        if (!employee) {
+            return { success: false, error: "El CSV contiene empleados que no existen en este restaurante." }
+        }
+
+        if (employee.status === "INACTIVE") {
+            return { success: false, error: "El CSV contiene empleados inactivos. Revisa el equipo antes de importar turnos." }
+        }
+
+        rows.push({
+            employee_id: employee.id,
+            date: payload.date,
+            start_time: payload.start_time,
+            end_time: payload.end_time,
+            break_minutes: payload.break_minutes,
+            shift_type: payload.shift_type,
+            status: payload.status,
+            estimated_cost: calculateShiftCost(payload, employee.hourly_rate ?? 0),
+            notes: payload.notes,
+            rowNumber: row.rowNumber,
+        })
+    }
+
+    return { success: true, rows, employeeNames }
+}
+
+async function findExistingShiftRows(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    rows: ResolvedShiftRow[],
+    employeeNames: Map<string, string>,
+    restaurantId: string,
+) {
+    const dates = [...new Set(rows.map(row => row.date))]
+    const employeeIds = [...new Set(rows.map(row => row.employee_id))]
+
+    const { data, error } = await supabase
+        .from("shifts")
+        .select("employee_id, date, start_time, end_time")
+        .eq("restaurant_id", restaurantId)
+        .in("date", dates)
+        .in("employee_id", employeeIds)
+
+    if (error) throw new Error(error.message)
+
+    const rowNumbersByKey = new Map(rows.map(row => [shiftDuplicateKey(row), [row.rowNumber]]))
+    const csvKeys = new Set(rowNumbersByKey.keys())
+
+    return ((data ?? []) as { employee_id: string; date: string; start_time: string; end_time: string }[])
+        .filter(row => csvKeys.has(shiftDuplicateKey(row)))
+        .map(row => {
+            const key = shiftDuplicateKey(row)
+            return {
+                key,
+                rowNumbers: rowNumbersByKey.get(key) ?? [],
+                message: `Ya existe turno para ${employeeNames.get(row.employee_id) ?? row.employee_id} el ${row.date} de ${row.start_time} a ${row.end_time}.`,
+            }
+        })
+}
+
+async function safeFindExistingShiftRows(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    rows: ResolvedShiftRow[],
+    employeeNames: Map<string, string>,
+    restaurantId: string,
+): Promise<{
+    success: true
+    rows: Awaited<ReturnType<typeof findExistingShiftRows>>
+} | { success: false; error: string }> {
+    try {
+        return {
+            success: true,
+            rows: await findExistingShiftRows(supabase, rows, employeeNames, restaurantId),
+        }
+    } catch {
+        return {
+            success: false,
+            error: "No se pudieron comprobar duplicados existentes. Inténtalo de nuevo antes de importar.",
+        }
+    }
+}
+
+function shiftDuplicateKey(row: { employee_id: string; date: string; start_time: string; end_time: string }) {
+    return `${row.date}|${row.employee_id}|${row.start_time}|${row.end_time}`
+}
+
+function calculateShiftCost(payload: ShiftsCsvPayload, hourlyRate: number) {
+    const start = timeToMinutes(payload.start_time)
+    const end = timeToMinutes(payload.end_time)
+    const durationMinutes = (end >= start ? end - start : end + 1440 - start) - payload.break_minutes
+    const hours = Math.max(0, durationMinutes / 60)
+    return Math.round(hours * hourlyRate * 100) / 100
+}
+
+function timeToMinutes(value: string) {
+    const [hours, minutes] = value.split(":").map(Number)
+    return hours * 60 + minutes
+}
+
+function normalizeEmployeeName(name: string) {
+    return name.trim().toLowerCase().replace(/\s+/g, " ")
+}
 
 // ==========================================
 // EMPLOYEES
