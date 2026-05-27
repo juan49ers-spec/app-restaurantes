@@ -61,7 +61,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 
 - `ConsultantBrandingForm` mantiene estado local del formulario y llama a `updateConsultantBranding`.
 - `MeetingRequestsPanel` actualiza estado de solicitudes de forma optimista e inmutable tras respuesta correcta.
-- `PreparationChecklist` es un componente client. Recibe el checklist del mes actual como `initialChecklist` (server-rendered), muestra conteos operativos, siguiente acción recomendada y el quality gate del último `READY` del periodo. Permite navegar entre meses con botones anterior/siguiente. Al cambiar mes, llama a `getPreparationChecklistForPeriod()` y actualiza estado local de forma inmutable. No permite navegar más allá del mes actual.
+- `PreparationChecklist` es un componente client. Recibe el checklist del mes actual como `initialChecklist` (server-rendered), muestra conteos operativos agrupados por severidad, siguiente acción recomendada y el quality gate del último `READY` del periodo. Permite navegar entre meses con botones anterior/siguiente. Al cambiar mes, llama a `getPreparationChecklistForPeriod()` y actualiza estado local de forma inmutable. No permite navegar más allá del mes actual.
 - `DeliveryWorkflowPanel` es un componente client ligero. Recibe informes READY recientes ya cruzados con solicitudes del portal, filtra localmente por estado (`Todos`, `Abiertos`, `Publicados`, `Cerrados`) y muestra timeline visual: READY → Portal → Reunión → Cierre. No hace queries ni decide permisos.
 
 ## 4. Reglas de negocio y restricciones
@@ -79,7 +79,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - Criterios de checklist: ventas requiere al menos una fila `daily_sales` con `revenue_total > 0`; gastos requiere al menos un `operating_expenses`; facturas queda completo solo si hay facturas `completed` y cero `review_required`/`processing`; equipo requiere empleado activo y turno en periodo; carta requiere recetas y ventas por receta; Menu Engineering acepta reportes `ANALYZED` solapados con el periodo; informes READY/publicados usan periodo exacto; solicitudes abiertas se cuentan globalmente.
 - Cada ítem de checklist tiene severidad derivada: ventas, gastos e informe `READY` son `blocker` si no están completos; facturas, equipo, carta, Menu Engineering, publicación y solicitudes abiertas son `warning`; los puntos completos quedan como `info`.
 - La siguiente acción se deriva en `buildPreparationChecklist()`: toma el primer ítem no completo con severidad `blocker`; si no hay bloqueantes, toma el primer `warning`; si todo está completo, queda `null`.
-- La UI no decide prioridades: solo renderiza `nextAction`, `severity` y `actionLabel` ya calculados por la lógica pura.
+- La UI no decide prioridades: solo renderiza `nextAction`, `severity` y `actionLabel` ya calculados por la lógica pura. La presentación agrupa los ítems en tres regiones accesibles: `Bloqueantes`, `Recomendados` y `Listos`.
 - Los enlaces de resolución solo usan filtros cuando la ruta destino ya los soporta. Para estados parciales, equipo enlaza a `/staff/schedule` si ya hay empleados pero faltan turnos, y carta enlaza a `/stock` si ya hay recetas pero faltan ventas por receta.
 - La checklist guía la preparación, pero no sustituye las reglas de calidad del informe profesional en `/reports`.
 - El quality gate mostrado en `/consultant` usa exactamente el mismo evaluator que `/reports` y `publishReportDraft`, pero solo sobre snapshots `READY` ya guardados.
