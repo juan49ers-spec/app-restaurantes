@@ -4,6 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabaseServer'
 import { DEFAULT_BUSINESS_TIME_ZONE } from '@/lib/date-format'
+import {
+  evaluateProfessionalReportQualityGate,
+  type ProfessionalReportQualityGateStatus,
+  type ProfessionalRestaurantReport,
+} from '@/lib/reporting'
 import { getUserRestaurant } from './utils'
 
 const MeetingRequestStatusSchema = z.enum(['PENDING', 'ACKNOWLEDGED', 'COMPLETED'])
@@ -85,6 +90,18 @@ export interface ConsultantPreparationChecklistItem {
   href: string
 }
 
+export interface ConsultantPreparationQualityGate {
+  status: ProfessionalReportQualityGateStatus
+  canPublish: boolean
+  summary: string
+  blockerCount: number
+  warningCount: number
+  infoCount: number
+  draftId: string
+  version: number
+  href: string
+}
+
 export interface ConsultantPreparationChecklist {
   period: {
     from: string
@@ -94,6 +111,7 @@ export interface ConsultantPreparationChecklist {
   completionPct: number
   readyCount: number
   totalCount: number
+  qualityGate: ConsultantPreparationQualityGate | null
   items: ConsultantPreparationChecklistItem[]
 }
 
@@ -124,6 +142,12 @@ type PublishedReportRow = {
 }
 
 type ReadyReportRow = PublishedReportRow
+
+type ReadyReportQualityRow = {
+  id: string
+  version: number
+  report_snapshot: unknown
+}
 
 type MeetingRequestRow = {
   id: string
@@ -270,6 +294,7 @@ function buildPreparationChecklist(input: {
   readyDraftCount: number
   publishedCount: number
   openRequestCount: number
+  qualityGate: ConsultantPreparationQualityGate | null
 }): ConsultantPreparationChecklist {
   const { period } = input
   const items: ConsultantPreparationChecklistItem[] = [
@@ -355,7 +380,50 @@ function buildPreparationChecklist(input: {
     completionPct: Math.round((readyCount / items.length) * 100),
     readyCount,
     totalCount: items.length,
+    qualityGate: input.qualityGate,
     items,
+  }
+}
+
+function buildPreparationQualityGate(
+  row: ReadyReportQualityRow,
+  restaurantId: string,
+  period: { from: string; to: string },
+): ConsultantPreparationQualityGate {
+  const href = `/reports?from=${period.from}&to=${period.to}`
+  const reportSnapshot = row.report_snapshot as Partial<ProfessionalRestaurantReport> | null
+
+  if (
+    !reportSnapshot?.restaurant?.id ||
+    reportSnapshot.restaurant.id !== restaurantId ||
+    !reportSnapshot.quality ||
+    !Array.isArray(reportSnapshot.sections)
+  ) {
+    return {
+      status: 'BLOCKED',
+      canPublish: false,
+      summary: 'El último informe READY no tiene un snapshot válido para este restaurante. Regenera y guarda una nueva versión antes de publicar.',
+      blockerCount: 1,
+      warningCount: 0,
+      infoCount: 0,
+      draftId: row.id,
+      version: row.version,
+      href,
+    }
+  }
+
+  const gate = evaluateProfessionalReportQualityGate(reportSnapshot as ProfessionalRestaurantReport)
+
+  return {
+    status: gate.status,
+    canPublish: gate.canPublish,
+    summary: gate.summary,
+    blockerCount: gate.blockers.length,
+    warningCount: gate.warnings.length,
+    infoCount: gate.info.length,
+    draftId: row.id,
+    version: row.version,
+    href,
   }
 }
 
@@ -393,6 +461,32 @@ async function fetchChecklistCounts(
     publishedCount: countValue(checklistRes[10]),
     openRequestCount: countValue(checklistRes[11]),
     hasWarning: checklistRes.some(result => result.error),
+  }
+}
+
+async function fetchLatestReadyReportQualityGate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  restaurantId: string,
+  period: { from: string; to: string },
+) {
+  const { data, error } = await supabase
+    .from('professional_report_drafts')
+    .select('id, version, updated_at, report_snapshot')
+    .eq('restaurant_id', restaurantId)
+    .eq('period_from', period.from)
+    .eq('period_to', period.to)
+    .eq('status', 'READY')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+
+  if (error) return { qualityGate: null, hasWarning: true }
+
+  const latest = Array.isArray(data) ? data[0] : data
+  if (!latest) return { qualityGate: null, hasWarning: false }
+
+  return {
+    qualityGate: buildPreparationQualityGate(latest as ReadyReportQualityRow, restaurantId, period),
+    hasWarning: false,
   }
 }
 
@@ -458,13 +552,17 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
     ? []
     : buildDeliveryReports((readyReportsRes.data || []) as ReadyReportRow[], meetingRequests)
 
-  const checklistCounts = await fetchChecklistCounts(supabase, restaurantId, period)
-  const checklistWarnings = checklistCounts.hasWarning
+  const [checklistCounts, qualityGateRes] = await Promise.all([
+    fetchChecklistCounts(supabase, restaurantId, period),
+    fetchLatestReadyReportQualityGate(supabase, restaurantId, period),
+  ])
+  const checklistWarnings = checklistCounts.hasWarning || qualityGateRes.hasWarning
     ? ['No se pudo completar toda la checklist de preparación.']
     : []
   const preparation = buildPreparationChecklist({
     period,
     ...checklistCounts,
+    qualityGate: qualityGateRes.qualityGate,
   })
 
   return {
@@ -491,13 +589,17 @@ export async function getPreparationChecklistForPeriod(
 
   const supabase = await createClient()
   const period = periodFromMonth(parsed.data.month)
-  const checklistCounts = await fetchChecklistCounts(supabase, restaurantId, period)
+  const [checklistCounts, qualityGateRes] = await Promise.all([
+    fetchChecklistCounts(supabase, restaurantId, period),
+    fetchLatestReadyReportQualityGate(supabase, restaurantId, period),
+  ])
 
   return {
     success: true,
     data: buildPreparationChecklist({
       period,
       ...checklistCounts,
+      qualityGate: qualityGateRes.qualityGate,
     }),
   }
 }

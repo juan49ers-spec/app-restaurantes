@@ -2,8 +2,13 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed } from 'lucide-react'
-import { getPreparationChecklistForPeriod, type ConsultantPreparationChecklist, type ConsultantChecklistStatus } from '@/app/actions/consultant'
+import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, ShieldCheck, TriangleAlert } from 'lucide-react'
+import {
+  getPreparationChecklistForPeriod,
+  type ConsultantChecklistStatus,
+  type ConsultantPreparationChecklist,
+  type ConsultantPreparationQualityGate,
+} from '@/app/actions/consultant'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DEFAULT_BUSINESS_TIME_ZONE } from '@/lib/date-format'
@@ -28,6 +33,21 @@ const STATUS_COPY: Record<ConsultantChecklistStatus, { label: string; className:
     label: 'Pendiente',
     className: 'border-rose-200 bg-rose-50 text-rose-700',
     icon: AlertCircle,
+  },
+}
+
+const QUALITY_GATE_COPY: Record<ConsultantPreparationQualityGate['status'], { label: string; className: string }> = {
+  READY: {
+    label: 'Listo',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  },
+  WARNING: {
+    label: 'Con advertencias',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+  },
+  BLOCKED: {
+    label: 'Bloqueado',
+    className: 'border-red-200 bg-red-50 text-red-700',
   },
 }
 
@@ -107,6 +127,55 @@ export function PreparationChecklist({ initialChecklist }: PreparationChecklistP
         <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-right">
           <p className="text-2xl font-semibold text-slate-950">{checklist.completionPct}%</p>
           <p className="text-xs text-slate-500">{checklist.readyCount}/{checklist.totalCount} puntos listos</p>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-md border border-slate-200 bg-slate-50 p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              {checklist.qualityGate?.canPublish ? (
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              ) : (
+                <TriangleAlert className="h-4 w-4 text-amber-600" />
+              )}
+              <h3 className="text-sm font-semibold text-slate-950">Quality gate del informe</h3>
+              {checklist.qualityGate ? (
+                <Badge variant="outline" className={cn('rounded-md', QUALITY_GATE_COPY[checklist.qualityGate.status].className)}>
+                  {QUALITY_GATE_COPY[checklist.qualityGate.status].label}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="rounded-md border-slate-200 bg-white text-slate-600">
+                  Sin versión READY todavía
+                </Badge>
+              )}
+            </div>
+            {checklist.qualityGate ? (
+              <>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{checklist.qualityGate.summary}</p>
+                <p className="mt-2 text-xs text-slate-500">
+                  Versión READY {checklist.qualityGate.version}
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Guarda una versión READY para que el sistema pueda validar si el snapshot es publicable.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col items-start gap-3 lg:items-end">
+            {checklist.qualityGate && (
+              <p className="text-xs font-medium text-slate-500">
+                {checklist.qualityGate.blockerCount} bloqueos · {checklist.qualityGate.warningCount} avisos · {checklist.qualityGate.infoCount} info
+              </p>
+            )}
+            <Button asChild size="sm" variant={checklist.qualityGate?.canPublish ? 'outline' : 'default'}>
+              <Link href={checklist.qualityGate?.href ?? `/reports?from=${checklist.period.from}&to=${checklist.period.to}`}>
+                {checklist.qualityGate ? 'Revisar informe' : 'Crear READY'}
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 

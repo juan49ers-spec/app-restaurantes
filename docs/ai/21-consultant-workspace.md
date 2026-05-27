@@ -1,7 +1,7 @@
 # 21 — Consultant Workspace
 
 **Ruta:** `/consultant`
-**Archivos clave:** `src/app/consultant/page.tsx`, `src/app/actions/consultant.ts`, `src/components/consultant/ConsultantBrandingForm.tsx`, `src/components/consultant/DeliveryWorkflowPanel.tsx`, `src/components/consultant/MeetingRequestsPanel.tsx`
+**Archivos clave:** `src/app/consultant/page.tsx`, `src/app/actions/consultant.ts`, `src/components/consultant/PreparationChecklist.tsx`, `src/components/consultant/ConsultantBrandingForm.tsx`, `src/components/consultant/DeliveryWorkflowPanel.tsx`, `src/components/consultant/MeetingRequestsPanel.tsx`
 **Transversales relacionados:** [T01](./T01-arquitectura.md), [T02](./T02-base-de-datos.md), [T03](./T03-autenticacion.md), [T06](./T06-server-actions-comunes.md), [T11](./T11-reporting-profesional.md)
 
 ## 1. Propósito y rol en el negocio
@@ -15,12 +15,13 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 1. El consultor entra en `/consultant`.
 2. Ve el restaurante activo y un resumen de informes publicados, solicitudes abiertas y última publicación.
 3. Revisa la checklist del periodo que está preparando. Por defecto es el mes actual, pero puede navegar a meses anteriores con los controles anterior/siguiente.
-4. Revisa el flujo de entrega para saber qué informes READY faltan por publicar, cuáles están publicados y cuáles tienen seguimiento cliente abierto.
-5. Puede ir a `/reports` para preparar un nuevo informe o revisar versiones.
-6. Puede abrir `/portal` para comprobar la experiencia cliente.
-7. Gestiona solicitudes de reunión enviadas desde el portal: pendiente, en revisión o completada.
-8. Configura nombre, email y logo del consultor visibles en el portal cliente.
-9. Consulta el histórico publicado y abre el detalle web o la vista PDF.
+4. Comprueba el quality gate del último informe `READY` del periodo, si existe, para saber si el snapshot puede publicarse o tiene bloqueos.
+5. Revisa el flujo de entrega para saber qué informes READY faltan por publicar, cuáles están publicados y cuáles tienen seguimiento cliente abierto.
+6. Puede ir a `/reports` para preparar un nuevo informe o revisar versiones.
+7. Puede abrir `/portal` para comprobar la experiencia cliente.
+8. Gestiona solicitudes de reunión enviadas desde el portal: pendiente, en revisión o completada.
+9. Configura nombre, email y logo del consultor visibles en el portal cliente.
+10. Consulta el histórico publicado y abre el detalle web o la vista PDF.
 
 ## 3. Flujo técnico de datos
 
@@ -37,10 +38,12 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
   - `restaurants.id/name/consultant_*`
   - `professional_report_drafts` publicados (`published_at IS NOT NULL`)
   - `professional_report_drafts` con `status = READY` para construir el flujo de entrega reciente.
+  - el último `professional_report_drafts` `READY` del periodo actual con `report_snapshot` para evaluar el quality gate de preparación.
   - `portal_meeting_requests`
   - conteos del mes actual para checklist de preparación: ventas, gastos, facturas, equipo, turnos, recetas, ventas por receta, Menu Engineering, drafts READY, publicaciones y solicitudes abiertas.
-- `getPreparationChecklistForPeriod(input)` valida el mes con Zod (`YYYY-MM`), resuelve `restaurant_id` con `getUserRestaurant()`, calcula `from/to` del mes pedido y ejecuta las mismas queries de conteo que `getConsultantWorkspace()` pero para el periodo indicado. Devuelve `ConsultantPreparationChecklist`.
+- `getPreparationChecklistForPeriod(input)` valida el mes con Zod (`YYYY-MM`), resuelve `restaurant_id` con `getUserRestaurant()`, calcula `from/to` del mes pedido y ejecuta las mismas queries de conteo que `getConsultantWorkspace()` pero para el periodo indicado. También carga el último draft `READY` exacto del periodo y evalúa su snapshot con `evaluateProfessionalReportQualityGate()`. Devuelve `ConsultantPreparationChecklist`.
 - Los conteos de checklist están extraídos a `fetchChecklistCounts()` para reutilización sin duplicación.
+- El quality gate de preparación está separado en `fetchLatestReadyReportQualityGate()` y no recalcula informes: solo lee el snapshot guardado del último `READY`.
 - `updateConsultantBranding(input)` valida nombre/email/logo con Zod y actualiza solo el restaurante activo.
 - `updateMeetingRequestStatus(input)` valida UUID + estado y actualiza solo solicitudes del restaurante activo.
 - Las fechas visibles usan helpers compartidos en `src/lib/date-format.ts` con zona horaria `Europe/Madrid`. Es una decisión temporal para España y evita errores de hidratación entre servidor y navegador.
@@ -49,7 +52,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 
 - `ConsultantBrandingForm` mantiene estado local del formulario y llama a `updateConsultantBranding`.
 - `MeetingRequestsPanel` actualiza estado de solicitudes de forma optimista e inmutable tras respuesta correcta.
-- `PreparationChecklist` es un componente client. Recibe el checklist del mes actual como `initialChecklist` (server-rendered) y permite navegar entre meses con botones anterior/siguiente. Al cambiar mes, llama a `getPreparationChecklistForPeriod()` y actualiza estado local de forma inmutable. No permite navegar más allá del mes actual.
+- `PreparationChecklist` es un componente client. Recibe el checklist del mes actual como `initialChecklist` (server-rendered), muestra conteos operativos y el quality gate del último `READY` del periodo. Permite navegar entre meses con botones anterior/siguiente. Al cambiar mes, llama a `getPreparationChecklistForPeriod()` y actualiza estado local de forma inmutable. No permite navegar más allá del mes actual.
 - `DeliveryWorkflowPanel` es un componente client ligero. Recibe informes READY recientes ya cruzados con solicitudes del portal, filtra localmente por estado (`Todos`, `Abiertos`, `Publicados`, `Cerrados`) y muestra timeline visual: READY → Portal → Reunión → Cierre. No hace queries ni decide permisos.
 
 ## 4. Reglas de negocio y restricciones
@@ -67,6 +70,9 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - Criterios de checklist: ventas requiere al menos una fila `daily_sales` con `revenue_total > 0`; gastos requiere al menos un `operating_expenses`; facturas queda completo solo si hay facturas `completed` y cero `review_required`/`processing`; equipo requiere empleado activo y turno en periodo; carta requiere recetas y ventas por receta; Menu Engineering acepta reportes `ANALYZED` solapados con el periodo; informes READY/publicados usan periodo exacto; solicitudes abiertas se cuentan globalmente.
 - Los enlaces de resolución solo usan filtros cuando la ruta destino ya los soporta. Para estados parciales, equipo enlaza a `/staff/schedule` si ya hay empleados pero faltan turnos, y carta enlaza a `/stock` si ya hay recetas pero faltan ventas por receta.
 - La checklist guía la preparación, pero no sustituye las reglas de calidad del informe profesional en `/reports`.
+- El quality gate mostrado en `/consultant` usa exactamente el mismo evaluator que `/reports` y `publishReportDraft`, pero solo sobre snapshots `READY` ya guardados.
+- Si no hay versión `READY` para el periodo, el quality gate de preparación queda vacío y la UI enlaza a `/reports?from=...&to=...` para crear una.
+- Si el snapshot `READY` está corrupto o no pertenece al restaurante activo, la preparación lo marca como `BLOCKED` y pide regenerar una versión.
 - El flujo de entrega es derivado, no persistido. Se calcula desde `professional_report_drafts.status`, `published_at` y `portal_meeting_requests.status`.
 - Estados del flujo de entrega: `READY_TO_PUBLISH` si el informe READY no está publicado; `PUBLISHED` si ya está visible sin solicitudes abiertas; `MEETING_REQUESTED` si el cliente pidió reunión y está pendiente/en revisión; `FOLLOW_UP_COMPLETE` si la solicitud asociada ya se completó.
 - El panel de entrega no publica ni despublica directamente. La publicación sigue viviendo en `/reports`, donde existe la revisión del snapshot y los controles internos.
@@ -87,6 +93,8 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - Si no hay informes publicados, muestra estado vacío y acceso a `/reports`.
 - Si no hay solicitudes, muestra estado vacío.
 - Si faltan datos del periodo seleccionado, la checklist marca `Pendiente` o `Revisar` y enlaza al módulo que debe resolverlo.
+- Si hay un `READY` con warnings, la checklist lo muestra como publicable con advertencias; si hay bloqueos, lo muestra como bloqueado y enlaza a `/reports`.
+- Si no hay `READY`, la checklist no inventa calidad de informe y muestra una llamada a crear una versión lista.
 - Si no hay informes READY, el flujo de entrega muestra estado vacío operativo.
 - Si un filtro del flujo no contiene entregas, muestra un estado vacío local sin alterar los datos cargados.
 - Si un informe READY no está publicado, el flujo enlaza a `/reports` con su periodo para publicarlo desde la mesa de revisión.

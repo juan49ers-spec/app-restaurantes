@@ -8,8 +8,24 @@ const RESTAURANT_ID = '550e8400-e29b-41d4-a716-446655440000'
 const REQUEST_ID = '33333333-3333-4333-8333-333333333333'
 const REPORT_ID = '11111111-1111-4111-8111-111111111111'
 
+const validReportSnapshot = {
+  schemaVersion: 'professional-report/v1',
+  generatedAt: '2026-03-01T10:00:00.000Z',
+  restaurant: { id: RESTAURANT_ID, name: 'Casa Juan' },
+  period: { from: '2026-02-01', to: '2026-02-28', days: 28 },
+  quality: { status: 'OK', confidence: 92, issues: [] },
+  sourceMap: [],
+  executiveSummary: {
+    headline: 'Informe listo',
+    keyFindings: [],
+    blockingIssues: [],
+  },
+  sections: [],
+}
+
 let mockRestaurantId: string | null = RESTAURANT_ID
 let tableResults: Record<string, QueryResult> = {}
+let readySnapshotResult: QueryResult = { data: null, error: null }
 let calls: Array<{
   table: string
   filters: Filter[]
@@ -144,6 +160,13 @@ class MockQuery {
       }
     }
 
+    if (
+      this.table === 'professional_report_drafts' &&
+      this.selectValue?.includes('report_snapshot')
+    ) {
+      return readySnapshotResult
+    }
+
     const result = tableResults[this.table] ?? { data: [], error: null }
     if (this.head) {
       return {
@@ -178,6 +201,15 @@ describe('consultant server actions', () => {
     vi.clearAllMocks()
     mockRestaurantId = RESTAURANT_ID
     calls = []
+    readySnapshotResult = {
+      data: [{
+        id: REPORT_ID,
+        version: 1,
+        updated_at: '2026-03-01T10:00:00.000Z',
+        report_snapshot: validReportSnapshot,
+      }],
+      error: null,
+    }
     tableResults = {
       restaurants: {
         data: {
@@ -366,6 +398,75 @@ describe('consultant server actions', () => {
       call.filters.some(filter => filter[0] === 'eq' && filter[1] === 'period_from' && filter[2] === '2026-02-01')
     )
     expect(draftCall).toBeDefined()
+  })
+
+  it('adds the latest READY report quality gate to the preparation checklist', async () => {
+    const { getPreparationChecklistForPeriod } = await import('@/app/actions/consultant')
+
+    const result = await getPreparationChecklistForPeriod({ month: '2026-02' })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.qualityGate).toEqual(expect.objectContaining({
+      status: 'READY',
+      canPublish: true,
+      draftId: REPORT_ID,
+      version: 1,
+      blockerCount: 0,
+      warningCount: 0,
+      href: '/reports?from=2026-02-01&to=2026-02-28',
+    }))
+
+    const qualityGateCall = calls.find(call =>
+      call.table === 'professional_report_drafts' &&
+      call.select?.includes('report_snapshot') &&
+      !call.head
+    )
+    expect(qualityGateCall?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['eq', 'period_from', '2026-02-01'],
+      ['eq', 'period_to', '2026-02-28'],
+      ['eq', 'status', 'READY'],
+    ]))
+    expect(qualityGateCall?.orders).toContainEqual({ column: 'updated_at', ascending: false })
+    expect(qualityGateCall?.limitValue).toBe(1)
+  })
+
+  it('marks the preparation quality gate as blocked when the latest READY snapshot has blockers', async () => {
+    readySnapshotResult = {
+      data: [{
+        id: REPORT_ID,
+        version: 2,
+        updated_at: '2026-03-02T10:00:00.000Z',
+        report_snapshot: {
+          ...validReportSnapshot,
+          quality: {
+            status: 'MISSING',
+            confidence: 35,
+            issues: [{
+              id: 'sales.missing',
+              section: 'sales',
+              status: 'MISSING',
+              severity: 'critical',
+              message: 'No hay ventas cargadas para el periodo.',
+              sourceIds: ['daily_sales'],
+            }],
+          },
+        },
+      }],
+      error: null,
+    }
+    const { getPreparationChecklistForPeriod } = await import('@/app/actions/consultant')
+
+    const result = await getPreparationChecklistForPeriod({ month: '2026-02' })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.qualityGate).toEqual(expect.objectContaining({
+      status: 'BLOCKED',
+      canPublish: false,
+      draftId: REPORT_ID,
+      version: 2,
+      blockerCount: 1,
+    }))
   })
 
   it('rejects invalid month format for checklist period', async () => {
