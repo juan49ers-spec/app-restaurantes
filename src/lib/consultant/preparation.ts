@@ -7,6 +7,8 @@ import type {
   ConsultantChecklistStatus,
   ConsultantPreparationChecklist,
   ConsultantPreparationChecklistItem,
+  ConsultantPreparationNextAction,
+  ConsultantPreparationSeverity,
   ConsultantPreparationQualityGate,
   ReadyReportQualityRow,
 } from './types'
@@ -34,6 +36,35 @@ function statusFromCount(count: number, partialThreshold = 1): ConsultantCheckli
   return 'complete'
 }
 
+function severityFor(status: ConsultantChecklistStatus, incompleteSeverity: ConsultantPreparationSeverity) {
+  return status === 'complete' ? 'info' : incompleteSeverity
+}
+
+function nextActionFromItems(items: ConsultantPreparationChecklistItem[]): ConsultantPreparationNextAction | null {
+  const nextItem =
+    items.find(item => item.status !== 'complete' && item.severity === 'blocker') ??
+    items.find(item => item.status !== 'complete' && item.severity === 'warning')
+
+  if (!nextItem) return null
+
+  return {
+    itemId: nextItem.id,
+    label: nextItem.actionLabel,
+    href: nextItem.href,
+    severity: nextItem.severity,
+    reason: nextItem.severity === 'blocker'
+      ? blockerReason(nextItem.id)
+      : 'El informe puede avanzar, pero falta completar este bloque para mejorar la entrega.',
+  }
+}
+
+function blockerReason(itemId: string) {
+  if (itemId === 'sales') return 'Sin ventas no se puede construir un informe fiable del periodo.'
+  if (itemId === 'expenses') return 'Sin gastos no se puede validar la rentabilidad real del periodo.'
+  if (itemId === 'ready_report') return 'Sin una versión READY no hay snapshot validado para publicar en el portal.'
+  return 'Este bloqueo debe resolverse antes de entregar el informe al cliente.'
+}
+
 export function buildPreparationChecklist(input: {
   period: ReturnType<typeof currentMonthPeriod>
   salesCount: number
@@ -51,80 +82,112 @@ export function buildPreparationChecklist(input: {
   qualityGate: ConsultantPreparationQualityGate | null
 }): ConsultantPreparationChecklist {
   const { period } = input
+  const salesStatus = statusFromCount(input.salesCount, 7)
+  const expensesStatus = statusFromCount(input.expensesCount)
+  const invoiceStatus = input.invoiceCount > 0 && input.invoiceReviewCount === 0
+    ? 'complete'
+    : input.invoiceCount > 0 || input.invoiceReviewCount > 0 ? 'partial' : 'missing'
+  const staffStatus = input.employeeCount > 0 && input.shiftCount > 0
+    ? 'complete'
+    : input.employeeCount > 0 || input.shiftCount > 0 ? 'partial' : 'missing'
+  const menuStatus = input.recipeCount > 0 && input.recipeSalesCount > 0
+    ? 'complete'
+    : input.recipeCount > 0 || input.recipeSalesCount > 0 ? 'partial' : 'missing'
+  const menuEngineeringStatus = statusFromCount(input.menuEngineeringCount)
+  const readyReportStatus = statusFromCount(input.readyDraftCount)
+  const publishedReportStatus = statusFromCount(input.publishedCount)
+  const meetingRequestsStatus = input.openRequestCount === 0 ? 'complete' : 'partial'
+
   const items: ConsultantPreparationChecklistItem[] = [
     {
       id: 'sales',
       label: 'Ventas cargadas',
       description: 'Días de venta registrados en el periodo.',
-      status: statusFromCount(input.salesCount, 7),
+      status: salesStatus,
+      severity: severityFor(salesStatus, 'blocker'),
       count: input.salesCount,
       href: `/financial-control?from=${period.from}&to=${period.to}`,
+      actionLabel: 'Cargar ventas',
     },
     {
       id: 'expenses',
       label: 'Gastos cargados',
       description: 'Movimientos de gasto disponibles para leer costes.',
-      status: statusFromCount(input.expensesCount),
+      status: expensesStatus,
+      severity: severityFor(expensesStatus, 'blocker'),
       count: input.expensesCount,
       href: `/financial-control?from=${period.from}&to=${period.to}`,
+      actionLabel: 'Cargar gastos',
     },
     {
       id: 'invoices',
       label: 'Facturas/proveedores revisados',
       description: 'Facturas completadas dentro del periodo.',
-      status: input.invoiceCount > 0 && input.invoiceReviewCount === 0
-        ? 'complete'
-        : input.invoiceCount > 0 || input.invoiceReviewCount > 0 ? 'partial' : 'missing',
+      status: invoiceStatus,
+      severity: severityFor(invoiceStatus, 'warning'),
       count: input.invoiceCount + input.invoiceReviewCount,
       href: '/invoices',
+      actionLabel: 'Revisar facturas',
     },
     {
       id: 'staff',
       label: 'Equipo y turnos revisados',
       description: 'Plantilla activa y turnos disponibles para coste laboral.',
-      status: input.employeeCount > 0 && input.shiftCount > 0 ? 'complete' : input.employeeCount > 0 || input.shiftCount > 0 ? 'partial' : 'missing',
+      status: staffStatus,
+      severity: severityFor(staffStatus, 'warning'),
       count: input.employeeCount + input.shiftCount,
       href: input.employeeCount > 0 && input.shiftCount === 0 ? '/staff/schedule' : '/staff/employees',
+      actionLabel: input.employeeCount > 0 && input.shiftCount === 0 ? 'Revisar turnos' : 'Revisar equipo',
     },
     {
       id: 'menu',
       label: 'Carta y ventas por receta',
       description: 'Recetas y ventas por receta para analizar mix y margen.',
-      status: input.recipeCount > 0 && input.recipeSalesCount > 0 ? 'complete' : input.recipeCount > 0 || input.recipeSalesCount > 0 ? 'partial' : 'missing',
+      status: menuStatus,
+      severity: severityFor(menuStatus, 'warning'),
       count: input.recipeCount + input.recipeSalesCount,
       href: input.recipeCount > 0 && input.recipeSalesCount === 0 ? '/stock' : '/escandallos',
+      actionLabel: input.recipeCount > 0 && input.recipeSalesCount === 0 ? 'Cargar ventas por receta' : 'Revisar carta',
     },
     {
       id: 'menu_engineering',
       label: 'Menu Engineering calculado',
       description: 'Snapshot BCG ANALYZED disponible para el periodo.',
-      status: statusFromCount(input.menuEngineeringCount),
+      status: menuEngineeringStatus,
+      severity: severityFor(menuEngineeringStatus, 'warning'),
       count: input.menuEngineeringCount,
       href: '/menu-engineering',
+      actionLabel: 'Calcular Menu Engineering',
     },
     {
       id: 'ready_report',
       label: 'Informe listo para publicar',
       description: 'Versión READY guardada desde la mesa de informes.',
-      status: statusFromCount(input.readyDraftCount),
+      status: readyReportStatus,
+      severity: severityFor(readyReportStatus, 'blocker'),
       count: input.readyDraftCount,
       href: `/reports?from=${period.from}&to=${period.to}`,
+      actionLabel: 'Crear READY',
     },
     {
       id: 'published_report',
       label: 'Informe publicado en portal',
       description: 'Versión visible para el cliente restaurante.',
-      status: statusFromCount(input.publishedCount),
+      status: publishedReportStatus,
+      severity: severityFor(publishedReportStatus, 'warning'),
       count: input.publishedCount,
       href: '/portal',
+      actionLabel: 'Publicar informe',
     },
     {
       id: 'meeting_requests',
       label: 'Solicitudes pendientes atendidas',
       description: 'No quedan solicitudes abiertas del cliente.',
-      status: input.openRequestCount === 0 ? 'complete' : 'partial',
+      status: meetingRequestsStatus,
+      severity: severityFor(meetingRequestsStatus, 'warning'),
       count: input.openRequestCount,
       href: '/consultant',
+      actionLabel: 'Atender solicitudes',
     },
   ]
   const readyCount = items.filter(item => item.status === 'complete').length
@@ -135,6 +198,7 @@ export function buildPreparationChecklist(input: {
     readyCount,
     totalCount: items.length,
     qualityGate: input.qualityGate,
+    nextAction: nextActionFromItems(items),
     items,
   }
 }

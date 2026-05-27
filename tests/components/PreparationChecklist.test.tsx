@@ -31,14 +31,23 @@ const baseChecklist: ConsultantPreparationChecklist = {
     version: 3,
     href: '/reports?from=2026-02-01&to=2026-02-28',
   },
+  nextAction: {
+    itemId: 'menu_engineering',
+    label: 'Calcular Menu Engineering',
+    href: '/menu-engineering',
+    severity: 'warning',
+    reason: 'El informe puede avanzar, pero falta completar este bloque para mejorar la entrega.',
+  },
   items: [
     {
       id: 'sales',
       label: 'Ventas cargadas',
       description: 'Días de venta registrados en el periodo.',
       status: 'complete',
+      severity: 'info',
       count: 28,
       href: '/financial-control?from=2026-02-01&to=2026-02-28',
+      actionLabel: 'Cargar ventas',
     },
   ],
 }
@@ -65,6 +74,18 @@ describe('PreparationChecklist', () => {
     expect(screen.getByRole('link', { name: /Crear READY/i })).toHaveAttribute(
       'href',
       '/reports?from=2026-02-01&to=2026-02-28'
+    )
+  })
+
+  it('shows the recommended next action for the selected period', () => {
+    render(<PreparationChecklist initialChecklist={baseChecklist} />)
+
+    expect(screen.getByText('Siguiente acción')).toBeInTheDocument()
+    expect(screen.getByText('Calcular Menu Engineering')).toBeInTheDocument()
+    expect(screen.getByText(/falta completar este bloque/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Calcular Menu Engineering/i })).toHaveAttribute(
+      'href',
+      '/menu-engineering'
     )
   })
 })

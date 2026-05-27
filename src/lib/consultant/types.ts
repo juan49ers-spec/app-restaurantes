@@ -48,14 +48,25 @@ export interface ConsultantDeliveryReport {
 }
 
 export type ConsultantChecklistStatus = 'complete' | 'partial' | 'missing'
+export type ConsultantPreparationSeverity = 'blocker' | 'warning' | 'info'
 
 export interface ConsultantPreparationChecklistItem {
   id: string
   label: string
   description: string
   status: ConsultantChecklistStatus
+  severity: ConsultantPreparationSeverity
   count: number
   href: string
+  actionLabel: string
+}
+
+export interface ConsultantPreparationNextAction {
+  itemId: string
+  label: string
+  href: string
+  severity: ConsultantPreparationSeverity
+  reason: string
 }
 
 export interface ConsultantPreparationQualityGate {
@@ -80,6 +91,7 @@ export interface ConsultantPreparationChecklist {
   readyCount: number
   totalCount: number
   qualityGate: ConsultantPreparationQualityGate | null
+  nextAction: ConsultantPreparationNextAction | null
   items: ConsultantPreparationChecklistItem[]
 }
 

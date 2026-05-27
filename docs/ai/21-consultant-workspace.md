@@ -15,13 +15,14 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 1. El consultor entra en `/consultant`.
 2. Ve el restaurante activo y un resumen de informes publicados, solicitudes abiertas y última publicación.
 3. Revisa la checklist del periodo que está preparando. Por defecto es el mes actual, pero puede navegar a meses anteriores con los controles anterior/siguiente.
-4. Comprueba el quality gate del último informe `READY` del periodo, si existe, para saber si el snapshot puede publicarse o tiene bloqueos.
-5. Revisa el flujo de entrega para saber qué informes READY faltan por publicar, cuáles están publicados y cuáles tienen seguimiento cliente abierto.
-6. Puede ir a `/reports` para preparar un nuevo informe o revisar versiones.
-7. Puede abrir `/portal` para comprobar la experiencia cliente.
-8. Gestiona solicitudes de reunión enviadas desde el portal: pendiente, en revisión o completada.
-9. Configura nombre, email y logo del consultor visibles en el portal cliente.
-10. Consulta el histórico publicado y abre el detalle web o la vista PDF.
+4. Ve la siguiente acción recomendada del periodo, priorizada por bloqueantes primero y avisos después.
+5. Comprueba el quality gate del último informe `READY` del periodo, si existe, para saber si el snapshot puede publicarse o tiene bloqueos.
+6. Revisa el flujo de entrega para saber qué informes READY faltan por publicar, cuáles están publicados y cuáles tienen seguimiento cliente abierto.
+7. Puede ir a `/reports` para preparar un nuevo informe o revisar versiones.
+8. Puede abrir `/portal` para comprobar la experiencia cliente.
+9. Gestiona solicitudes de reunión enviadas desde el portal: pendiente, en revisión o completada.
+10. Configura nombre, email y logo del consultor visibles en el portal cliente.
+11. Consulta el histórico publicado y abre el detalle web o la vista PDF.
 
 ## 3. Flujo técnico de datos
 
@@ -54,13 +55,13 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - `types.ts` define los contratos `ConsultantWorkspace`, `ConsultantPreparationChecklist`, `ConsultantDeliveryReport` y filas Supabase mapeadas.
 - `mappers.ts` convierte filas de `restaurants` y `professional_report_drafts` a tipos de UI.
 - `delivery.ts` calcula estados derivados de entrega (`READY_TO_PUBLISH`, `PUBLISHED`, `MEETING_REQUESTED`, `FOLLOW_UP_COMPLETE`) sin consultar Supabase.
-- `preparation.ts` calcula periodos mensuales, checklist de preparación y quality gate ligero desde el snapshot `READY` ya cargado. No hace I/O.
+- `preparation.ts` calcula periodos mensuales, checklist de preparación, severidad de cada punto, siguiente acción recomendada y quality gate ligero desde el snapshot `READY` ya cargado. No hace I/O.
 
 **Client components:**
 
 - `ConsultantBrandingForm` mantiene estado local del formulario y llama a `updateConsultantBranding`.
 - `MeetingRequestsPanel` actualiza estado de solicitudes de forma optimista e inmutable tras respuesta correcta.
-- `PreparationChecklist` es un componente client. Recibe el checklist del mes actual como `initialChecklist` (server-rendered), muestra conteos operativos y el quality gate del último `READY` del periodo. Permite navegar entre meses con botones anterior/siguiente. Al cambiar mes, llama a `getPreparationChecklistForPeriod()` y actualiza estado local de forma inmutable. No permite navegar más allá del mes actual.
+- `PreparationChecklist` es un componente client. Recibe el checklist del mes actual como `initialChecklist` (server-rendered), muestra conteos operativos, siguiente acción recomendada y el quality gate del último `READY` del periodo. Permite navegar entre meses con botones anterior/siguiente. Al cambiar mes, llama a `getPreparationChecklistForPeriod()` y actualiza estado local de forma inmutable. No permite navegar más allá del mes actual.
 - `DeliveryWorkflowPanel` es un componente client ligero. Recibe informes READY recientes ya cruzados con solicitudes del portal, filtra localmente por estado (`Todos`, `Abiertos`, `Publicados`, `Cerrados`) y muestra timeline visual: READY → Portal → Reunión → Cierre. No hace queries ni decide permisos.
 
 ## 4. Reglas de negocio y restricciones
@@ -76,6 +77,9 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - La checklist se puede consultar para cualquier mes pasado o el actual. No se permite navegar al futuro más allá del mes actual.
 - El periodo de checklist se calcula como mes natural: `from = YYYY-MM-01`, `to = último día del mes`.
 - Criterios de checklist: ventas requiere al menos una fila `daily_sales` con `revenue_total > 0`; gastos requiere al menos un `operating_expenses`; facturas queda completo solo si hay facturas `completed` y cero `review_required`/`processing`; equipo requiere empleado activo y turno en periodo; carta requiere recetas y ventas por receta; Menu Engineering acepta reportes `ANALYZED` solapados con el periodo; informes READY/publicados usan periodo exacto; solicitudes abiertas se cuentan globalmente.
+- Cada ítem de checklist tiene severidad derivada: ventas, gastos e informe `READY` son `blocker` si no están completos; facturas, equipo, carta, Menu Engineering, publicación y solicitudes abiertas son `warning`; los puntos completos quedan como `info`.
+- La siguiente acción se deriva en `buildPreparationChecklist()`: toma el primer ítem no completo con severidad `blocker`; si no hay bloqueantes, toma el primer `warning`; si todo está completo, queda `null`.
+- La UI no decide prioridades: solo renderiza `nextAction`, `severity` y `actionLabel` ya calculados por la lógica pura.
 - Los enlaces de resolución solo usan filtros cuando la ruta destino ya los soporta. Para estados parciales, equipo enlaza a `/staff/schedule` si ya hay empleados pero faltan turnos, y carta enlaza a `/stock` si ya hay recetas pero faltan ventas por receta.
 - La checklist guía la preparación, pero no sustituye las reglas de calidad del informe profesional en `/reports`.
 - El quality gate mostrado en `/consultant` usa exactamente el mismo evaluator que `/reports` y `publishReportDraft`, pero solo sobre snapshots `READY` ya guardados.
@@ -102,6 +106,9 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - Si no hay informes publicados, muestra estado vacío y acceso a `/reports`.
 - Si no hay solicitudes, muestra estado vacío.
 - Si faltan datos del periodo seleccionado, la checklist marca `Pendiente` o `Revisar` y enlaza al módulo que debe resolverlo.
+- Si hay varios puntos incompletos, la siguiente acción muestra primero el bloqueo operativo más importante. Por ejemplo, ventas faltantes tienen prioridad sobre crear una versión `READY`, y `READY` tiene prioridad sobre publicar.
+- Si no hay bloqueantes pero sí avisos, la siguiente acción muestra el primer aviso pendiente para mejorar la entrega sin bloquear la preparación.
+- Si todos los puntos están completos, la checklist no muestra bloque de siguiente acción.
 - Si hay un `READY` con warnings, la checklist lo muestra como publicable con advertencias; si hay bloqueos, lo muestra como bloqueado y enlaza a `/reports`.
 - Si no hay `READY`, la checklist no inventa calidad de informe y muestra una llamada a crear una versión lista.
 - Si no hay informes READY, el flujo de entrega muestra estado vacío operativo.

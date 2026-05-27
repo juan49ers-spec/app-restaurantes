@@ -8,6 +8,7 @@ import {
   type ConsultantChecklistStatus,
   type ConsultantPreparationChecklist,
   type ConsultantPreparationQualityGate,
+  type ConsultantPreparationSeverity,
 } from '@/app/actions/consultant'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -49,6 +50,27 @@ const QUALITY_GATE_COPY: Record<ConsultantPreparationQualityGate['status'], { la
     label: 'Bloqueado',
     className: 'border-red-200 bg-red-50 text-red-700',
   },
+}
+
+const SEVERITY_COPY: Record<ConsultantPreparationSeverity, { label: string; className: string }> = {
+  blocker: {
+    label: 'Bloqueante',
+    className: 'border-red-200 bg-red-50 text-red-700',
+  },
+  warning: {
+    label: 'Recomendado',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+  },
+  info: {
+    label: 'Informativo',
+    className: 'border-slate-200 bg-white text-slate-600',
+  },
+}
+
+const NEXT_ACTION_PANEL_CLASS: Record<ConsultantPreparationSeverity, string> = {
+  blocker: 'border-red-200 bg-red-50',
+  warning: 'border-amber-200 bg-amber-50',
+  info: 'border-slate-200 bg-slate-50',
 }
 
 function formatMonthLabel(from: string) {
@@ -130,6 +152,29 @@ export function PreparationChecklist({ initialChecklist }: PreparationChecklistP
         </div>
       </div>
 
+      {checklist.nextAction && (
+        <div className={cn('mt-5 rounded-md border p-4', NEXT_ACTION_PANEL_CLASS[checklist.nextAction.severity])}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <TriangleAlert className="h-4 w-4 text-amber-700" />
+                <h3 className="text-sm font-semibold text-slate-950">Siguiente acción</h3>
+                <Badge
+                  variant="outline"
+                  className={cn('rounded-md', SEVERITY_COPY[checklist.nextAction.severity].className)}
+                >
+                  {SEVERITY_COPY[checklist.nextAction.severity].label}
+                </Badge>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-700">{checklist.nextAction.reason}</p>
+            </div>
+            <Button asChild size="sm" variant={checklist.nextAction.severity === 'blocker' ? 'default' : 'outline'}>
+              <Link href={checklist.nextAction.href}>{checklist.nextAction.label}</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="mt-5 rounded-md border border-slate-200 bg-slate-50 p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -199,7 +244,7 @@ export function PreparationChecklist({ initialChecklist }: PreparationChecklistP
               </div>
               <div className="mt-4">
                 <Button asChild size="sm" variant={item.status === 'missing' ? 'default' : 'outline'}>
-                  <Link href={item.href}>{item.status === 'complete' ? 'Abrir' : 'Resolver'}</Link>
+                  <Link href={item.href}>{item.status === 'complete' ? 'Abrir' : item.actionLabel}</Link>
                 </Button>
               </div>
             </article>
