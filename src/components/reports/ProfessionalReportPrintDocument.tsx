@@ -1,6 +1,7 @@
 import { formatCurrency, formatPct } from '@/lib/utils'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
 import { buildConsultantBriefing } from '@/lib/reporting/consultant-briefing'
+import { PrintDocumentControl, PrintGlobalQualityIssues } from './ProfessionalReportPrintBlocks'
 import type {
   PresentationKpi,
   ProfessionalReportSection,
@@ -97,6 +98,11 @@ export function ProfessionalReportPrintDocument({
             page-break-inside: avoid;
           }
 
+          .print-avoid-break {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
           .print-chapter {
             break-before: page;
           }
@@ -124,6 +130,9 @@ export function ProfessionalReportPrintDocument({
 
       <header className="print-page relative overflow-hidden border-b border-slate-300 pb-10">
         <div className="absolute right-0 top-0 h-36 w-36 border-r-8 border-t-8 border-emerald-700" aria-hidden="true" />
+        <div className="absolute bottom-16 right-0 hidden -rotate-90 text-xs font-semibold uppercase tracking-[0.24em] text-slate-300 print:block" aria-hidden="true">
+          Documento confidencial
+        </div>
         <div className="flex min-h-[520px] flex-col justify-between">
           <div>
             <div className="flex items-center gap-4">
@@ -164,10 +173,8 @@ export function ProfessionalReportPrintDocument({
       </header>
 
       <section className="print-page border-b border-slate-200 py-10">
-        <div className="mb-8 grid gap-3 border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 sm:grid-cols-3">
-          <p><span className="font-semibold text-slate-950">Referencia:</span> {documentReference}</p>
-          <p><span className="font-semibold text-slate-950">Estado:</span> {draft.status}</p>
-          <p><span className="font-semibold text-slate-950">Calidad:</span> {report.quality.confidence}% · {report.quality.status}</p>
+        <div className="mb-8">
+          <PrintDocumentControl draft={draft} branding={branding} reference={documentReference} />
         </div>
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Resumen ejecutivo</p>
         <h2 className="mt-4 text-3xl font-semibold leading-tight text-slate-950">
@@ -346,6 +353,8 @@ export function ProfessionalReportPrintDocument({
             <p className="mt-2 text-2xl font-semibold text-slate-950">{report.quality.issues.length}</p>
           </div>
         </div>
+
+        <PrintGlobalQualityIssues issues={report.quality.issues} />
 
         <div className="mt-6 overflow-hidden border border-slate-200">
           {report.sourceMap.map(source => (
