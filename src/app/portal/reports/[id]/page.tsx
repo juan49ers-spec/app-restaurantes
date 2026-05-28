@@ -4,11 +4,19 @@ import { formatPortalKpiValue } from '@/components/portal/format'
 import { PortalChapterSection } from '@/components/portal/PortalChapterSection'
 import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
+import { PortalExpenseBreakdown } from '@/components/portal/PortalExpenseBreakdown'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
+import { PortalMultiPeriodTrend } from '@/components/portal/PortalMultiPeriodTrend'
 import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
 import { PortalSuggestedActions } from '@/components/portal/PortalSuggestedActions'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
-import { getPortalPeriodComparisonForRestaurant, getPublishedReportDetailForRestaurant, markPublishedReportViewedForRestaurant } from '@/lib/portal'
+import {
+  getPortalExpenseBreakdownForRestaurant,
+  getPortalMultiPeriodTrendForRestaurant,
+  getPortalPeriodComparisonForRestaurant,
+  getPublishedReportDetailForRestaurant,
+  markPublishedReportViewedForRestaurant,
+} from '@/lib/portal'
 import { buildPortalSuggestedActions } from '@/lib/portal-insights'
 import type { ProfessionalReportSection } from '@/lib/reporting'
 
@@ -31,11 +39,23 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
   await markPublishedReportViewedForRestaurant(draft.id, restaurant.id)
   const report = draft.report
   const presentation = buildProfessionalReportPresentation(report)
-  const comparisonRes = await getPortalPeriodComparisonForRestaurant({
-    restaurantId: restaurant.id,
-    periodFrom: draft.periodFrom,
-    periodTo: draft.periodTo,
-  })
+  const [comparisonRes, trendRes, expenseBreakdownRes] = await Promise.all([
+    getPortalPeriodComparisonForRestaurant({
+      restaurantId: restaurant.id,
+      periodFrom: draft.periodFrom,
+      periodTo: draft.periodTo,
+    }),
+    getPortalMultiPeriodTrendForRestaurant({
+      restaurantId: restaurant.id,
+      periodFrom: draft.periodFrom,
+      periodTo: draft.periodTo,
+    }),
+    getPortalExpenseBreakdownForRestaurant({
+      restaurantId: restaurant.id,
+      periodFrom: draft.periodFrom,
+      periodTo: draft.periodTo,
+    }),
+  ])
   const suggestedActions = buildPortalSuggestedActions(presentation)
 
   return (
@@ -47,20 +67,21 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
           version={draft.version}
           status={draft.status}
           mode="detail"
+          restaurantName={restaurant.name}
         />
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {presentation.kpis.map(kpi => (
-            <div key={kpi.id} className="rounded-lg border border-slate-200 bg-white p-4">
+            <div key={kpi.id} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase text-slate-500">{kpi.label}</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">{formatPortalKpiValue(kpi)}</p>
+              <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums text-slate-950">{formatPortalKpiValue(kpi)}</p>
               <p className="mt-2 text-xs leading-5 text-slate-500">{kpi.note}</p>
             </div>
           ))}
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-950">Conclusiones ejecutivas</h2>
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold tracking-tight text-slate-950">Conclusiones ejecutivas</h2>
           <div className="mt-4 grid gap-3">
             {presentation.conclusions.map(conclusion => (
               <div key={conclusion.id} className="rounded-md bg-slate-50 p-4">
@@ -75,6 +96,9 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
           {comparisonRes.data && <PortalPeriodComparisonPanel comparison={comparisonRes.data} />}
           <PortalSuggestedActions actions={suggestedActions} />
         </section>
+
+        {trendRes.data && <PortalMultiPeriodTrend trend={trendRes.data} />}
+        {expenseBreakdownRes.data && <PortalExpenseBreakdown breakdown={expenseBreakdownRes.data} />}
 
         {presentation.chapters.map(chapter => {
           const chapterSections = chapter.sectionIds

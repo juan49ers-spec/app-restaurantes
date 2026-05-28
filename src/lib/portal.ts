@@ -1,5 +1,13 @@
 import { createClient } from '@/lib/supabaseServer'
-import { buildPortalPeriodComparison, previousCalendarMonthBounds, type PortalPeriodComparison } from '@/lib/portal-insights'
+import {
+    buildPortalExpenseCategoryBreakdown,
+    buildPortalMultiPeriodTrend,
+    buildPortalPeriodComparison,
+    previousCalendarMonthBounds,
+    type PortalExpenseCategoryBreakdown,
+    type PortalMultiPeriodTrend,
+    type PortalPeriodComparison,
+} from '@/lib/portal-insights'
 import type { ProfessionalRestaurantReport } from '@/lib/reporting'
 
 export type ActionResponse<T> = {
@@ -21,6 +29,7 @@ export interface PublishedReportSummary {
     publishedAt: string
     publishedBy: string | null
     viewedAt: string | null
+    meetingStatus: 'PENDING' | 'ACKNOWLEDGED' | 'COMPLETED' | null
 }
 
 export interface PublishedReportDetail extends PublishedReportSummary {
@@ -45,6 +54,7 @@ export interface PortalContext {
 }
 
 type NumericRow = Record<string, number | null | undefined>
+type DatedNumericRow = Record<string, string | number | null | undefined>
 
 export function buildPortalContextFallback(input: {
     restaurantId: string
@@ -76,7 +86,7 @@ function mapPublishedSummary(row: {
     published_at: string | null
     published_by: string | null
     viewed_at?: string | null
-}): PublishedReportSummary {
+}, meetingStatus: PublishedReportSummary['meetingStatus'] = null): PublishedReportSummary {
     return {
         id: row.id,
         periodFrom: row.period_from,
@@ -90,6 +100,7 @@ function mapPublishedSummary(row: {
         publishedAt: row.published_at ?? '',
         publishedBy: row.published_by,
         viewedAt: row.viewed_at ?? null,
+        meetingStatus,
     }
 }
 
@@ -110,6 +121,33 @@ function roundRatio(value: number) {
 
 function sumRows(rows: NumericRow[] | null, key: string) {
     return (rows || []).reduce((sum, row) => sum + (row[key] ?? 0), 0)
+}
+
+function addMonths(month: string, delta: number) {
+    const [year, monthIndex] = month.split('-').map(Number)
+    const target = new Date(Date.UTC(year, monthIndex - 1 + delta, 1))
+    return target.toISOString().slice(0, 7)
+}
+
+function monthFromDate(date: string) {
+    return date.slice(0, 7)
+}
+
+function monthSequence(periodFrom: string, count: number) {
+    const currentMonthValue = monthFromDate(periodFrom)
+    return Array.from({ length: count }, (_, index) => addMonths(currentMonthValue, index - (count - 1)))
+}
+
+function sumRowsByMonth(rows: DatedNumericRow[] | null, dateKey: string, valueKey: string) {
+    const totals = new Map<string, number>()
+    for (const row of rows || []) {
+        const date = row[dateKey]
+        const value = row[valueKey]
+        if (typeof date !== 'string' || typeof value !== 'number') continue
+        const month = monthFromDate(date)
+        totals.set(month, (totals.get(month) ?? 0) + value)
+    }
+    return totals
 }
 
 function mapPortalContextBase(restaurantId: string, row: {
@@ -138,7 +176,38 @@ export async function getPublishedReportsForRestaurant(restaurantId: string): Pr
 
     if (error) return { success: false, error: 'No se pudieron cargar los informes publicados.' }
 
-    return { success: true, data: (data || []).map(row => mapPublishedSummary(row as Parameters<typeof mapPublishedSummary>[0])) }
+    const reportRows = data || []
+    const reportIds = reportRows.map(row => row.id).filter(Boolean)
+    const meetingStatusByReport = new Map<string, PublishedReportSummary['meetingStatus']>()
+
+    if (reportIds.length > 0) {
+        const meetingRes = await supabase
+            .from('portal_meeting_requests')
+            .select('report_id, status, created_at')
+            .eq('restaurant_id', restaurantId)
+            .in('report_id', reportIds)
+            .order('created_at', { ascending: false })
+
+        if (!meetingRes.error) {
+            for (const request of meetingRes.data || []) {
+                const reportId = request.report_id as string | undefined
+                const status = request.status as PublishedReportSummary['meetingStatus']
+                if (reportId && !meetingStatusByReport.has(reportId)) {
+                    meetingStatusByReport.set(reportId, status)
+                }
+            }
+        }
+    }
+
+    return {
+        success: true,
+        data: reportRows.map(row =>
+            mapPublishedSummary(
+                row as Parameters<typeof mapPublishedSummary>[0],
+                meetingStatusByReport.get(row.id) ?? null
+            )
+        ),
+    }
 }
 
 export async function getPublishedReportDetailForRestaurant(id: string, restaurantId: string): Promise<ActionResponse<PublishedReportDetail>> {
@@ -285,6 +354,95 @@ export async function getPortalPeriodComparisonForRestaurant(input: {
             currentExpenses: sumRows(currentExpensesRes.data as NumericRow[] | null, 'amount'),
             previousRevenue: sumRows(previousSalesRes.data as NumericRow[] | null, 'revenue_total'),
             previousExpenses: sumRows(previousExpensesRes.data as NumericRow[] | null, 'amount'),
+        }),
+    }
+}
+
+export async function getPortalMultiPeriodTrendForRestaurant(input: {
+    restaurantId: string
+    periodFrom: string
+    periodTo: string
+}): Promise<ActionResponse<PortalMultiPeriodTrend>> {
+    const supabase = await createClient()
+    const months = monthSequence(input.periodFrom, 3)
+    const firstBounds = monthBounds(months[0] ?? monthFromDate(input.periodFrom))
+
+    const [salesRes, expensesRes] = await Promise.all([
+        supabase
+            .from('daily_sales')
+            .select('date, revenue_total')
+            .eq('restaurant_id', input.restaurantId)
+            .gte('date', firstBounds.from)
+            .lte('date', input.periodTo),
+        supabase
+            .from('operating_expenses')
+            .select('expense_date, amount')
+            .eq('restaurant_id', input.restaurantId)
+            .gte('expense_date', firstBounds.from)
+            .lte('expense_date', input.periodTo),
+    ])
+
+    const firstError = salesRes.error || expensesRes.error
+    if (firstError) return { success: false, error: 'No se pudo cargar la tendencia del portal.' }
+
+    const revenueByMonth = sumRowsByMonth(salesRes.data as DatedNumericRow[] | null, 'date', 'revenue_total')
+    const expensesByMonth = sumRowsByMonth(expensesRes.data as DatedNumericRow[] | null, 'expense_date', 'amount')
+
+    return {
+        success: true,
+        data: buildPortalMultiPeriodTrend({
+            currentFrom: input.periodFrom,
+            currentTo: input.periodTo,
+            monthlyData: months.map(month => {
+                const bounds = monthBounds(month)
+                return {
+                    from: bounds.from,
+                    to: month === monthFromDate(input.periodFrom) ? input.periodTo : bounds.to,
+                    revenue: revenueByMonth.get(month) ?? 0,
+                    expenses: expensesByMonth.get(month) ?? 0,
+                }
+            }),
+        }),
+    }
+}
+
+export async function getPortalExpenseBreakdownForRestaurant(input: {
+    restaurantId: string
+    periodFrom: string
+    periodTo: string
+}): Promise<ActionResponse<PortalExpenseCategoryBreakdown>> {
+    const supabase = await createClient()
+    const { previousFrom, previousTo } = previousCalendarMonthBounds(input.periodFrom)
+
+    const [currentExpensesRes, previousExpensesRes] = await Promise.all([
+        supabase
+            .from('operating_expenses')
+            .select('category, amount')
+            .eq('restaurant_id', input.restaurantId)
+            .gte('expense_date', input.periodFrom)
+            .lte('expense_date', input.periodTo),
+        supabase
+            .from('operating_expenses')
+            .select('category, amount')
+            .eq('restaurant_id', input.restaurantId)
+            .gte('expense_date', previousFrom)
+            .lte('expense_date', previousTo),
+    ])
+
+    const firstError = currentExpensesRes.error || previousExpensesRes.error
+    if (firstError) return { success: false, error: 'No se pudo cargar el desglose de gastos.' }
+
+    return {
+        success: true,
+        data: buildPortalExpenseCategoryBreakdown({
+            currentExpenses: (currentExpensesRes.data || []).map(row => ({
+                category: String(row.category),
+                amount: Number(row.amount ?? 0),
+            })),
+            previousExpenses: (previousExpensesRes.data || []).map(row => ({
+                category: String(row.category),
+                amount: Number(row.amount ?? 0),
+            })),
         }),
     }
 }

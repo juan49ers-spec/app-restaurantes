@@ -1,4 +1,5 @@
 import type { ProfessionalReportPresentation } from '@/lib/reporting'
+import { EXPENSE_CATEGORY_LABELS, type OperatingExpenseCategory } from '@/types/schema'
 
 export type PortalInsightTone = 'positive' | 'neutral' | 'warning' | 'critical'
 
@@ -40,6 +41,29 @@ export interface PortalSuggestedAction {
   sourceId: string
 }
 
+export interface PortalMultiPeriodTrend {
+  periods: Array<{
+    from: string
+    to: string
+    label: string
+    revenue: number
+    expenses: number
+    netResult: number
+  }>
+  hasTrend: boolean
+}
+
+export interface PortalExpenseCategoryBreakdown {
+  categories: Array<{
+    category: string
+    label: string
+    currentAmount: number
+    previousAmount: number
+    delta: PortalMetricDelta
+  }>
+  hasPreviousData: boolean
+}
+
 export function previousCalendarMonthBounds(periodFrom: string) {
   const [year, month] = periodFrom.split('-').map(Number)
   const previousMonthStart = new Date(Date.UTC(year, month - 2, 1))
@@ -69,6 +93,21 @@ function delta(current: number, previous: number): PortalMetricDelta {
     value,
     pct: previous === 0 ? null : round((value / Math.abs(previous)) * 100, 2),
   }
+}
+
+function monthLabel(from: string) {
+  const date = new Date(`${from}T00:00:00.000Z`)
+  const label = new Intl.DateTimeFormat('es-ES', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date).replace('.', '')
+
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+function expenseLabel(category: string) {
+  return EXPENSE_CATEGORY_LABELS[category as OperatingExpenseCategory] ?? category
 }
 
 export function buildPortalPeriodComparison(input: {
@@ -111,6 +150,78 @@ export function buildPortalPeriodComparison(input: {
         : round(current.expenseRatioPct - previous.expenseRatioPct, 2),
     },
     hasPreviousData: previous.revenue > 0 || previous.expenses > 0,
+  }
+}
+
+export function buildPortalMultiPeriodTrend(input: {
+  currentFrom: string
+  currentTo: string
+  monthlyData: Array<{
+    from: string
+    to: string
+    revenue: number
+    expenses: number
+  }>
+}): PortalMultiPeriodTrend {
+  const periods = input.monthlyData
+    .map(period => ({
+      from: period.from,
+      to: period.to,
+      label: monthLabel(period.from),
+      revenue: round(period.revenue, 2),
+      expenses: round(period.expenses, 2),
+      netResult: round(period.revenue - period.expenses, 2),
+    }))
+    .sort((left, right) => left.from.localeCompare(right.from))
+
+  const populatedPeriods = periods.filter(period => period.revenue > 0 || period.expenses > 0)
+
+  return {
+    periods,
+    hasTrend: populatedPeriods.length >= 2,
+  }
+}
+
+export function buildPortalExpenseCategoryBreakdown(input: {
+  currentExpenses: Array<{ category: string; amount: number }>
+  previousExpenses: Array<{ category: string; amount: number }>
+}): PortalExpenseCategoryBreakdown {
+  const currentByCategory = new Map<string, number>()
+  const previousByCategory = new Map<string, number>()
+
+  for (const expense of input.currentExpenses) {
+    currentByCategory.set(expense.category, round((currentByCategory.get(expense.category) ?? 0) + expense.amount, 2))
+  }
+
+  for (const expense of input.previousExpenses) {
+    previousByCategory.set(expense.category, round((previousByCategory.get(expense.category) ?? 0) + expense.amount, 2))
+  }
+
+  const categories = Array.from(new Set([
+    ...currentByCategory.keys(),
+    ...previousByCategory.keys(),
+  ]))
+    .map(category => {
+      const currentAmount = round(currentByCategory.get(category) ?? 0, 2)
+      const previousAmount = round(previousByCategory.get(category) ?? 0, 2)
+
+      return {
+        category,
+        label: expenseLabel(category),
+        currentAmount,
+        previousAmount,
+        delta: delta(currentAmount, previousAmount),
+      }
+    })
+    .sort((left, right) => {
+      const absoluteDelta = Math.abs(right.delta.value) - Math.abs(left.delta.value)
+      if (absoluteDelta !== 0) return absoluteDelta
+      return left.label.localeCompare(right.label, 'es')
+    })
+
+  return {
+    categories,
+    hasPreviousData: input.previousExpenses.some(expense => expense.amount !== 0),
   }
 }
 

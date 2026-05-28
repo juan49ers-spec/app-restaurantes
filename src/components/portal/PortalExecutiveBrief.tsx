@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Download, FileText, Sparkles } from 'lucide-react'
+import { ArrowRight, CalendarDays, Download, FileText, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatPortalKpiValue } from '@/components/portal/format'
@@ -14,6 +14,7 @@ interface PortalExecutiveBriefProps {
   version: number
   status: string
   mode: PortalExecutiveBriefMode
+  restaurantName?: string
 }
 
 const TONE_CLASS: Record<string, string> = {
@@ -38,17 +39,18 @@ export function PortalExecutiveBrief({
   version,
   status,
   mode,
+  restaurantName,
 }: PortalExecutiveBriefProps) {
   const mainConclusion = primaryConclusion(presentation)
   const visibleKpis = presentation.kpis.slice(0, 3)
   const priorityConclusions = presentation.conclusions.slice(0, 3)
 
   return (
-    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-md shadow-slate-200/60">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="rounded-md border-slate-300 bg-white text-slate-700">
+            <Badge variant="outline" className="rounded-md border-emerald-200 bg-emerald-50 text-emerald-800">
               Informe publicado
             </Badge>
             <Badge variant="secondary" className="rounded-md">
@@ -62,10 +64,16 @@ export function PortalExecutiveBrief({
           <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-slate-500">
             {presentation.eyebrow}
           </p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
+          {restaurantName && (
+            <p className="mt-3 text-sm font-bold uppercase tracking-wide text-slate-700">{restaurantName}</p>
+          )}
+          <h1 className="mt-2 max-w-3xl text-3xl font-bold tracking-tight text-slate-950 sm:text-5xl">
             {presentation.title}
           </h1>
-          <p className="mt-3 text-sm font-medium text-slate-600">{presentation.periodLabel}</p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800">
+            <CalendarDays className="h-4 w-4 text-slate-500" />
+            {presentation.periodLabel}
+          </div>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">{presentation.subtitle}</p>
 
           {mainConclusion && (
@@ -109,9 +117,9 @@ export function PortalExecutiveBrief({
 
           <div className="mt-5 grid gap-3">
             {visibleKpis.map(kpi => (
-              <div key={kpi.id} className="rounded-md border border-white/10 bg-white/5 p-4">
+              <div key={kpi.id} className="rounded-md border border-white/10 bg-white/5 p-4 shadow-sm">
                 <p className="text-xs font-semibold uppercase text-slate-300">{kpi.label}</p>
-                <p className="mt-2 text-2xl font-semibold">{formatPortalKpiValue(kpi)}</p>
+                <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{formatPortalKpiValue(kpi)}</p>
                 <p className="mt-2 text-xs leading-5 text-slate-300">{kpi.note}</p>
               </div>
             ))}

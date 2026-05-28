@@ -14,8 +14,8 @@ export default async function PortalLayout({ children }: { children: React.React
   const consultantLabel = restaurant.consultant_name ?? 'Portal cliente'
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-stone-50 text-slate-950">
+      <header className="border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-200/60">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             {restaurant.consultant_logo_url && (
@@ -27,15 +27,15 @@ export default async function PortalLayout({ children }: { children: React.React
               />
             )}
             <div>
-              <Link href="/portal" className="text-sm font-semibold text-slate-950">
+              <Link href="/portal" className="text-sm font-bold tracking-tight text-slate-950">
                 {consultantLabel}
               </Link>
               <p className="text-xs text-slate-500">{restaurant.name}</p>
             </div>
           </div>
-          <nav className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-            <Link href="/portal" className="hover:text-slate-950">Inicio</Link>
-            <Link href="/reports" className="hover:text-slate-950">Volver a ControlHub</Link>
+          <nav className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-600">
+            <Link href="/portal" className="transition hover:text-slate-950">Inicio</Link>
+            <Link href="/reports" className="transition hover:text-slate-950">Volver a ControlHub</Link>
           </nav>
         </div>
       </header>

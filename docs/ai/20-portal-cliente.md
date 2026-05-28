@@ -17,11 +17,12 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 3. Puede abrir el detalle web del informe.
 4. Al abrir el detalle, el informe queda marcado como visto para que el consultor pueda hacer seguimiento.
 5. Ve una comparativa ejecutiva del periodo publicado frente al mes anterior: ventas, gastos, resultado operativo y presión de gasto.
-6. Revisa acciones sugeridas deterministas basadas en KPIs/conclusiones del snapshot, sin IA generativa.
-7. En el detalle, navega por capítulos mediante anclas internas sin salir del portal.
-8. Puede consultar el histórico de informes publicados, incluyendo si cada informe está pendiente de lectura o ya fue visto.
-9. Puede solicitar una reunión de revisión.
-10. Puede volver a ControlHub para operar la app interna.
+6. En el detalle, consulta tendencia de hasta 3 meses y desglose de gastos por categoría para entender evolución y focos de coste.
+7. Revisa acciones sugeridas deterministas basadas en KPIs/conclusiones del snapshot, sin IA generativa.
+8. En el detalle, navega por capítulos mediante anclas internas sin salir del portal.
+9. Puede consultar el histórico de informes publicados, con estado claro del ciclo de entrega: nuevo, leído, reunión solicitada, en preparación o revisado.
+10. Puede solicitar una reunión de revisión.
+11. Puede volver a ControlHub para operar la app interna.
 
 ## 3. Flujo técnico de datos
 
@@ -38,8 +39,10 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `PortalChapterNavigation` renderiza navegación accesible por capítulos usando anclas `#chapter-{id}` en el detalle.
 - `PortalChapterSection` renderiza cada capítulo del detalle con lectura principal, bloques de métricas, confianza/evidencias e incidencias de calidad cuando existen. Consume secciones del snapshot publicado y `narrativeOverrides`; no consulta datos ni recalcula métricas.
 - `PortalPeriodComparisonPanel` muestra una comparación del periodo publicado contra el mes natural anterior. Consume `PortalPeriodComparison` ya calculado en servidor.
+- `PortalMultiPeriodTrend` muestra hasta 3 meses de ventas, gastos y resultado operativo. Consume `PortalMultiPeriodTrend` calculado en servidor desde datos agregados.
+- `PortalExpenseBreakdown` muestra gastos por categoría, ordenados por variación absoluta frente al mes anterior. Consume `PortalExpenseCategoryBreakdown` calculado en servidor y usa etiquetas españolas de `EXPENSE_CATEGORY_LABELS`.
 - `PortalSuggestedActions` muestra hasta 3 acciones sugeridas a revisar con el consultor. Las acciones salen de `buildPortalSuggestedActions(presentation)`, una función pura basada en tonos de KPIs/conclusiones.
-- `PortalReportSummary` mantiene el histórico publicado con enlaces al detalle web y PDF imprimible.
+- `PortalReportSummary` mantiene el histórico publicado con enlaces al detalle web y PDF imprimible. Además muestra el estado de entrega derivado de `viewed_at` y de la última solicitud de reunión.
 
 **Actions:** `src/app/actions/portal.ts`
 
@@ -48,6 +51,8 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `getPortalContext()` carga restaurante, datos del consultor y ventas acumuladas del mes vs objetivo.
 - `markPublishedReportViewedForRestaurant(id, restaurantId)` vive en `src/lib/portal.ts` y se llama desde la página server `/portal/reports/[id]` después de validar restaurante e informe publicado. Actualiza `professional_report_drafts.viewed_at` con scope `id + restaurant_id + published_at IS NOT NULL`.
 - `getPortalPeriodComparisonForRestaurant({ restaurantId, periodFrom, periodTo })` vive en `src/lib/portal.ts`. Carga ventas y gastos del periodo publicado y del mes natural anterior con scope `restaurant_id`, y delega el cálculo en `buildPortalPeriodComparison()`.
+- `getPortalMultiPeriodTrendForRestaurant({ restaurantId, periodFrom, periodTo })` vive en `src/lib/portal.ts`. Carga ventas y gastos del periodo publicado y los dos meses naturales anteriores con scope `restaurant_id`, agrupa por mes y delega en `buildPortalMultiPeriodTrend()`.
+- `getPortalExpenseBreakdownForRestaurant({ restaurantId, periodFrom, periodTo })` vive en `src/lib/portal.ts`. Carga `operating_expenses.category/amount` del periodo publicado y del mes anterior con scope `restaurant_id`, y delega en `buildPortalExpenseCategoryBreakdown()`.
 - `requestConsultantMeeting(input)` crea una fila `portal_meeting_requests` solo si no existe ya una solicitud abierta (`PENDING` o `ACKNOWLEDGED`) para ese informe y restaurante. Si existe, devuelve la solicitud existente con `reused: true`.
 - `publishReportDraft(id)` y `unpublishReportDraft(id)` se usan desde la mesa interna. Publicar valida que el draft esta `READY`, pertenece al restaurante activo y que el snapshot supera `evaluateProfessionalReportQualityGate()` sin bloqueos.
 
@@ -63,6 +68,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `professional_report_drafts.published_by` conserva quién publicó.
 - `professional_report_drafts.viewed_at` marca la última apertura del detalle web por parte del cliente/restaurante.
 - `portal_meeting_requests` guarda solicitudes de reunión.
+- El histórico del portal une los informes publicados con la última solicitud de reunión del informe para mostrar `meetingStatus` sin persistir un estado duplicado en `professional_report_drafts`.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -85,6 +91,9 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - La navegación por capítulos del detalle es solo UI local basada en `presentation.chapters`; no cambia URL de datos ni dispara queries nuevas.
 - La comparativa mensual es lectura derivada, no modifica el snapshot y no cambia la calidad del informe. Usa `daily_sales.revenue_total` y `operating_expenses.amount` del restaurante activo para el periodo publicado y el mes natural anterior.
 - Si no hay datos del mes anterior, la comparativa se muestra como `Sin histórico previo` y evita porcentajes engañosos cuando el denominador es 0.
+- La tendencia multi-periodo es lectura derivada de los dos meses anteriores más el periodo publicado. No sustituye a la comparativa mensual; aporta contexto de trayectoria.
+- El desglose de gastos por categoría es lectura derivada de `operating_expenses`. Un gasto que sube se marca como peor y uno que baja como mejor, porque en este panel `lowerIsBetter=true`.
+- El estado del histórico se deriva así: sin lectura = `Nuevo`; leído sin reunión = `Leído`; solicitud `PENDING` = `Reunión solicitada`; `ACKNOWLEDGED` = `Reunión en preparación`; `COMPLETED` = `Revisado`.
 - Las acciones sugeridas del portal son reglas deterministas sobre KPIs/conclusiones (`prime_cost`, materia prima, personal, ventas, rentabilidad). No son IA y no deben afirmar causalidad no soportada por los datos.
 - `restaurant_id` nunca viaja desde cliente.
 
@@ -95,8 +104,9 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - **Reporting profesional:** el portal usa `ProfessionalRestaurantReport` y `buildProfessionalReportPresentation()`. Los componentes premium consumen la presentación ya derivada y no acceden a Supabase.
 - **Financial Control:** aporta ventas diarias y objetivos mensuales para el dato vivo.
 - **Gastos operativos:** aporta `operating_expenses.amount` para la comparativa mensual del portal.
+- **Gastos operativos:** aporta `operating_expenses.category` para el desglose por categoría.
 - **Base de datos:** depende de `professional_report_drafts`, `restaurants` y `portal_meeting_requests`.
-- **Insights del portal:** `src/lib/portal-insights.ts` mantiene cálculos puros de comparativa mensual y acciones sugeridas. No importa Supabase ni componentes.
+- **Insights del portal:** `src/lib/portal-insights.ts` mantiene cálculos puros de comparativa mensual, tendencia multi-periodo, desglose de gastos y acciones sugeridas. No importa Supabase ni componentes.
 - **Layout:** `AppLayout` exime `/portal` para no mostrar sidebar operativo.
 - **Consultas compartidas:** `src/lib/portal.ts` mantiene el mapper de informes publicados y el contexto vivo reutilizable por pages y actions.
 
@@ -115,6 +125,9 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si una sección tiene `quality.issues`, el detalle las muestra como incidencias de dato; no las oculta detrás de la métrica principal.
 - Si falla la comparativa mensual, el portal conserva portada, KPIs, acciones sugeridas e histórico; no debe bloquear la lectura del informe.
 - Si el periodo anterior tiene ventas o gastos a 0, los deltas absolutos se muestran, pero los porcentajes relativos pueden omitirse para no inventar una evolución.
+- Si falla la tendencia multi-periodo o el desglose por categoría, el detalle conserva el informe publicado, comparativa mensual, acciones y capítulos.
+- Si solo hay un mes con datos, la tendencia muestra `Sin tendencia histórica`.
+- Si no hay gastos del mes anterior, el desglose muestra importes actuales y evita deltas porcentuales.
 
 ## 7. Al añadir/modificar una función aquí
 

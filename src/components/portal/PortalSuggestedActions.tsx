@@ -29,12 +29,12 @@ function ToneIcon({ tone }: { tone: PortalSuggestedAction['tone'] }) {
 
 export function PortalSuggestedActions({ actions }: PortalSuggestedActionsProps) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-6">
+    <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Próximas decisiones</p>
-      <h2 className="mt-2 text-lg font-semibold text-slate-950">Acciones sugeridas para revisar</h2>
+      <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">Acciones sugeridas para revisar</h2>
       <div className="mt-4 grid gap-3">
         {actions.map(action => (
-          <article key={action.id} className={cn('rounded-md border p-4', TONE_CLASS[action.tone])}>
+          <article key={action.id} className={cn('rounded-md border p-4 shadow-sm', TONE_CLASS[action.tone])}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <ToneIcon tone={action.tone} />

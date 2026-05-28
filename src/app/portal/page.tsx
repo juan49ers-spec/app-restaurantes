@@ -74,6 +74,7 @@ export default async function PortalPage() {
           version={detail.version}
           status={detail.status}
           mode="home"
+          restaurantName={context.restaurantName}
         />
 
         <PortalMeetingRequestDialog reportId={latest.id} />
@@ -81,9 +82,9 @@ export default async function PortalPage() {
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {presentation.kpis.slice(0, 4).map(kpi => (
-          <div key={kpi.id} className="min-h-32 rounded-lg border border-slate-200 bg-white p-4">
+          <div key={kpi.id} className="min-h-32 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase text-slate-500">{kpi.label}</p>
-            <p className="mt-3 text-2xl font-semibold text-slate-950">{formatPortalKpiValue(kpi)}</p>
+            <p className="mt-3 text-3xl font-bold tracking-tight tabular-nums text-slate-950">{formatPortalKpiValue(kpi)}</p>
             <p className="mt-2 text-xs leading-5 text-slate-500">{kpi.note}</p>
           </div>
         ))}
@@ -103,8 +104,8 @@ export default async function PortalPage() {
         <PortalSuggestedActions actions={suggestedActions} />
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-slate-950">Histórico de informes publicados</h2>
+      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-bold tracking-tight text-slate-950">Histórico de informes publicados</h2>
         <div className="mt-4 grid gap-3">
           {reports.map(report => (
             <PortalReportSummary key={report.id} report={report} />

@@ -30,14 +30,14 @@ export function PortalPeriodComparisonPanel({ comparison }: PortalPeriodComparis
   const expenseRatioDelta = comparison.deltas.expenseRatioPct
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-6">
+    <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-slate-500">
             <TrendingUp className="h-4 w-4" />
             <p className="text-xs font-semibold uppercase tracking-wide">Comparativa mensual</p>
           </div>
-          <h2 className="mt-2 text-lg font-semibold text-slate-950">Evolución frente al mes anterior</h2>
+          <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-950">Evolución frente al mes anterior</h2>
           <p className="mt-1 text-sm text-slate-600">
             {formatPortalDate(comparison.period.currentFrom)} a {formatPortalDate(comparison.period.currentTo)} frente a {formatPortalDate(comparison.period.previousFrom)} a {formatPortalDate(comparison.period.previousTo)}.
           </p>
@@ -48,7 +48,7 @@ export function PortalPeriodComparisonPanel({ comparison }: PortalPeriodComparis
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase text-slate-500">Ventas</p>
           <p className="mt-2 text-2xl font-semibold text-slate-950">{formatCurrency(comparison.current.revenue)}</p>
           <p className={cn('mt-2 flex items-center gap-1 text-sm font-medium', deltaClass(comparison.deltas.revenue.value))}>
@@ -58,7 +58,7 @@ export function PortalPeriodComparisonPanel({ comparison }: PortalPeriodComparis
           </p>
         </div>
 
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase text-slate-500">Gastos</p>
           <p className="mt-2 text-2xl font-semibold text-slate-950">{formatCurrency(comparison.current.expenses)}</p>
           <p className={cn('mt-2 flex items-center gap-1 text-sm font-medium', deltaClass(comparison.deltas.expenses.value, true))}>
@@ -68,7 +68,7 @@ export function PortalPeriodComparisonPanel({ comparison }: PortalPeriodComparis
           </p>
         </div>
 
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase text-slate-500">Resultado operativo</p>
           <p className="mt-2 text-2xl font-semibold text-slate-950">{formatCurrency(comparison.current.netResult)}</p>
           <p className={cn('mt-2 flex items-center gap-1 text-sm font-medium', deltaClass(comparison.deltas.netResult.value))}>

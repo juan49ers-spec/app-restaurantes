@@ -306,6 +306,31 @@ describe('portal server actions', () => {
     expect(call?.orders).toContainEqual({ column: 'published_at', ascending: false })
   })
 
+  it('adds the latest meeting status to published report summaries', async () => {
+    tableResults.portal_meeting_requests = {
+      data: [
+        {
+          report_id: REPORT_ID,
+          status: 'ACKNOWLEDGED',
+          created_at: '2026-03-03T10:00:00.000Z',
+        },
+      ],
+      error: null,
+    }
+    const { getPublishedReports } = await import('@/app/actions/portal')
+
+    const result = await getPublishedReports()
+
+    expect(result.success).toBe(true)
+    expect(result.data?.[0]?.meetingStatus).toBe('ACKNOWLEDGED')
+    const meetingCall = calls.find(item => item.table === 'portal_meeting_requests')
+    expect(meetingCall?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+      ['in', 'report_id', [REPORT_ID]],
+    ]))
+    expect(meetingCall?.orders).toContainEqual({ column: 'created_at', ascending: false })
+  })
+
   it('rejects unpublished report details', async () => {
     tableResults.professional_report_drafts = { data: null, error: null }
     const { getPublishedReportDetail } = await import('@/app/actions/portal')

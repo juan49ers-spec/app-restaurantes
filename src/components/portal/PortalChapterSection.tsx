@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, CircleDot, Database } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, CircleDot, Database, TrendingUp, Users, WalletCards, Utensils } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatPortalMetricValue } from '@/components/portal/format'
 import type { PresentationChapter, ProfessionalReportSection } from '@/lib/reporting'
@@ -29,6 +29,13 @@ function qualityIcon(status: string) {
   return <AlertTriangle className="h-4 w-4" />
 }
 
+function chapterIcon(chapterId: string) {
+  if (chapterId.includes('menu')) return <Utensils className="h-5 w-5" />
+  if (chapterId.includes('staff') || chapterId.includes('team')) return <Users className="h-5 w-5" />
+  if (chapterId.includes('cost') || chapterId.includes('result')) return <WalletCards className="h-5 w-5" />
+  return <TrendingUp className="h-5 w-5" />
+}
+
 export function PortalChapterSection({
   chapter,
   sections,
@@ -39,12 +46,15 @@ export function PortalChapterSection({
     .find(Boolean)
 
   return (
-    <section id={`chapter-${chapter.id}`} className="scroll-mt-24 rounded-lg border border-slate-200 bg-white">
+    <section id={`chapter-${chapter.id}`} className="scroll-mt-24 rounded-lg border border-slate-200 bg-white shadow-sm">
       <header className="border-b border-slate-200 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{chapter.label}</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">{chapter.title}</h2>
+            <div className="flex items-center gap-3 text-slate-500">
+              {chapterIcon(chapter.id)}
+              <p className="text-sm font-bold uppercase tracking-wide">{chapter.label}</p>
+            </div>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{chapter.title}</h2>
             <p className="mt-2 text-sm text-slate-600">{chapter.subtitle}</p>
           </div>
           <Badge variant="outline" className="rounded-md">
@@ -96,7 +106,7 @@ export function PortalChapterSection({
                 {section.metrics.map(metric => (
                   <div key={metric.id} className="rounded-md border border-slate-200 bg-white p-3">
                     <p className="text-xs font-medium text-slate-500">{metric.label}</p>
-                    <p className="mt-2 text-lg font-semibold text-slate-950">{formatPortalMetricValue(metric)}</p>
+                    <p className="mt-2 text-xl font-bold tracking-tight tabular-nums text-slate-950">{formatPortalMetricValue(metric)}</p>
                   </div>
                 ))}
               </div>
