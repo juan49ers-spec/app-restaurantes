@@ -10,8 +10,8 @@ const BREAKPOINTS = [
 ] as const
 
 const SCREENSHOT_DIR = path.join(process.cwd(), 'tests', 'e2e', 'screenshots')
-const E2E_EMAIL = process.env.E2E_EMAIL ?? 'flyderapp@gmail.com'
-const E2E_PASSWORD = process.env.E2E_PASSWORD ?? 'Produccion100'
+const E2E_EMAIL = process.env.E2E_EMAIL
+const E2E_PASSWORD = process.env.E2E_PASSWORD
 
 function screenshotPath(name: string) {
   mkdirSync(SCREENSHOT_DIR, { recursive: true })
@@ -19,6 +19,11 @@ function screenshotPath(name: string) {
 }
 
 async function loginAsConsultant(page: Page) {
+  if (!E2E_EMAIL || !E2E_PASSWORD) {
+    test.skip(true, 'QA visual requiere E2E_EMAIL y E2E_PASSWORD configurados fuera del código.')
+    return
+  }
+
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
   await page.getByLabel(/correo electrónico/i).fill(E2E_EMAIL)
   await page.getByLabel(/contraseña/i).fill(E2E_PASSWORD)

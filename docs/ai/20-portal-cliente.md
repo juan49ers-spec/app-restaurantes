@@ -68,7 +68,9 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 **QA operativo:** `npm run qa:client-flow`
 
 - Ejecuta el recorrido determinista consultor -> cliente con Vitest y puede añadir QA visual con Playwright si se define `RUN_VISUAL_QA=true`.
+- La QA visual local usa por defecto `http://127.0.0.1:3100`, no `:3000`, para evitar colisiones con servidores abiertos durante desarrollo. Se puede cambiar con `E2E_PORT`.
 - Para validar el portal publicado en producción se puede usar `QA_BASE_URL=https://app-finanzas-restaurante.vercel.app RUN_VISUAL_QA=true npm run qa:client-flow`.
+- Las credenciales de prueba (`E2E_EMAIL`, `E2E_PASSWORD`) se cargan desde variables de entorno o `.env.local`; nunca deben quedar hardcodeadas en los tests.
 - La parte visual necesita un informe publicado; si no lo hay, las pruebas E2E se saltan con explicación en vez de fallar sin contexto.
 
 **Consultas server-side:** `src/lib/portal.ts`

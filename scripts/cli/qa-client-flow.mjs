@@ -9,6 +9,10 @@
  */
 
 import { spawnSync } from 'node:child_process'
+import { config as loadDotenv } from 'dotenv'
+
+loadDotenv({ path: '.env.local', quiet: true })
+loadDotenv({ path: '.env', quiet: true })
 
 const baseEnv = {
   ...process.env,
@@ -77,7 +81,7 @@ function runVisualQaIfRequested() {
     command: 'npm',
     args: ['run', 'test:e2e', '--', 'tests/e2e/portal-visual-qa.spec.ts'],
     env: {
-      BASE_URL: process.env.QA_BASE_URL ?? process.env.BASE_URL ?? 'http://localhost:3000',
+      BASE_URL: process.env.QA_BASE_URL ?? process.env.BASE_URL ?? `http://127.0.0.1:${process.env.E2E_PORT ?? '3100'}`,
     },
   })
 }

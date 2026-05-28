@@ -1,5 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const defaultE2ePort = process.env.E2E_PORT ?? '3100'
+const baseURL = process.env.BASE_URL ?? `http://127.0.0.1:${defaultE2ePort}`
+const parsedBaseURL = new URL(baseURL)
+const isLocalBaseURL = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(parsedBaseURL.hostname)
+const webServerPort = parsedBaseURL.port || (parsedBaseURL.protocol === 'https:' ? '443' : '80')
+
 /**
  * Playwright configuration for E2E tests
  * @see https://playwright.dev/docs/test-configuration
@@ -13,7 +19,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     actionTimeout: 15000,
@@ -32,13 +38,15 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'npm run build && npm start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 300000,
-    env: {
-      NODE_ENV: 'production',
-    },
-  },
+  webServer: isLocalBaseURL
+    ? {
+        command: `npm run build && npx next start -p ${webServerPort}`,
+        url: baseURL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 300000,
+        env: {
+          NODE_ENV: 'production',
+        },
+      }
+    : undefined,
 })

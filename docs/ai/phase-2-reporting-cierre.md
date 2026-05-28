@@ -60,7 +60,7 @@ Comandos ejecutados con resultado correcto:
 Verificacion navegador:
 
 - `http://localhost:3000/reports` abre correctamente.
-- Login real con `flyderapp@gmail.com`.
+- Login real con cuenta de QA configurada fuera del código.
 - Menu `Informes` visible.
 - Pantalla `Mesa de revision` visible.
 - Sin errores de consola en desktop.

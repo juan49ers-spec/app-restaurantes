@@ -93,6 +93,9 @@ Cuando vayas a tocar una funcionalidad:
 - [Cierre Fase 25 — Notificaciones](./phase-25-notifications.md) — acceso directo a configuración de alertas y normalización testeada de pestañas.
 - [Cierre Fase 26 — Auditoría operativa](./phase-26-operational-audit.md) — trazabilidad de publicación, reuniones, selección de cliente y cambios del consultor.
 - [Cierre Fase 27 — Infraestructura test/build](./phase-27-test-build-infrastructure.md) — elimina warnings espurios de listeners en Vitest y Next build.
+- [Cierre Fase 28 — QA visual robusta](./phase-28-visual-qa.md) — Playwright local sin colisión de puertos y recorrido visual del portal/PDF.
+- [Cierre Fase 30 — Guía demo cliente](./phase-30-client-demo.md) — guion comercial para enseñar el flujo consultor -> cliente con seguridad.
+- [Cierre Fase 31 — Seguridad QA](./phase-31-qa-security.md) — credenciales E2E fuera del código y test guardia anti-secretos.
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 
