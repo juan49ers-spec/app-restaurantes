@@ -1,3 +1,8 @@
+export {
+  mapConsultantClientRow,
+  mapOwnedRestaurantClient,
+  mergeConsultantPortfolio,
+} from './access'
 export { buildDeliveryReports } from './delivery'
 export { mapPublishedReport, mapRestaurant } from './mappers'
 export {

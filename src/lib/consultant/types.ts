@@ -1,6 +1,8 @@
 import type { ProfessionalReportQualityGateStatus } from '@/lib/reporting'
 
 export type MeetingRequestStatus = 'PENDING' | 'ACKNOWLEDGED' | 'COMPLETED'
+export type ConsultantClientRole = 'OWNER' | 'CONSULTANT' | 'VIEWER'
+export type ConsultantClientStatus = 'ACTIVE' | 'PAUSED' | 'REVOKED'
 
 export interface ConsultantWorkspaceRestaurant {
   id: string
@@ -8,6 +10,15 @@ export interface ConsultantWorkspaceRestaurant {
   consultantName: string | null
   consultantEmail: string | null
   consultantLogoUrl: string | null
+}
+
+export interface ConsultantClientSummary {
+  restaurantId: string
+  name: string
+  role: ConsultantClientRole
+  status: ConsultantClientStatus
+  consultantName: string | null
+  isActive: boolean
 }
 
 export interface ConsultantPublishedReport {
@@ -138,4 +149,17 @@ export type MeetingRequestRow = {
   message: string | null
   status: MeetingRequestStatus
   created_at: string
+}
+
+export type ConsultantClientRestaurantRow = {
+  id: string
+  name: string
+  consultant_name: string | null
+}
+
+export type ConsultantClientLinkRow = {
+  restaurant_id: string
+  role: ConsultantClientRole
+  status: ConsultantClientStatus
+  restaurants: ConsultantClientRestaurantRow | ConsultantClientRestaurantRow[] | null
 }

@@ -3,6 +3,16 @@
 import { createClient } from "@/lib/supabaseServer"
 import { redirect } from "next/navigation"
 
+async function getOptionalCookieValue(name: string) {
+    try {
+        const { cookies } = await import('next/headers')
+        const cookieStore = await cookies()
+        return cookieStore.get(name)?.value ?? null
+    } catch {
+        return null
+    }
+}
+
 export async function getUserRestaurant(): Promise<string | null> {
     const supabase = await createClient()
     const { data: { user }, error } = await supabase.auth.getUser()
@@ -15,12 +25,23 @@ export async function getUserRestaurant(): Promise<string | null> {
     // Only super admins can impersonate a restaurant.
     const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
     if (user.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
-        const { cookies } = await import('next/headers')
-        const cookieStore = await cookies()
-        const impersonatedId = cookieStore.get('impersonated_restaurant_id')?.value
+        const impersonatedId = await getOptionalCookieValue('impersonated_restaurant_id')
         if (impersonatedId) {
             return impersonatedId
         }
+    }
+
+    const activeConsultantRestaurantId = await getOptionalCookieValue('active_consultant_restaurant_id')
+    if (activeConsultantRestaurantId) {
+        const { data: consultantLink } = await supabase
+            .from('consultant_restaurants')
+            .select('restaurant_id')
+            .eq('consultant_user_id', user.id)
+            .eq('restaurant_id', activeConsultantRestaurantId)
+            .eq('status', 'ACTIVE')
+            .maybeSingle()
+
+        if (consultantLink) return activeConsultantRestaurantId
     }
 
     // 1. Query DB for restaurant owned by this user

@@ -54,6 +54,7 @@ Cuando vayas a tocar una funcionalidad:
 | 19 | [Reports](./19-reports.md) | `/reports` | Mesa de revision de informes profesionales. |
 | 20 | [Portal Cliente](./20-portal-cliente.md) | `/portal` | Área cliente para informes profesionales publicados. |
 | 21 | [Consultant Workspace](./21-consultant-workspace.md) | `/consultant` | Mesa interna del consultor para entregas, solicitudes y marca. |
+| 22 | [Multi-client consulting](./22-multi-client-consulting.md) | `/consultant` | Cartera de restaurantes cliente para consultores. |
 
 ### Transversales (lo que no es una página pero atraviesa todo)
 

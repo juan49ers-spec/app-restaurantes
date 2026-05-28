@@ -54,13 +54,20 @@ En cada render:
 Centralizada en `src/app/actions/utils.ts::getUserRestaurant()` con orden de prioridad:
 
 1. **Si es admin con impersonación activa** (cookie `impersonated_restaurant_id` + email en `ADMIN_EMAILS`): usa ese `restaurant_id`.
-2. Restaurante donde `owner_id = user.id`.
-3. Fallback: `user.user_metadata.restaurant_id`.
-4. Si nada → retorna `null` (la action debe responder con error/redirect).
+2. **Si hay cliente de consultoría activo** (cookie `active_consultant_restaurant_id`): solo se usa si existe una relación `consultant_restaurants` activa para `auth.uid()`.
+3. Restaurante donde `owner_id = user.id`.
+4. Fallback: `user.user_metadata.restaurant_id`.
+5. Si nada → retorna `null` (la action debe responder con error/redirect).
 
 Hay también `getCurrentRestaurant()` en `src/app/actions/user.ts` que retorna el objeto restaurante completo y usa `React.cache()` para deduplicar lecturas dentro del mismo render.
 
 **Regla dura:** el cliente **jamás** envía `restaurant_id`. Cualquier action que lo acepte como parámetro del cliente es vulnerable a IDOR — corregirlo.
+
+## Cartera de consultoría
+
+La Fase 17 introduce `consultant_restaurants` para que un usuario consultor pueda trabajar con varios restaurantes sin ser owner de todos. La selección se hace desde `/consultant` con `selectConsultantClient({ restaurantId })`, pero esa action valida server-side que el usuario es propietario o tiene una relación activa antes de escribir la cookie `active_consultant_restaurant_id`.
+
+La cookie no concede permisos por sí sola: `getUserRestaurant()` consulta la tabla antes de aceptarla. Si la relación se revoca, la cookie queda ignorada y el flujo cae al restaurante propio o al fallback legacy.
 
 ## Onboarding (`/onboarding`)
 

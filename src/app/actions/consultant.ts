@@ -8,9 +8,15 @@ import {
   buildPreparationChecklist,
   buildPreparationQualityGate,
   currentMonthPeriod,
+  mapConsultantClientRow,
+  mapOwnedRestaurantClient,
   mapPublishedReport,
   mapRestaurant,
+  mergeConsultantPortfolio,
   periodFromMonth,
+  type ConsultantClientLinkRow,
+  type ConsultantClientRestaurantRow,
+  type ConsultantClientSummary,
   type ConsultantMeetingRequest,
   type ConsultantPreparationChecklist,
   type ConsultantWorkspace,
@@ -25,6 +31,9 @@ import { getUserRestaurant } from './utils'
 
 export type {
   ConsultantChecklistStatus,
+  ConsultantClientRole,
+  ConsultantClientStatus,
+  ConsultantClientSummary,
   ConsultantDeliveryReport,
   ConsultantDeliveryStatus,
   ConsultantMeetingRequest,
@@ -55,6 +64,10 @@ const ChecklistPeriodSchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/, 'Formato YYYY-MM requerido.'),
 })
 
+const SelectConsultantClientSchema = z.object({
+  restaurantId: z.string().uuid(),
+})
+
 type ActionResponse<T> = {
   success: boolean
   data?: T
@@ -68,6 +81,30 @@ type CountResult = {
 
 function countValue(result: CountResult) {
   return result.error ? 0 : result.count ?? 0
+}
+
+async function canAccessRestaurantAsConsultant(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  restaurantId: string,
+) {
+  const [ownedRes, linkedRes] = await Promise.all([
+    supabase
+      .from('restaurants')
+      .select('id')
+      .eq('id', restaurantId)
+      .eq('owner_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('consultant_restaurants')
+      .select('restaurant_id')
+      .eq('consultant_user_id', userId)
+      .eq('restaurant_id', restaurantId)
+      .eq('status', 'ACTIVE')
+      .maybeSingle(),
+  ])
+
+  return Boolean(ownedRes.data || linkedRes.data)
 }
 
 async function fetchChecklistCounts(
@@ -131,6 +168,69 @@ async function fetchLatestReadyReportQualityGate(
     qualityGate: buildPreparationQualityGate(latest as ReadyReportQualityRow, restaurantId, period),
     hasWarning: false,
   }
+}
+
+export async function getConsultantPortfolio(): Promise<ActionResponse<ConsultantClientSummary[]>> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'No autenticado.' }
+
+  const activeRestaurantId = await getUserRestaurant()
+  const [ownedRes, linkedRes] = await Promise.all([
+    supabase
+      .from('restaurants')
+      .select('id, name, consultant_name')
+      .eq('owner_id', user.id),
+    supabase
+      .from('consultant_restaurants')
+      .select('restaurant_id, role, status, restaurants(id, name, consultant_name)')
+      .eq('consultant_user_id', user.id)
+      .eq('status', 'ACTIVE'),
+  ])
+
+  if (ownedRes.error || linkedRes.error) {
+    return { success: false, error: 'No se pudo cargar la cartera de clientes.' }
+  }
+
+  const ownedClients = ((ownedRes.data || []) as ConsultantClientRestaurantRow[])
+    .map(row => mapOwnedRestaurantClient(row, activeRestaurantId))
+  const linkedClients = ((linkedRes.data || []) as ConsultantClientLinkRow[])
+    .map(row => mapConsultantClientRow(row, activeRestaurantId))
+    .filter((client): client is ConsultantClientSummary => Boolean(client))
+
+  return {
+    success: true,
+    data: mergeConsultantPortfolio(ownedClients, linkedClients),
+  }
+}
+
+export async function selectConsultantClient(
+  input: z.input<typeof SelectConsultantClientSchema>
+): Promise<ActionResponse<{ restaurantId: string }>> {
+  const parsed = SelectConsultantClientSchema.safeParse(input)
+  if (!parsed.success) return { success: false, error: 'Cliente inválido.' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'No autenticado.' }
+
+  const hasAccess = await canAccessRestaurantAsConsultant(supabase, user.id, parsed.data.restaurantId)
+  if (!hasAccess) return { success: false, error: 'No tienes acceso a este restaurante.' }
+
+  const { cookies } = await import('next/headers')
+  const cookieStore = await cookies()
+  cookieStore.set('active_consultant_restaurant_id', parsed.data.restaurantId, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30,
+  })
+
+  revalidatePath('/consultant')
+  revalidatePath('/', 'layout')
+
+  return { success: true, data: { restaurantId: parsed.data.restaurantId } }
 }
 
 export async function getConsultantWorkspace(): Promise<ActionResponse<ConsultantWorkspace>> {

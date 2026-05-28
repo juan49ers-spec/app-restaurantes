@@ -13,22 +13,24 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 ## 2. Viaje del usuario
 
 1. El consultor entra en `/consultant`.
-2. Ve el restaurante activo y un resumen de informes publicados, solicitudes abiertas y última publicación.
-3. Revisa la checklist del periodo que está preparando. Por defecto es el mes actual, pero puede navegar a meses anteriores con los controles anterior/siguiente.
-4. Ve la siguiente acción recomendada del periodo, priorizada por bloqueantes primero y avisos después.
-5. Comprueba el quality gate del último informe `READY` del periodo, si existe, para saber si el snapshot puede publicarse o tiene bloqueos.
-6. Revisa el flujo de entrega para saber qué informes READY faltan por publicar, cuáles están publicados y cuáles tienen seguimiento cliente abierto.
-7. Puede ir a `/reports` para preparar un nuevo informe o revisar versiones.
-8. Puede abrir `/portal` para comprobar la experiencia cliente.
-9. Gestiona solicitudes de reunión enviadas desde el portal: pendiente, en revisión o completada.
-10. Configura nombre, email y logo del consultor visibles en el portal cliente.
-11. Consulta el histórico publicado y abre el detalle web o la vista PDF.
+2. Si tiene más de un restaurante accesible, ve la cartera de clientes y puede seleccionar el restaurante activo.
+3. Ve el restaurante activo y un resumen de informes publicados, solicitudes abiertas y última publicación.
+4. Revisa la checklist del periodo que está preparando. Por defecto es el mes actual, pero puede navegar a meses anteriores con los controles anterior/siguiente.
+5. Ve la siguiente acción recomendada del periodo, priorizada por bloqueantes primero y avisos después.
+6. Comprueba el quality gate del último informe `READY` del periodo, si existe, para saber si el snapshot puede publicarse o tiene bloqueos.
+7. Revisa el flujo de entrega para saber qué informes READY faltan por publicar, cuáles están publicados y cuáles tienen seguimiento cliente abierto.
+8. Puede ir a `/reports` para preparar un nuevo informe o revisar versiones.
+9. Puede abrir `/portal` para comprobar la experiencia cliente.
+10. Gestiona solicitudes de reunión enviadas desde el portal: pendiente, en revisión o completada.
+11. Configura nombre, email y logo del consultor visibles en el portal cliente.
+12. Consulta el histórico publicado y abre el detalle web o la vista PDF.
 
 ## 3. Flujo técnico de datos
 
 **Server page:** `src/app/consultant/page.tsx`
 
 - Llama `getConsultantWorkspace()`.
+- También llama `getConsultantPortfolio()` para mostrar la cartera multi-cliente cuando existe más de un restaurante accesible.
 - Si no hay restaurante activo, redirige a `/onboarding`.
 - Renderiza un dashboard operativo sin aceptar `restaurant_id` del cliente.
 - Si fallan lecturas no críticas (informes publicados o solicitudes), mantiene la mesa cargada con avisos y listas vacías. Solo falla de forma bloqueante si no puede cargar el restaurante activo.
@@ -43,6 +45,8 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
   - `portal_meeting_requests`
   - conteos del mes actual para checklist de preparación: ventas, gastos, facturas, equipo, turnos, recetas, ventas por receta, Menu Engineering, drafts READY, publicaciones y solicitudes abiertas.
 - `getPreparationChecklistForPeriod(input)` valida el mes con Zod (`YYYY-MM`), resuelve `restaurant_id` con `getUserRestaurant()`, calcula `from/to` del mes pedido y ejecuta las mismas queries de conteo que `getConsultantWorkspace()` pero para el periodo indicado. También carga el último draft `READY` exacto del periodo y evalúa su snapshot con `evaluateProfessionalReportQualityGate()`. Devuelve `ConsultantPreparationChecklist`.
+- `getConsultantPortfolio()` carga restaurantes propios y relaciones activas de `consultant_restaurants`, fusionando duplicados con prioridad de owner.
+- `selectConsultantClient(input)` valida UUID, comprueba en servidor que el usuario es propietario o consultor activo, y escribe la cookie `active_consultant_restaurant_id` para que `getUserRestaurant()` resuelva ese cliente en las siguientes acciones.
 - Los conteos de checklist están extraídos a `fetchChecklistCounts()` para reutilización sin duplicación.
 - El quality gate de preparación está separado en `fetchLatestReadyReportQualityGate()` y no recalcula informes: solo lee el snapshot guardado del último `READY`.
 - `updateConsultantBranding(input)` valida nombre/email/logo con Zod y actualiza solo el restaurante activo.
@@ -63,6 +67,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - `MeetingRequestsPanel` actualiza estado de solicitudes de forma optimista e inmutable tras respuesta correcta.
 - `PreparationChecklist` es un componente client. Recibe el checklist del mes actual como `initialChecklist` (server-rendered), muestra conteos operativos agrupados por severidad, siguiente acción recomendada y el quality gate del último `READY` del periodo. Permite navegar entre meses con botones anterior/siguiente. Al cambiar mes, llama a `getPreparationChecklistForPeriod()` y actualiza estado local de forma inmutable. No permite navegar más allá del mes actual.
 - `DeliveryWorkflowPanel` es un componente client ligero. Recibe informes READY recientes ya cruzados con solicitudes del portal, filtra localmente por estado (`Todos`, `Abiertos`, `Publicados`, `Cerrados`) y muestra timeline visual: READY → Portal → Reunión → Cierre. No hace queries ni decide permisos.
+- `ClientPortfolioPanel` es un componente client ligero. Recibe la cartera ya calculada, muestra el restaurante activo y llama a `selectConsultantClient()` para cambiar de cliente. No decide permisos.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -92,7 +97,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - El panel de entrega no publica ni despublica directamente. La publicación sigue viviendo en `/reports`, donde existe la revisión del snapshot y los controles internos.
 - `viewed_at` no cambia el estado de entrega por sí solo, pero el panel muestra si el cliente ya abrió el detalle del informe o si sigue pendiente de lectura.
 - Los filtros del flujo de entrega son solo estado de UI local. No cambian URL, no hacen queries y no alteran el estado de las solicitudes.
-- No se crea todavía una cartera multi-cliente ni una tabla `consultant_clients`.
+- La cartera multi-cliente se apoya en `consultant_restaurants`. La relación activa permite seleccionar cliente, pero no convierte al portal cliente en zona de carga de datos.
 
 ## 5. Dependencias e implicaciones cruzadas
 

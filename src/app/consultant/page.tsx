@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { BriefcaseBusiness, FileCheck2, FileText, Send } from 'lucide-react'
-import { getConsultantWorkspace } from '@/app/actions/consultant'
+import { getConsultantPortfolio, getConsultantWorkspace } from '@/app/actions/consultant'
+import { ClientPortfolioPanel } from '@/components/consultant/ClientPortfolioPanel'
 import { ConsultantBrandingForm } from '@/components/consultant/ConsultantBrandingForm'
 import { DeliveryWorkflowPanel } from '@/components/consultant/DeliveryWorkflowPanel'
 import { MeetingRequestsPanel } from '@/components/consultant/MeetingRequestsPanel'
@@ -12,7 +13,10 @@ import { Button } from '@/components/ui/button'
 import { formatDateEs } from '@/lib/date-format'
 
 export default async function ConsultantWorkspacePage() {
-  const response = await getConsultantWorkspace()
+  const [response, portfolioResponse] = await Promise.all([
+    getConsultantWorkspace(),
+    getConsultantPortfolio(),
+  ])
 
   if (!response.success || !response.data) {
     if (response.error === 'No hay restaurante activo.') redirect('/onboarding')
@@ -27,6 +31,10 @@ export default async function ConsultantWorkspacePage() {
   }
 
   const { restaurant, publishedReports, meetingRequests, deliveryReports, preparation, warnings } = response.data
+  const portfolio = portfolioResponse.success ? portfolioResponse.data ?? [] : []
+  const workspaceWarnings = portfolioResponse.success
+    ? warnings
+    : [...warnings, portfolioResponse.error || 'No se pudo cargar la cartera de clientes.']
   const openRequests = meetingRequests.filter(request => request.status !== 'COMPLETED').length
   const latestReport = publishedReports[0]
 
@@ -66,14 +74,16 @@ export default async function ConsultantWorkspacePage() {
         </div>
       </header>
 
-      {warnings.length > 0 && (
+      {workspaceWarnings.length > 0 && (
         <Alert>
           <AlertTitle>Mesa cargada con avisos</AlertTitle>
           <AlertDescription>
-            {warnings.join(' ')}
+            {workspaceWarnings.join(' ')}
           </AlertDescription>
         </Alert>
       )}
+
+      <ClientPortfolioPanel clients={portfolio} />
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
