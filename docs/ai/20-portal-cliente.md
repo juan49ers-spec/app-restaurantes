@@ -66,6 +66,8 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 
 - Las páginas del portal usan helpers `*ForRestaurant(restaurantId)` después de resolver `getCurrentRestaurant()` en servidor.
 - Las actions públicas siguen resolviendo `restaurant_id` con `getUserRestaurant()` y delegan en esos helpers para no duplicar queries.
+- `src/lib/portal.ts` contiene la orquestación pública, mappers, respuestas y aplicación de lógica derivada.
+- `src/lib/portal-queries.ts` contiene las consultas Supabase de bajo nivel del portal. No debe contener lógica editorial ni decidir estados de UI; solo ejecuta lecturas/escrituras scoped por `restaurant_id`.
 - `requestConsultantMeetingForRestaurant({ restaurantId, reportId, message })` concentra la validación de pertenencia del informe publicado, el anti-duplicado de solicitudes abiertas y la inserción de `portal_meeting_requests`. Lo reutilizan la server action y la API route.
 - Si el contexto vivo falla, las páginas conservan identidad de restaurante/consultor desde `getCurrentRestaurant()` y solo omiten el dato vivo.
 
@@ -116,6 +118,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - **Insights del portal:** `src/lib/portal-insights.ts` mantiene cálculos puros de comparativa mensual, tendencia multi-periodo, desglose de gastos y acciones sugeridas. No importa Supabase ni componentes.
 - **Layout:** `AppLayout` exime `/portal` para no mostrar sidebar operativo.
 - **Consultas compartidas:** `src/lib/portal.ts` mantiene el mapper de informes publicados y el contexto vivo reutilizable por pages y actions.
+- **Queries compartidas:** `src/lib/portal-queries.ts` centraliza el acceso a Supabase del portal para que nuevas lecturas no vuelvan a mezclar queries con presentación en `portal.ts`.
 
 ## 6. Casos límite y errores conocidos
 

@@ -27,6 +27,7 @@ import {
   type ReadyReportRow,
   type RestaurantRow,
 } from '@/lib/consultant'
+import { fail, ok, type ActionResult } from './action-result'
 import { getUserRestaurant } from './utils'
 
 export type {
@@ -68,11 +69,7 @@ const SelectConsultantClientSchema = z.object({
   restaurantId: z.string().uuid(),
 })
 
-type ActionResponse<T> = {
-  success: boolean
-  data?: T
-  error?: string
-}
+type ActionResponse<T> = ActionResult<T>
 
 type CountResult = {
   count: number | null
@@ -173,7 +170,7 @@ async function fetchLatestReadyReportQualityGate(
 export async function getConsultantPortfolio(): Promise<ActionResponse<ConsultantClientSummary[]>> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'No autenticado.' }
+  if (!user) return fail('No autenticado.')
 
   const activeRestaurantId = await getUserRestaurant()
   const [ownedRes, linkedRes] = await Promise.all([
@@ -189,7 +186,7 @@ export async function getConsultantPortfolio(): Promise<ActionResponse<Consultan
   ])
 
   if (ownedRes.error || linkedRes.error) {
-    return { success: false, error: 'No se pudo cargar la cartera de clientes.' }
+    return fail('No se pudo cargar la cartera de clientes.')
   }
 
   const ownedClients = ((ownedRes.data || []) as ConsultantClientRestaurantRow[])
@@ -198,24 +195,21 @@ export async function getConsultantPortfolio(): Promise<ActionResponse<Consultan
     .map(row => mapConsultantClientRow(row, activeRestaurantId))
     .filter((client): client is ConsultantClientSummary => Boolean(client))
 
-  return {
-    success: true,
-    data: mergeConsultantPortfolio(ownedClients, linkedClients),
-  }
+  return ok(mergeConsultantPortfolio(ownedClients, linkedClients))
 }
 
 export async function selectConsultantClient(
   input: z.input<typeof SelectConsultantClientSchema>
 ): Promise<ActionResponse<{ restaurantId: string }>> {
   const parsed = SelectConsultantClientSchema.safeParse(input)
-  if (!parsed.success) return { success: false, error: 'Cliente inválido.' }
+  if (!parsed.success) return fail('Cliente inválido.')
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'No autenticado.' }
+  if (!user) return fail('No autenticado.')
 
   const hasAccess = await canAccessRestaurantAsConsultant(supabase, user.id, parsed.data.restaurantId)
-  if (!hasAccess) return { success: false, error: 'No tienes acceso a este restaurante.' }
+  if (!hasAccess) return fail('No tienes acceso a este restaurante.')
 
   const { cookies } = await import('next/headers')
   const cookieStore = await cookies()
@@ -230,12 +224,12 @@ export async function selectConsultantClient(
   revalidatePath('/consultant')
   revalidatePath('/', 'layout')
 
-  return { success: true, data: { restaurantId: parsed.data.restaurantId } }
+  return ok({ restaurantId: parsed.data.restaurantId })
 }
 
 export async function getConsultantWorkspace(): Promise<ActionResponse<ConsultantWorkspace>> {
   const restaurantId = await getUserRestaurant()
-  if (!restaurantId) return { success: false, error: 'No hay restaurante activo.' }
+  if (!restaurantId) return fail('No hay restaurante activo.')
 
   const supabase = await createClient()
   const period = currentMonthPeriod()
@@ -265,8 +259,8 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
       .order('created_at', { ascending: false }),
   ])
 
-  if (restaurantRes.error) return { success: false, error: 'No se pudo cargar el restaurante activo.' }
-  if (!restaurantRes.data) return { success: false, error: 'Restaurante no encontrado.' }
+  if (restaurantRes.error) return fail('No se pudo cargar el restaurante activo.')
+  if (!restaurantRes.data) return fail('Restaurante no encontrado.')
 
   const warnings = [
     reportsRes.error ? 'No se pudieron cargar los informes publicados.' : null,
@@ -308,27 +302,24 @@ export async function getConsultantWorkspace(): Promise<ActionResponse<Consultan
     qualityGate: qualityGateRes.qualityGate,
   })
 
-  return {
-    success: true,
-    data: {
-      restaurant: mapRestaurant(restaurantRes.data as RestaurantRow),
-      publishedReports,
-      meetingRequests,
-      deliveryReports,
-      preparation,
-      warnings: [...warnings, ...checklistWarnings],
-    },
-  }
+  return ok({
+    restaurant: mapRestaurant(restaurantRes.data as RestaurantRow),
+    publishedReports,
+    meetingRequests,
+    deliveryReports,
+    preparation,
+    warnings: [...warnings, ...checklistWarnings],
+  })
 }
 
 export async function getPreparationChecklistForPeriod(
   input: z.input<typeof ChecklistPeriodSchema>
 ): Promise<ActionResponse<ConsultantPreparationChecklist>> {
   const parsed = ChecklistPeriodSchema.safeParse(input)
-  if (!parsed.success) return { success: false, error: 'Periodo inválido.' }
+  if (!parsed.success) return fail('Periodo inválido.')
 
   const restaurantId = await getUserRestaurant()
-  if (!restaurantId) return { success: false, error: 'No hay restaurante activo.' }
+  if (!restaurantId) return fail('No hay restaurante activo.')
 
   const supabase = await createClient()
   const period = periodFromMonth(parsed.data.month)
@@ -337,24 +328,21 @@ export async function getPreparationChecklistForPeriod(
     fetchLatestReadyReportQualityGate(supabase, restaurantId, period),
   ])
 
-  return {
-    success: true,
-    data: buildPreparationChecklist({
-      period,
-      ...checklistCounts,
-      qualityGate: qualityGateRes.qualityGate,
-    }),
-  }
+  return ok(buildPreparationChecklist({
+    period,
+    ...checklistCounts,
+    qualityGate: qualityGateRes.qualityGate,
+  }))
 }
 
 export async function updateConsultantBranding(
   input: z.input<typeof ConsultantBrandingSchema>
 ): Promise<ActionResponse<ConsultantWorkspaceRestaurant>> {
   const parsed = ConsultantBrandingSchema.safeParse(input)
-  if (!parsed.success) return { success: false, error: 'Datos de consultor inválidos.' }
+  if (!parsed.success) return fail('Datos de consultor inválidos.')
 
   const restaurantId = await getUserRestaurant()
-  if (!restaurantId) return { success: false, error: 'No hay restaurante activo.' }
+  if (!restaurantId) return fail('No hay restaurante activo.')
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -368,23 +356,23 @@ export async function updateConsultantBranding(
     .select('id, name, consultant_name, consultant_email, consultant_logo_url')
     .single()
 
-  if (error || !data) return { success: false, error: 'No se pudo actualizar la identidad del consultor.' }
+  if (error || !data) return fail('No se pudo actualizar la identidad del consultor.')
 
   revalidatePath('/consultant')
   revalidatePath('/portal')
   revalidatePath('/portal', 'layout')
 
-  return { success: true, data: mapRestaurant(data as RestaurantRow) }
+  return ok(mapRestaurant(data as RestaurantRow))
 }
 
 export async function updateMeetingRequestStatus(
   input: z.input<typeof UpdateMeetingRequestStatusSchema>
 ): Promise<ActionResponse<{ id: string; status: ConsultantMeetingRequest['status'] }>> {
   const parsed = UpdateMeetingRequestStatusSchema.safeParse(input)
-  if (!parsed.success) return { success: false, error: 'Solicitud inválida.' }
+  if (!parsed.success) return fail('Solicitud inválida.')
 
   const restaurantId = await getUserRestaurant()
-  if (!restaurantId) return { success: false, error: 'No hay restaurante activo.' }
+  if (!restaurantId) return fail('No hay restaurante activo.')
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -395,16 +383,13 @@ export async function updateMeetingRequestStatus(
     .select('id, status')
     .single()
 
-  if (error || !data) return { success: false, error: 'No se pudo actualizar la solicitud.' }
+  if (error || !data) return fail('No se pudo actualizar la solicitud.')
 
   revalidatePath('/consultant')
   revalidatePath('/portal')
 
-  return {
-    success: true,
-    data: {
-      id: data.id,
-      status: data.status as ConsultantMeetingRequest['status'],
-    },
-  }
+  return ok({
+    id: data.id,
+    status: data.status as ConsultantMeetingRequest['status'],
+  })
 }

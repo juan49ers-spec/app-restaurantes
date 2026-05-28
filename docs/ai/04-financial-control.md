@@ -54,6 +54,7 @@ getMonthlyTarget(restaurantId, monthYear)
 **Componente cliente principal:** `FinancialControlClient` (en `client.tsx`). Mantiene tab activo, modales, fecha local. Tabs se cargan con `Suspense + lazy`.
 `FinancialCsvImportPanel` vive dentro de `FinancialControlClient` y permite cargar CSV de ventas o gastos. Calcula el preview en cliente con el motor puro `parseFinancialCsvPreview()`, ofrece plantilla descargable para el tipo seleccionado y exige un preflight limpio con `validateFinancialCsvImport()` antes de llamar a `importFinancialCsv()`. También usa `ImportIssuesDownloadButton` para exportar errores de archivo, filas inválidas y duplicados internos como CSV de incidencias.
 `ImpuestosDashboard` carga el trimestre de forma asíncrona y activa `isLoading` al cambiar de trimestre, evitando setState síncrono dentro del effect. `DesarrolloNegocio` calcula insights como derivado simple de métricas para no depender de memoización frágil.
+`ResultadosDashboard` queda como orquestador del tab de resultados. Las piezas reutilizables (`KpiCard`, `DiagnosisCardComponent`, `CollapsibleSection`), el `EMPTY_DATA`, helpers de formato y hooks de diagnóstico/inteligencia viven en `ResultadosDashboardParts.tsx` para mantener el dashboard por debajo del límite de mantenimiento sin cambiar fórmulas.
 
 **Organización de actions (Fase 14.3):**
 - `financial-control.ts` es una fachada de compatibilidad que reexporta la API pública histórica.
@@ -111,6 +112,7 @@ getMonthlyTarget(restaurantId, monthYear)
 - **`labor_cost` en `daily_sales` vs gastos PERSONAL:** son fuentes distintas. Para no double-contar, el dashboard usa una u otra — confirmar en `getResultsDashboardData`.
 - **Compatibilidad de formularios:** algunos formularios cliente siguen llevando `restaurant_id` en sus schemas por compatibilidad, pero las server actions lo ignoran y usan el restaurante activo del servidor.
 - **Lint React Compiler:** los componentes financieros no deben depender de casts `as any` para estilos ni de memoizaciones manuales con dependencias imprecisas; Next/React Compiler lo marca como error de lint.
+- **Supresiones legítimas:** los `zodResolver(... ) as any` en formularios financieros se conservan como workaround documentado de incompatibilidad entre `react-hook-form`, `@hookform/resolvers` y Zod v4. No extrapolar ese patrón a otros casts.
 - **CSV preview no persiste:** el parser de `src/lib/importing/financial-csv.ts` solo valida y resume. Un CSV con errores no debe llegar a escritura masiva hasta que la UI muestre preview y el usuario confirme.
 - **CSV import no acepta restaurante:** la action de importación no acepta `restaurant_id`, no acepta filas ya parseadas desde cliente y no escribe si el parse server-side detecta errores o duplicados internos.
 - **CSV gastos e idempotencia:** dos gastos iguales en el mismo CSV se bloquean como duplicado interno. Un reintento posterior del mismo archivo queda protegido por `idempotency_key`.

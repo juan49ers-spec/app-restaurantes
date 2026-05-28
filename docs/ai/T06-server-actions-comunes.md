@@ -109,6 +109,8 @@ type ActionResponse<T> = {
 }
 ```
 
+`src/app/actions/action-result.ts` expone `ok(data)` y `fail(message)` como helper ligero para reducir repetición en actions escritas a mano. Se aplica primero en `consultant.ts` manteniendo el contrato histórico `{ success, data?, error? }`; no convertir masivamente otros módulos sin tocar sus tests.
+
 **Cuándo usarlo:** mutaciones simples sin lógica especial. Para flujos complejos con varios pasos, mejor escribir la action a mano siguiendo el patrón pero sin el wrapper.
 
 ## Convenciones de naming

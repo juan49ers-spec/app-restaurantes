@@ -111,8 +111,8 @@ export function IngredientDialog({ initialData, trigger, onSuccess, open: constr
                 router.refresh()
                 onSuccess?.()
             } else {
-                // @ts-expect-error - legacy prop
-                toast.error(result.error || "Error al guardar ingrediente")
+                const errorMessage = 'error' in result ? result.error : undefined
+                toast.error(errorMessage ?? "Error al guardar ingrediente")
             }
         } catch {
             toast.error("Error inesperado")

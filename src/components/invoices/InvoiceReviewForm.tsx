@@ -214,7 +214,7 @@ export function InvoiceReviewForm({ invoice, ingredients, suppliers }: InvoiceRe
             setAutoGuessedIndices(guessed)
             toast.info("Categorías sugeridas automáticamente por IA simple 🧠")
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- category auto-guessing must run once for the initial invoice payload only.
     }, []) // Run once on mount
 
     // Power Feature: Keyboard Shortcuts

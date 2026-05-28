@@ -40,8 +40,10 @@ export interface ExpenseItem {
     description?: string
     supplier?: string
     category?: string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any
+    provider_detail?: string
+    tag?: string
+    is_professional_invoice?: boolean
+    tax_rate?: number
 }
 
 interface ExpenseDetailTableProps {

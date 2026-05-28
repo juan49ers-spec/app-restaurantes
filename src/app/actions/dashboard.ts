@@ -20,6 +20,12 @@ export interface DashboardMetrics {
     }
 }
 
+type PriceHistoryWithIngredientRow = {
+    price: number
+    date: string
+    img?: { name: string } | { name: string }[] | null
+}
+
 export async function getFinancialMetrics(
     restaurantId: string,
     startDate?: string,
@@ -152,9 +158,10 @@ export async function getFinancialMetrics(
     // Group by ingredient and calculate % change
     const ingredientTrends = new Map<string, { start: number, end: number, name: string }>()
 
-    priceHistory?.forEach(ph => {
-        // @ts-expect-error - Join type
-        const name = ph.img?.name
+    const priceHistoryRows = (priceHistory || []) as PriceHistoryWithIngredientRow[]
+    priceHistoryRows.forEach(ph => {
+        const ingredient = Array.isArray(ph.img) ? ph.img[0] : ph.img
+        const name = ingredient?.name
         if (!name) return
 
         if (!ingredientTrends.has(name)) {

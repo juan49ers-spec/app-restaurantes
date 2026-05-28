@@ -137,9 +137,14 @@ const MetricCard = memo(function MetricCard({
     )
 })
 
+interface CustomTooltipProps {
+    active?: boolean
+    payload?: Array<{ payload: ChartDataPoint }>
+    label?: string
+}
+
 // Tooltip personalizado para el gráfico
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload as ChartDataPoint
 

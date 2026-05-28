@@ -29,8 +29,12 @@ const COLORS: Record<string, string> = {
     dog: "#ef4444"
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload }: any) => {
+interface CustomTooltipProps {
+    active?: boolean
+    payload?: Array<{ payload: EnrichedProduct }>
+}
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
         const item = payload[0].payload as EnrichedProduct
         const quadrant = item.quadrant || item.category || 'dog'

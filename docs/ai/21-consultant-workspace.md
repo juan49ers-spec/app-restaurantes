@@ -47,6 +47,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - `getPreparationChecklistForPeriod(input)` valida el mes con Zod (`YYYY-MM`), resuelve `restaurant_id` con `getUserRestaurant()`, calcula `from/to` del mes pedido y ejecuta las mismas queries de conteo que `getConsultantWorkspace()` pero para el periodo indicado. También carga el último draft `READY` exacto del periodo y evalúa su snapshot con `evaluateProfessionalReportQualityGate()`. Devuelve `ConsultantPreparationChecklist`.
 - `getConsultantPortfolio()` carga restaurantes propios y relaciones activas de `consultant_restaurants`, fusionando duplicados con prioridad de owner.
 - `selectConsultantClient(input)` valida UUID, comprueba en servidor que el usuario es propietario o consultor activo, y escribe la cookie `active_consultant_restaurant_id` para que `getUserRestaurant()` resuelva ese cliente en las siguientes acciones.
+- Las respuestas de `consultant.ts` usan el helper compartido `ok()/fail()` de `src/app/actions/action-result.ts` como piloto para reducir repetición manteniendo el contrato histórico `{ success, data?, error? }`.
 - Los conteos de checklist están extraídos a `fetchChecklistCounts()` para reutilización sin duplicación.
 - El quality gate de preparación está separado en `fetchLatestReadyReportQualityGate()` y no recalcula informes: solo lee el snapshot guardado del último `READY`.
 - `updateConsultantBranding(input)` valida nombre/email/logo con Zod y actualiza solo el restaurante activo.

@@ -44,8 +44,7 @@ export default async function SupplierDetailPage({ params }: { params: Promise<{
                 <CardContent>
                     <SupplierItemsTable
                         supplierId={supplier.id!}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        initialItems={items as any}
+                        initialItems={items}
                         masterIngredients={masterIngredients}
                     />
                 </CardContent>

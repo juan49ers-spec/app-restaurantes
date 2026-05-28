@@ -26,6 +26,7 @@ CRM de proveedores. Mantiene datos fiscales/contacto, productos que se le compra
 - `getSuppliers()` — lista básica.
 - `getSupplier(id)` — detalle.
 - `getSupplierItems(supplierId)` — productos con JOIN a `master_ingredients`.
+- `SupplierItemsTable` acepta el shape real del JOIN de Supabase (`master_ingredients` como objeto, array o null) sin casts `as any`, normalizando el nombre mapeado en UI.
 - `getSupplierScorecard(supplierId)` — calcula scorecard agregando `price_history` y datos de facturas.
 - `getAllSupplierScores()` — ranking global.
 

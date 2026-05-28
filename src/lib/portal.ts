@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabaseServer'
 import {
     buildPortalExpenseCategoryBreakdown,
     buildPortalMultiPeriodTrend,
@@ -8,6 +7,20 @@ import {
     type PortalMultiPeriodTrend,
     type PortalPeriodComparison,
 } from '@/lib/portal-insights'
+import {
+    fetchMeetingRequestRowsForReports,
+    fetchOpenMeetingRequest,
+    fetchPortalAuthUser,
+    fetchPortalContextRows,
+    fetchPortalExpenseBreakdownRows,
+    fetchPortalMultiPeriodTrendRows,
+    fetchPortalPeriodComparisonRows,
+    fetchPublishedReportDetailRow,
+    fetchPublishedReportForMeetingRequest,
+    fetchPublishedReportRows,
+    insertMeetingRequest,
+    updatePublishedReportViewedRow,
+} from '@/lib/portal-queries'
 import type { ProfessionalRestaurantReport } from '@/lib/reporting'
 
 export type ActionResponse<T> = {
@@ -171,13 +184,7 @@ function mapPortalContextBase(restaurantId: string, row: {
 }
 
 export async function getPublishedReportsForRestaurant(restaurantId: string): Promise<ActionResponse<PublishedReportSummary[]>> {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('professional_report_drafts')
-        .select('id, period_from, period_to, version, status, schema_version, created_at, updated_at, exported_at, published_at, published_by, viewed_at')
-        .eq('restaurant_id', restaurantId)
-        .not('published_at', 'is', null)
-        .order('published_at', { ascending: false })
+    const { data, error } = await fetchPublishedReportRows(restaurantId)
 
     if (error) return { success: false, error: 'No se pudieron cargar los informes publicados.' }
 
@@ -186,12 +193,7 @@ export async function getPublishedReportsForRestaurant(restaurantId: string): Pr
     const meetingStatusByReport = new Map<string, PublishedReportSummary['meetingStatus']>()
 
     if (reportIds.length > 0) {
-        const meetingRes = await supabase
-            .from('portal_meeting_requests')
-            .select('report_id, status, created_at')
-            .eq('restaurant_id', restaurantId)
-            .in('report_id', reportIds)
-            .order('created_at', { ascending: false })
+        const meetingRes = await fetchMeetingRequestRowsForReports(restaurantId, reportIds)
 
         if (!meetingRes.error) {
             for (const request of meetingRes.data || []) {
@@ -216,14 +218,7 @@ export async function getPublishedReportsForRestaurant(restaurantId: string): Pr
 }
 
 export async function getPublishedReportDetailForRestaurant(id: string, restaurantId: string): Promise<ActionResponse<PublishedReportDetail>> {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('professional_report_drafts')
-        .select('id, period_from, period_to, version, status, schema_version, report_snapshot, narrative_overrides, created_at, updated_at, exported_at, published_at, published_by, viewed_at')
-        .eq('id', id)
-        .eq('restaurant_id', restaurantId)
-        .not('published_at', 'is', null)
-        .maybeSingle()
+    const { data, error } = await fetchPublishedReportDetailRow(id, restaurantId)
 
     if (error) return { success: false, error: 'No se pudo cargar el informe publicado.' }
     if (!data) return { success: false, error: 'Informe publicado no encontrado.' }
@@ -243,15 +238,7 @@ export async function markPublishedReportViewedForRestaurant(
     restaurantId: string
 ): Promise<ActionResponse<{ id: string; viewedAt: string }>> {
     const viewedAt = new Date().toISOString()
-    const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('professional_report_drafts')
-        .update({ viewed_at: viewedAt })
-        .eq('id', id)
-        .eq('restaurant_id', restaurantId)
-        .not('published_at', 'is', null)
-        .select('id, viewed_at')
-        .single()
+    const { data, error } = await updatePublishedReportViewedRow(id, restaurantId, viewedAt)
 
     if (error || !data) return { success: false, error: 'No se pudo marcar el informe como visto.' }
 
@@ -265,29 +252,10 @@ export async function markPublishedReportViewedForRestaurant(
 }
 
 export async function getPortalContextForRestaurant(restaurantId: string): Promise<ActionResponse<PortalContext>> {
-    const supabase = await createClient()
     const month = currentMonth()
     const { from, to } = monthBounds(month)
 
-    const [restaurantRes, salesRes, targetRes] = await Promise.all([
-        supabase
-            .from('restaurants')
-            .select('id, name, consultant_name, consultant_email, consultant_logo_url')
-            .eq('id', restaurantId)
-            .maybeSingle(),
-        supabase
-            .from('daily_sales')
-            .select('revenue_total')
-            .eq('restaurant_id', restaurantId)
-            .gte('date', from)
-            .lte('date', to),
-        supabase
-            .from('monthly_targets')
-            .select('revenue_target')
-            .eq('restaurant_id', restaurantId)
-            .eq('month_year', month)
-            .maybeSingle(),
-    ])
+    const [restaurantRes, salesRes, targetRes] = await fetchPortalContextRows(restaurantId, { month, from, to })
 
     const firstError = restaurantRes.error || salesRes.error || targetRes.error
     if (firstError) return { success: false, error: 'No se pudo cargar el contexto del portal.' }
@@ -317,45 +285,25 @@ export async function requestConsultantMeetingForRestaurant(input: {
     reportId: string
     message?: string
 }): Promise<ActionResponse<PortalMeetingRequestResult>> {
-    const supabase = await createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await fetchPortalAuthUser()
     if (userError || !user) return { success: false, error: 'Usuario no autenticado.' }
 
-    const { data: report, error: reportError } = await supabase
-        .from('professional_report_drafts')
-        .select('id')
-        .eq('id', input.reportId)
-        .eq('restaurant_id', input.restaurantId)
-        .not('published_at', 'is', null)
-        .maybeSingle()
+    const { data: report, error: reportError } = await fetchPublishedReportForMeetingRequest(input.reportId, input.restaurantId)
 
     if (reportError) return { success: false, error: 'No se pudo validar el informe.' }
     if (!report) return { success: false, error: 'Informe publicado no encontrado.' }
 
-    const { data: existingRequest, error: existingRequestError } = await supabase
-        .from('portal_meeting_requests')
-        .select('id')
-        .eq('restaurant_id', input.restaurantId)
-        .eq('report_id', input.reportId)
-        .in('status', ['PENDING', 'ACKNOWLEDGED'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+    const { data: existingRequest, error: existingRequestError } = await fetchOpenMeetingRequest(input.reportId, input.restaurantId)
 
     if (existingRequestError) return { success: false, error: 'No se pudo validar si ya existe una solicitud abierta.' }
     if (existingRequest) return { success: true, data: { id: existingRequest.id, reused: true } }
 
-    const { data, error } = await supabase
-        .from('portal_meeting_requests')
-        .insert({
-            restaurant_id: input.restaurantId,
-            report_id: input.reportId,
-            message: input.message?.trim() || null,
-            status: 'PENDING',
-            created_by: user.id,
-        })
-        .select('id')
-        .single()
+    const { data, error } = await insertMeetingRequest({
+        restaurantId: input.restaurantId,
+        reportId: input.reportId,
+        message: input.message,
+        userId: user.id,
+    })
 
     if (error || !data) return { success: false, error: 'No se pudo solicitar la reunión.' }
 
@@ -367,35 +315,13 @@ export async function getPortalPeriodComparisonForRestaurant(input: {
     periodFrom: string
     periodTo: string
 }): Promise<ActionResponse<PortalPeriodComparison>> {
-    const supabase = await createClient()
     const { previousFrom, previousTo } = previousCalendarMonthBounds(input.periodFrom)
 
-    const [currentSalesRes, currentExpensesRes, previousSalesRes, previousExpensesRes] = await Promise.all([
-        supabase
-            .from('daily_sales')
-            .select('revenue_total')
-            .eq('restaurant_id', input.restaurantId)
-            .gte('date', input.periodFrom)
-            .lte('date', input.periodTo),
-        supabase
-            .from('operating_expenses')
-            .select('amount')
-            .eq('restaurant_id', input.restaurantId)
-            .gte('expense_date', input.periodFrom)
-            .lte('expense_date', input.periodTo),
-        supabase
-            .from('daily_sales')
-            .select('revenue_total')
-            .eq('restaurant_id', input.restaurantId)
-            .gte('date', previousFrom)
-            .lte('date', previousTo),
-        supabase
-            .from('operating_expenses')
-            .select('amount')
-            .eq('restaurant_id', input.restaurantId)
-            .gte('expense_date', previousFrom)
-            .lte('expense_date', previousTo),
-    ])
+    const [currentSalesRes, currentExpensesRes, previousSalesRes, previousExpensesRes] = await fetchPortalPeriodComparisonRows({
+        ...input,
+        previousFrom,
+        previousTo,
+    })
 
     const firstError = currentSalesRes.error || currentExpensesRes.error || previousSalesRes.error || previousExpensesRes.error
     if (firstError) return { success: false, error: 'No se pudo cargar la comparación del periodo.' }
@@ -418,24 +344,14 @@ export async function getPortalMultiPeriodTrendForRestaurant(input: {
     periodFrom: string
     periodTo: string
 }): Promise<ActionResponse<PortalMultiPeriodTrend>> {
-    const supabase = await createClient()
     const months = monthSequence(input.periodFrom, 3)
     const firstBounds = monthBounds(months[0] ?? monthFromDate(input.periodFrom))
 
-    const [salesRes, expensesRes] = await Promise.all([
-        supabase
-            .from('daily_sales')
-            .select('date, revenue_total')
-            .eq('restaurant_id', input.restaurantId)
-            .gte('date', firstBounds.from)
-            .lte('date', input.periodTo),
-        supabase
-            .from('operating_expenses')
-            .select('expense_date, amount')
-            .eq('restaurant_id', input.restaurantId)
-            .gte('expense_date', firstBounds.from)
-            .lte('expense_date', input.periodTo),
-    ])
+    const [salesRes, expensesRes] = await fetchPortalMultiPeriodTrendRows({
+        restaurantId: input.restaurantId,
+        from: firstBounds.from,
+        to: input.periodTo,
+    })
 
     const firstError = salesRes.error || expensesRes.error
     if (firstError) return { success: false, error: 'No se pudo cargar la tendencia del portal.' }
@@ -466,23 +382,13 @@ export async function getPortalExpenseBreakdownForRestaurant(input: {
     periodFrom: string
     periodTo: string
 }): Promise<ActionResponse<PortalExpenseCategoryBreakdown>> {
-    const supabase = await createClient()
     const { previousFrom, previousTo } = previousCalendarMonthBounds(input.periodFrom)
 
-    const [currentExpensesRes, previousExpensesRes] = await Promise.all([
-        supabase
-            .from('operating_expenses')
-            .select('category, amount')
-            .eq('restaurant_id', input.restaurantId)
-            .gte('expense_date', input.periodFrom)
-            .lte('expense_date', input.periodTo),
-        supabase
-            .from('operating_expenses')
-            .select('category, amount')
-            .eq('restaurant_id', input.restaurantId)
-            .gte('expense_date', previousFrom)
-            .lte('expense_date', previousTo),
-    ])
+    const [currentExpensesRes, previousExpensesRes] = await fetchPortalExpenseBreakdownRows({
+        ...input,
+        previousFrom,
+        previousTo,
+    })
 
     const firstError = currentExpensesRes.error || previousExpensesRes.error
     if (firstError) return { success: false, error: 'No se pudo cargar el desglose de gastos.' }

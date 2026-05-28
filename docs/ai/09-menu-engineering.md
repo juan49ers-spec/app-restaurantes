@@ -22,7 +22,10 @@ Analizar la rentabilidad y popularidad de los platos del menú para tomar decisi
    - Clasifica cada item: STAR / PLOWHORSE / PUZZLE / DOG.
    - Status del reporte pasa a `ANALYZED`.
 5. Ve resultado:
-   - `EngineeringMatrix` — scatter plot 2×2 (lazy-loaded).
+   - `EngineeringMatrix` — orquestador del scatter plot 2×2, simulación y panel lateral.
+   - `EngineeringMatrixChart` — visualización Recharts de matriz BCG, tooltip, dots y trazas de simulación.
+   - `EngineeringMatrixHeader` — cabecera, selector de escenarios y controles de simulación.
+   - `SimulationStartBanner` — banner inicial del modo simulación y quick-select de platos.
    - `StrategyCards` — recomendaciones por cuadrante.
    - `InsightStrip` — insights generados.
    - `AIChefLab` (lazy) — chat con sugerencias IA.
@@ -109,6 +112,7 @@ Clasificación:
 - `src/app/actions/menu-engineering.ts` — actions.
 - `src/lib/menu-engineering.ts` — cálculo (con tests en `.test.ts`).
 - `src/components/menu-engineering/EngineeringMatrix.tsx`, `SalesInputGrid.tsx`, `StrategyCards.tsx`, `InsightStrip.tsx`, `AIChefLab.tsx`.
+- `EngineeringMatrixChart.tsx`, `EngineeringMatrixHeader.tsx` y `SimulationStartBanner.tsx` mantienen el componente principal por debajo del límite de mantenimiento; si se añade UI nueva al simulador, preferir ampliar esas piezas antes que volver a engordar `EngineeringMatrix.tsx`.
 - `src/types/schema.ts` — `MenuReportSchema`, `MenuReportItemSchema`.
 
 **Qué probar manualmente:**

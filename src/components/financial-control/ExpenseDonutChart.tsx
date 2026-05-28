@@ -27,6 +27,12 @@ const COLORS = [
     { hex: "#f97316", bgClass: "bg-orange-500" },
 ]
 
+type TaggedExpenseCategory = keyof typeof EXPENSE_TAGS
+
+function isTaggedExpenseCategory(category: OperatingExpenseCategory): category is TaggedExpenseCategory {
+    return category in EXPENSE_TAGS
+}
+
 interface CustomTooltipProps {
     active?: boolean
     payload?: { payload: { name: string; value: number } }[]
@@ -75,8 +81,8 @@ export function ExpenseDonutChart({ expenses }: ExpenseDonutChartProps) {
         if (!category) return []
 
         return Object.entries(category.tags).map(([tagKey, amount], index) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const label = (EXPENSE_TAGS as any)[selectedCategory]?.[tagKey] || tagKey
+            const tags = isTaggedExpenseCategory(selectedCategory) ? EXPENSE_TAGS[selectedCategory] : []
+            const label = tags.find(tag => tag === tagKey) ?? tagKey
             return {
                 name: label,
                 value: amount,

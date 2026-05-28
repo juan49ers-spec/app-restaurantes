@@ -35,6 +35,7 @@ Catálogo maestro de ingredientes del restaurante. Es la tabla madre de la opera
 **Escritura:**
 - `createIngredient(payload)`.
 - `updateIngredient(id, payload)` — full update.
+- `IngredientDialog` trata las respuestas legacy de create/update sin `@ts-expect-error`; si la action no trae `error`, muestra un fallback genérico.
 - `updateIngredientPrice(id, price)` — solo precio. Si cambio > 1%, inserta en `price_history`.
 - `updateIngredientWaste(id, waste_pct)` — solo merma.
 - `deleteIngredient(id)` — soft delete.
