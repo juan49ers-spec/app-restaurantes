@@ -38,7 +38,8 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 ### `/admin/client-onboarding`
 - `ClientOnboardingWizard`: alta guiada de restaurante cliente para el modelo consultor-first.
 - Crea un restaurante con `owner_id` existente y, opcionalmente, una relación `consultant_restaurants` activa con el consultor.
-- Después del alta muestra el recorrido operativo: importar datos, completar carta/turnos/facturas, generar READY y revisar portal.
+- Después del alta muestra el recorrido comercial hacia el primer informe publicado: seleccionar cliente activo, importar ventas/gastos, completar datos operativos, guardar READY, publicar y validar portal.
+- El bloque final recuerda ejecutar `npm run qa:client-flow` antes de enseñar el portal con datos reales.
 
 ### `/admin/billing`
 - `BillingManager` + `BillingModulesConfig`.
@@ -76,6 +77,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 **Componentes:**
 - `AdminShell` — sidebar admin con NAV_ITEMS hardcoded.
 - `AdminDashboardClient`, `RestaurantList`, `UserManagement`, `ConsultantAccessManager`, `ClientOnboardingWizard`, `BillingManager`, `BillingModulesConfig`, `AuditLogViewer`, `ValidationInboxComponent`.
+- `ClientOnboardingWizard` muestra enlaces de navegación hacia módulos existentes, pero no ejecuta imports, no publica informes y no salta el quality gate.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -93,6 +95,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - **Relaciones consultor-restaurante:** solo admins pueden gestionarlas desde `/admin/consultants`. La tabla tiene RLS de lectura para consultor/owner y una política de escritura para super-admins (`public.is_super_admin()`).
 - **Filtros admin de consultores:** son estado local de UI; no cambian permisos. Las mutaciones siguen pasando por server action + RLS.
 - **Alta guiada:** no crea restaurantes sin owner. `restaurants.owner_id` es obligatorio, por lo que el admin debe seleccionar un usuario existente como owner.
+- **Primer informe:** la guía post-alta no sustituye la checklist de `/consultant` ni el quality gate de `/reports`; solo reduce fricción operativa para el consultor.
 
 ## 5. Dependencias e implicaciones cruzadas
 

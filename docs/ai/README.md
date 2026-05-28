@@ -87,6 +87,7 @@ Cuando vayas a tocar una funcionalidad:
 - [Cierre Fase 8 — BCG en informe profesional](./phase-8-menu-engineering-reporting.md) — integra snapshots Menu Engineering ANALYZED en el informe sin recalcular en UI.
 - [Cierre Fase 9 — Área cliente](./phase-9-client-portal.md) — portal autenticado para informes publicados, solicitudes de reunión y descarga PDF.
 - [Cierre Fase 21 — QA real del flujo cliente](./phase-21-real-client-qa.md) — comando operativo para verificar el recorrido consultor -> cliente antes de enseñar la app.
+- [Cierre Fase 22 — Onboarding comercial del consultor](./phase-22-consultant-onboarding.md) — recorrido post-alta para llevar un cliente nuevo hasta su primer informe publicado.
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 

@@ -26,6 +26,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 5. Guarda la relación con `upsertConsultantRestaurantAccess()`.
 6. Puede pausar, reactivar o revocar relaciones existentes.
 7. Para altas nuevas, entra en `/admin/client-onboarding`, crea el restaurante con owner existente y asigna consultor en la misma operación.
+8. Tras crear el cliente, sigue el recorrido de primer informe: seleccionar cliente activo en `/consultant`, importar ventas/gastos, completar datos operativos, guardar READY, publicar y validar portal.
 
 ## 3. Flujo técnico de datos
 
@@ -43,6 +44,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - `ConsultantAccessManager` deriva en cliente métricas, cartera por consultor, filtros y búsqueda a partir de `users`, `restaurants` y `relationships`. No hace queries adicionales ni decide permisos.
 - `createAdminClientWorkspace(input)` crea `restaurants` con `owner_id` existente y, si se indica consultor, hace `upsert` en `consultant_restaurants` con `status='ACTIVE'`.
 - `ClientOnboardingWizard` es UI cliente para el alta guiada; no decide permisos ni envía `restaurant_id` operativo.
+- `ClientOnboardingWizard` muestra un recorrido post-alta orientado al primer informe publicado. Los enlaces apuntan a módulos existentes y no ejecutan acciones operativas por sí mismos.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -53,6 +55,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - La UI admin puede filtrar y buscar relaciones, pero esos filtros no son una frontera de seguridad.
 - No se crean usuarios de cliente final ni portal self-service de carga de datos en esta fase.
 - El alta guiada no crea usuarios Auth. Usa usuarios existentes como owner/consultor porque la creación de usuarios requiere un flujo admin separado.
+- El recorrido de primer informe no publica automáticamente ni carga datos. Solo ordena el trabajo del consultor; los bloqueos reales siguen en `/consultant` y `/reports`.
 - La tabla nueva tiene RLS y `GRANT SELECT` explícito para compatibilidad con la Data API moderna de Supabase.
 - La escritura de relaciones queda limitada por política RLS de super-admin (`public.is_super_admin()`, respaldada por `public.super_admins`), además del `requireAdmin()` de las actions.
 

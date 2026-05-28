@@ -43,5 +43,17 @@ describe('ClientOnboardingWizard', () => {
       })
     })
     expect(await screen.findByText('Nuevo Cliente creado correctamente.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Ir a la cartera del consultor/i })).toHaveAttribute('href', '/consultant')
+  })
+
+  it('shows the first report onboarding path and QA command', () => {
+    render(<ClientOnboardingWizard data={data} />)
+
+    expect(screen.getByRole('heading', { name: /Primer informe publicado/i })).toBeInTheDocument()
+    expect(screen.getByText('Seleccionar cliente activo')).toBeInTheDocument()
+    expect(screen.getByText('Importar ventas y gastos')).toBeInTheDocument()
+    expect(screen.getByText('Guardar informe READY')).toBeInTheDocument()
+    expect(screen.getByText('Publicar y validar portal')).toBeInTheDocument()
+    expect(screen.getByText('npm run qa:client-flow')).toBeInTheDocument()
   })
 })
