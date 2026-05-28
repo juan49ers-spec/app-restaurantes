@@ -6,6 +6,7 @@ import { importShiftsCsv, validateShiftsCsvImport } from "@/app/actions/staff-im
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { CsvFileInput } from "@/components/importing/CsvFileInput"
 import { ImportIssuesDownloadButton } from "@/components/importing/ImportIssuesDownloadButton"
 import { SHIFTS_CSV_TEMPLATE, parseShiftsCsvPreview } from "@/lib/importing/shifts-csv"
 import { cn } from "@/lib/utils"
@@ -101,6 +102,12 @@ export function ShiftsCsvImportPanel({ onImported }: { onImported?: () => void }
         })
     }
 
+    function resetWithCsvText(nextCsvText: string) {
+        setCsvText(nextCsvText)
+        setMessage(null)
+        setPreflight({ status: "idle" })
+    }
+
     return (
         <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-neutral-950">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -126,17 +133,14 @@ export function ShiftsCsvImportPanel({ onImported }: { onImported?: () => void }
 
             <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
                 <div className="space-y-2">
+                    <CsvFileInput id="shifts-csv-file" onTextLoaded={resetWithCsvText} />
                     <label htmlFor="shifts-csv-text" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                         CSV turnos
                     </label>
                     <Textarea
                         id="shifts-csv-text"
                         value={csvText}
-                        onChange={event => {
-                            setCsvText(event.target.value)
-                            setMessage(null)
-                            setPreflight({ status: "idle" })
-                        }}
+                        onChange={event => resetWithCsvText(event.target.value)}
                         placeholder="date;employee_name;start_time;end_time;break_minutes"
                         className="min-h-32 resize-y font-mono text-xs"
                     />

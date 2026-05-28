@@ -12,7 +12,7 @@ Las fichas técnicas (escandallos) de los platos del menú. Documentan la fórmu
 
 1. Entra a `/recipes`. Ve `ResumeSummaryCards` (KPIs: total recetas, margen promedio, coste promedio) y tabla.
 2. Búsqueda por nombre (debounced).
-3. Puede importar cabeceras de recetas desde CSV con preview, descarga de plantilla, descarga de incidencias y comprobación de duplicados antes de escribir.
+3. Puede importar cabeceras de recetas desde CSV seleccionando un archivo `.csv` o pegando el contenido, con preview, descarga de plantilla, descarga de incidencias y comprobación de duplicados antes de escribir.
 4. Click "Nueva Receta" → `/recipes/new/edit`. Click en fila → `/recipes/[id]/edit`.
 5. **Editor full-screen** (`RecipeEditorClient`):
    - Tabs:
@@ -44,6 +44,7 @@ Las fichas técnicas (escandallos) de los platos del menú. Documentan la fórmu
 **Importación CSV de cabeceras:**
 
 - `RecipesCsvImportPanel` vive en `RecipesClientPage`.
+- El panel reutiliza `CsvFileInput` para cargar archivos `.csv`; editar el textarea o cambiar de archivo reinicia mensajes y preflight para que la importación siempre corresponda al contenido comprobado.
 - `parseRecipesCsvPreview()` es un motor puro en `src/lib/importing/recipes-csv.ts`: normaliza cabeceras, soporta decimales españoles, valida `name`, `selling_price`, `current_cost`, `target_margin_pct`, `prep_time_minutes`, `yields` y `hourly_rate`, detecta duplicados internos por nombre normalizado y resume precio/coste medio.
 - El panel ofrece plantilla descargable e incidencias CSV descargables mediante `ImportIssuesDownloadButton`.
 

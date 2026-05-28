@@ -6,6 +6,7 @@ import { importEmployeesCsv, validateEmployeesCsvImport } from "@/app/actions/st
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { CsvFileInput } from "@/components/importing/CsvFileInput"
 import { ImportIssuesDownloadButton } from "@/components/importing/ImportIssuesDownloadButton"
 import { EMPLOYEES_CSV_TEMPLATE, parseEmployeesCsvPreview } from "@/lib/importing/employees-csv"
 import { cn } from "@/lib/utils"
@@ -61,6 +62,12 @@ export function EmployeesCsvImportPanel() {
     })
   }
 
+  function resetWithCsvText(nextCsvText: string) {
+    setCsvText(nextCsvText)
+    setMessage(null)
+    setPreflight({ status: "idle" })
+  }
+
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -78,12 +85,9 @@ export function EmployeesCsvImportPanel() {
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-2">
+          <CsvFileInput id="employees-csv-file" onTextLoaded={resetWithCsvText} />
           <label htmlFor="employees-csv-text" className="text-xs font-medium text-neutral-700">CSV empleados</label>
-          <Textarea id="employees-csv-text" value={csvText} onChange={event => {
-            setCsvText(event.target.value)
-            setMessage(null)
-            setPreflight({ status: "idle" })
-          }} placeholder="first_name;last_name;role;hourly_rate" className="min-h-32 resize-y font-mono text-xs" />
+          <Textarea id="employees-csv-text" value={csvText} onChange={event => resetWithCsvText(event.target.value)} placeholder="first_name;last_name;role;hourly_rate" className="min-h-32 resize-y font-mono text-xs" />
         </div>
         <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
           <PreviewSummary preview={preview} />

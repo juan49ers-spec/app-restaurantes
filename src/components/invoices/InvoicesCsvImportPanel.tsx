@@ -6,6 +6,7 @@ import { importInvoicesCsv, validateInvoicesCsvImport } from "@/app/actions/invo
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { CsvFileInput } from "@/components/importing/CsvFileInput"
 import { ImportIssuesDownloadButton } from "@/components/importing/ImportIssuesDownloadButton"
 import { INVOICES_CSV_TEMPLATE, parseInvoicesCsvPreview } from "@/lib/importing/invoices-csv"
 import { cn } from "@/lib/utils"
@@ -100,6 +101,12 @@ export function InvoicesCsvImportPanel() {
         })
     }
 
+    function resetWithCsvText(nextCsvText: string) {
+        setCsvText(nextCsvText)
+        setMessage(null)
+        setPreflight({ status: "idle" })
+    }
+
     return (
         <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -125,17 +132,14 @@ export function InvoicesCsvImportPanel() {
 
             <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
                 <div className="space-y-2">
+                    <CsvFileInput id="invoices-csv-file" onTextLoaded={resetWithCsvText} />
                     <label htmlFor="invoices-csv-text" className="text-xs font-medium text-neutral-700">
                         CSV facturas
                     </label>
                     <Textarea
                         id="invoices-csv-text"
                         value={csvText}
-                        onChange={event => {
-                            setCsvText(event.target.value)
-                            setMessage(null)
-                            setPreflight({ status: "idle" })
-                        }}
+                        onChange={event => resetWithCsvText(event.target.value)}
                         placeholder="date;supplier_name;invoice_number;total_amount;tax_amount"
                         className="min-h-32 resize-y font-mono text-xs"
                     />

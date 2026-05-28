@@ -15,7 +15,7 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
    - **Revisión**: facturas pendientes (status `processing` o `review_required`).
    - **Histórico**: facturas `completed`.
 2. **Subir:**
-   - `InvoicesCsvImportPanel`: permite importar cabeceras históricas desde CSV para marcar facturas ya revisadas como `completed` sin OCR. Si hay errores o duplicados internos, permite descargar incidencias como CSV.
+   - `InvoicesCsvImportPanel`: permite importar cabeceras históricas desde CSV para marcar facturas ya revisadas como `completed` sin OCR. El consultor puede seleccionar un archivo `.csv` o pegar el contenido en el textarea; si hay errores o duplicados internos, permite descargar incidencias como CSV.
    - Arrastra archivos (PDF, JPG, PNG).
    - Click "Procesar N Facturas".
    - Por cada archivo: upload a Supabase Storage → crea fila `invoices` con `status='processing'` → llama OpenAI Vision → guarda resultado en `scanned_data` → status pasa a `review_required` (o `error`).
@@ -49,11 +49,12 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
 
 **Importar cabeceras CSV (`importInvoicesCsv`):**
 
-1. El cliente pega un CSV con `date`, `supplier_id` o `supplier_name`, `invoice_number`, `total_amount` y opcionalmente `tax_amount`.
+1. El cliente selecciona un archivo `.csv` o pega un CSV con `date`, `supplier_id` o `supplier_name`, `invoice_number`, `total_amount` y opcionalmente `tax_amount`.
 2. `validateInvoicesCsvImport({ csvText })` revalida el parser en servidor, resuelve `restaurant_id` con `getUserRestaurant()`, cruza proveedores contra `suppliers` del restaurante y detecta duplicados exactos.
 3. `importInvoicesCsv({ csvText })` repite todo el preflight antes de escribir e inserta filas en `invoices` con `status='completed'` y `scanned_data.source='csv_import'`.
 4. Este flujo **solo crea cabeceras históricas**. No crea `invoice_items`, no genera `stock_movements`, no actualiza `inventory_stock` y no inserta `operating_expenses`.
 5. `ImportIssuesDownloadButton` exporta errores de archivo, filas inválidas y duplicados internos del preview para corregir el CSV fuera de la app.
+6. Cambiar el archivo o editar el texto invalida el preflight anterior para evitar importar un contenido distinto al ya comprobado.
 
 **Revisar y guardar (`updateInvoice`):**
 

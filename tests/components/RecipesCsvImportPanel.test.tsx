@@ -45,4 +45,18 @@ describe('RecipesCsvImportPanel', () => {
 
     expect(await screen.findByText(/Importación completada: 1 recetas guardadas/i)).toBeInTheDocument()
   })
+
+  it('loads recipe CSV content from a file input', async () => {
+    render(<RecipesCsvImportPanel />)
+
+    const csvText = 'name;selling_price;current_cost\nTortilla;12,50;3,20'
+    const file = new File([csvText], 'recetas.csv', { type: 'text/csv' })
+
+    fireEvent.change(screen.getByLabelText('Archivo CSV'), {
+      target: { files: [file] },
+    })
+
+    expect(await screen.findByText(/1 recetas válidas/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/CSV recetas/i)).toHaveValue(csvText)
+  })
 })

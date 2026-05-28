@@ -12,7 +12,7 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 
 ### `/staff/employees`
 1. Tabla de empleados con filtros por rol y estado.
-2. `EmployeesCsvImportPanel` permite importar empleados desde CSV con plantilla, preview, descarga de incidencias y comprobación de duplicados.
+2. `EmployeesCsvImportPanel` permite importar empleados desde CSV seleccionando un archivo `.csv` o pegando el contenido, con plantilla, preview, descarga de incidencias y comprobación de duplicados.
 3. **Crear** → `EmployeeForm`:
    - Nombre, apellidos, teléfono, contacto emergencia.
    - Rol (enum: MANAGEMENT, KITCHEN_HEAD, KITCHEN_STAFF, FLOOR_MANAGER, FLOOR_STAFF, BAR_STAFF, CLEANING, ADMIN, OTHER).
@@ -26,7 +26,7 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 
 ### `/staff/schedule`
 1. Calendario semanal (`ShiftBoard`) — empleados × días.
-2. `ShiftsCsvImportPanel` permite importar turnos desde CSV para preparar costes laborales de periodos históricos o planificados.
+2. `ShiftsCsvImportPanel` permite importar turnos desde CSV seleccionando un archivo `.csv` o pegando el contenido para preparar costes laborales de periodos históricos o planificados.
 3. **Drag & drop** (@dnd-kit) para asignar turnos.
 4. **Crear turno** → `ShiftForm`:
    - Fecha, hora inicio, hora fin, descanso (minutos).
@@ -49,6 +49,7 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 - `getPolicies()`.
 - `validateShiftsCsvImport({ csvText })` — preflight server-side del CSV de turnos. Revalida parser, resuelve `restaurant_id`, cruza `employee_id`/`employee_name` contra `employees` del restaurante, calcula coste estimado con tarifa actual y detecta duplicados existentes por pareja exacta empleado-fecha-hora.
 - `validateEmployeesCsvImport({ csvText })` — preflight server-side del CSV de empleados. Revalida parser, resuelve `restaurant_id` y detecta empleados existentes por email o nombre completo normalizado.
+- `EmployeesCsvImportPanel` y `ShiftsCsvImportPanel` reutilizan `CsvFileInput`. Cambiar archivo o editar el textarea reinicia mensajes y preflight para evitar importar un CSV distinto al ya comprobado.
 
 **Escritura:**
 - `upsertEmployee(payload)`, `toggleEmployeeStatus(id)`, `deleteEmployee(id)` — resuelven el restaurante activo en servidor e ignoran cualquier `restaurant_id` enviado por cliente.

@@ -17,7 +17,7 @@ Inventario operativo en tiempo real. Cuántas unidades tengo de cada ingrediente
    - Botón "Inicializar Stock" — crea filas faltantes en `inventory_stock` para ingredientes que aún no la tienen.
    - Botón "Entrada Manual" → `ManualStockEntryDialog` para añadir stock no vinculado a una factura.
 3. **Tab "Ventas del Día":**
-   - `RecipeSalesCsvImportPanel`: importa ventas por receta desde CSV para alimentar informes y Menu Engineering sin descontar stock. Si hay errores, permite descargar incidencias en CSV para corregirlas.
+   - `RecipeSalesCsvImportPanel`: importa ventas por receta desde CSV para alimentar informes y Menu Engineering sin descontar stock. El consultor puede seleccionar un archivo `.csv` o pegar el contenido; si hay errores, permite descargar incidencias en CSV para corregirlas.
    - `DailyRecipeSalesForm`: selecciona fecha, añade recetas con cantidades vendidas.
    - Botón "Preview de Impacto" → `previewStockImpact`: muestra qué ingredientes consumiría sin guardar.
    - Botón "Procesar" → `processRecipeSales`: RPC atómico que explota recetas en consumo, deduce stock, registra movimientos.
@@ -32,6 +32,7 @@ Inventario operativo en tiempo real. Cuántas unidades tengo de cada ingrediente
 - `previewStockImpact(restaurantId, date, sales[])` — calcula sin escribir.
 - `validateRecipeSalesCsvImport({ csvText })` — preflight server-side para CSV de ventas por receta. Revalida parser, resuelve `restaurant_id`, cruza `recipe_id`/`recipe_name` contra `recipes` del restaurante y detecta duplicados existentes en `daily_recipe_sales`.
 - `ImportIssuesDownloadButton` permite exportar errores de archivo, filas inválidas y duplicados internos del preview como CSV de incidencias.
+- `RecipeSalesCsvImportPanel` reutiliza `CsvFileInput`; cambiar archivo o editar el textarea invalida la comprobación previa de duplicados para mantener el patrón preview → preflight → import.
 
 **Escritura:**
 - `importRecipeSalesCsv({ csvText })` — importa filas en `daily_recipe_sales` con `restaurant_id` server-side. No llama al RPC de stock y no descuenta inventario; está pensado para carga histórica/consultoría, informes y Menu Engineering.

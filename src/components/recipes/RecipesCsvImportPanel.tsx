@@ -6,6 +6,7 @@ import { importRecipesCsv, validateRecipesCsvImport } from "@/app/actions/recipe
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { CsvFileInput } from "@/components/importing/CsvFileInput"
 import { ImportIssuesDownloadButton } from "@/components/importing/ImportIssuesDownloadButton"
 import { parseRecipesCsvPreview, RECIPES_CSV_TEMPLATE } from "@/lib/importing/recipes-csv"
 import { cn } from "@/lib/utils"
@@ -70,6 +71,12 @@ export function RecipesCsvImportPanel() {
     })
   }
 
+  function resetWithCsvText(nextCsvText: string) {
+    setCsvText(nextCsvText)
+    setMessage(null)
+    setPreflight({ status: "idle" })
+  }
+
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -92,15 +99,12 @@ export function RecipesCsvImportPanel() {
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-2">
+          <CsvFileInput id="recipes-csv-file" onTextLoaded={resetWithCsvText} />
           <label htmlFor="recipes-csv-text" className="text-xs font-medium text-neutral-700">CSV recetas</label>
           <Textarea
             id="recipes-csv-text"
             value={csvText}
-            onChange={event => {
-              setCsvText(event.target.value)
-              setMessage(null)
-              setPreflight({ status: "idle" })
-            }}
+            onChange={event => resetWithCsvText(event.target.value)}
             placeholder="name;selling_price;current_cost"
             className="min-h-32 resize-y font-mono text-xs"
           />
