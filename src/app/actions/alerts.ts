@@ -281,7 +281,18 @@ export async function getNotificationStats(): Promise<{
       total: 0,
       unread: 0,
       bySeverity: { INFO: 0, WARNING: 0, CRITICAL: 0 },
-      byType: { PRICE_CHANGE: 0, MARGIN_DROP: 0, WASTE_HIGH: 0, INGREDIENT_LOW_STOCK: 0, SUPPLIER_PRICE_INCREASE: 0, MENU_ITEM_UNPROFITABLE: 0, INVOICE_ANOMALY: 0, PRICE_DISCREPANCY: 0 },
+      byType: {
+        PRICE_CHANGE: 0,
+        MARGIN_DROP: 0,
+        WASTE_HIGH: 0,
+        INGREDIENT_LOW_STOCK: 0,
+        SUPPLIER_PRICE_INCREASE: 0,
+        MENU_ITEM_UNPROFITABLE: 0,
+        INVOICE_ANOMALY: 0,
+        PRICE_DISCREPANCY: 0,
+        REPORT_PUBLISHED: 0,
+        CLIENT_MEETING_REQUEST: 0,
+      },
     }
   }
 
@@ -304,6 +315,8 @@ export async function getNotificationStats(): Promise<{
         MENU_ITEM_UNPROFITABLE: 0,
         INVOICE_ANOMALY: 0,
         PRICE_DISCREPANCY: 0,
+        REPORT_PUBLISHED: 0,
+        CLIENT_MEETING_REQUEST: 0,
       },
     }
   }
@@ -321,6 +334,8 @@ export async function getNotificationStats(): Promise<{
       MENU_ITEM_UNPROFITABLE: 0,
       INVOICE_ANOMALY: 0,
       PRICE_DISCREPANCY: 0,
+      REPORT_PUBLISHED: 0,
+      CLIENT_MEETING_REQUEST: 0,
     } as Record<AlertType, number>,
   }
 

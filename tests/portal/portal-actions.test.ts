@@ -257,6 +257,18 @@ describe('portal server actions', () => {
       target_id: REPORT_ID,
       metadata: expect.objectContaining({ restaurant_id: RESTAURANT_ID }),
     }))
+    expect(calls.find(item =>
+      item.table === 'alert_notifications' &&
+      item.insertValue?.type === 'REPORT_PUBLISHED'
+    )?.insertValue).toEqual(expect.objectContaining({
+      restaurant_id: RESTAURANT_ID,
+      type: 'REPORT_PUBLISHED',
+      severity: 'INFO',
+      title: 'Informe publicado en portal',
+      entity_type: 'REPORT',
+      entity_id: REPORT_ID,
+      read: false,
+    }))
   })
 
   it('rejects publishing when the saved report snapshot has critical blockers', async () => {
@@ -487,6 +499,18 @@ describe('portal server actions', () => {
         reused: false,
       }),
     }))
+    expect(calls.find(item =>
+      item.table === 'alert_notifications' &&
+      item.insertValue?.type === 'CLIENT_MEETING_REQUEST'
+    )?.insertValue).toEqual(expect.objectContaining({
+      restaurant_id: RESTAURANT_ID,
+      type: 'CLIENT_MEETING_REQUEST',
+      severity: 'WARNING',
+      title: 'Nueva solicitud de reunión',
+      entity_type: 'REPORT',
+      entity_id: REPORT_ID,
+      read: false,
+    }))
   })
 
   it('reuses an open meeting request instead of creating a duplicate', async () => {
@@ -504,6 +528,7 @@ describe('portal server actions', () => {
       data: { id: '33333333-3333-4333-8333-333333333333', reused: true },
     })
     expect(calls.some(call => call.table === 'portal_meeting_requests' && call.insertValue)).toBe(false)
+    expect(calls.some(call => call.table === 'alert_notifications' && call.insertValue)).toBe(false)
     expect(calls.find(item =>
       item.table === 'admin_audit_log' &&
       item.insertValue?.action === 'portal.meeting_request'

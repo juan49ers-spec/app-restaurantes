@@ -69,6 +69,16 @@ const ALERT_TYPE_CONFIG: Record<AlertType, { label: string; icon: React.ElementT
     icon: DollarSign,
     description: 'Alerta cuando hay diferencias de precio entre proveedores'
   },
+  REPORT_PUBLISHED: {
+    label: 'Informe Publicado',
+    icon: FileText,
+    description: 'Notificación cuando un informe se publica en el portal cliente'
+  },
+  CLIENT_MEETING_REQUEST: {
+    label: 'Solicitud de Reunión',
+    icon: Bell,
+    description: 'Notificación cuando el cliente pide revisar un informe'
+  },
 }
 
 const SEVERITY_COLORS: Record<AlertSeverity, string> = {

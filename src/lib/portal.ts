@@ -7,6 +7,7 @@ import {
     type PortalMultiPeriodTrend,
     type PortalPeriodComparison,
 } from '@/lib/portal-insights'
+import { createActionLogger } from '@/lib/logger'
 import {
     fetchMeetingRequestRowsForReports,
     fetchOpenMeetingRequest,
@@ -19,10 +20,13 @@ import {
     fetchPublishedReportForMeetingRequest,
     fetchPublishedReportRows,
     insertMeetingRequest,
+    insertPortalNotification,
     updatePublishedReportViewedRow,
 } from '@/lib/portal-queries'
 import type { ProfessionalRestaurantReport } from '@/lib/reporting'
 import { logAuditEvent } from '@/lib/audit'
+
+const log = createActionLogger('portal')
 
 export type ActionResponse<T> = {
     success: boolean
@@ -330,6 +334,23 @@ export async function requestConsultantMeetingForRestaurant(input: {
             reused: false,
         },
     })
+
+    const notificationRes = await insertPortalNotification({
+        restaurantId: input.restaurantId,
+        type: 'CLIENT_MEETING_REQUEST',
+        severity: 'WARNING',
+        title: 'Nueva solicitud de reunión',
+        message: 'El cliente ha solicitado revisar el informe publicado.',
+        reportId: input.reportId,
+        entityName: 'Informe publicado',
+        metadata: {
+            request_id: data.id,
+        },
+    })
+
+    if (notificationRes.error) {
+        log.warn({ err: notificationRes.error, reportId: input.reportId }, 'No se pudo crear la notificación de solicitud de reunión')
+    }
 
     return { success: true, data: { id: data.id, reused: false } }
 }

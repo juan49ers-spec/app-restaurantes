@@ -49,8 +49,10 @@ Centro de control de alertas in-app. Muestra histórico de notificaciones genera
 
 - **Tipos de alerta** (enum 8):
   - `PRICE_CHANGE`, `MARGIN_DROP`, `WASTE_HIGH`, `INGREDIENT_LOW_STOCK`, `SUPPLIER_PRICE_INCREASE`, `MENU_ITEM_UNPROFITABLE`, `INVOICE_ANOMALY`, `PRICE_DISCREPANCY`.
+  - Desde Fase 36 también existen tipos de entrega: `REPORT_PUBLISHED` y `CLIENT_MEETING_REQUEST`.
 - **Severidad:** se infiere de la condición (>20% → WARNING, >40% → CRITICAL).
 - **Canales:** `email`, `in-app`, `push` (push aún sin implementación efectiva con Supabase Realtime).
+- **Notificaciones de entrega:** publicar un informe y crear una solicitud nueva de reunión insertan notificaciones in-app en `alert_notifications`. Son eventos del flujo consultor-cliente y no dependen de una regla configurable, por eso `rule_id` puede ser `NULL`.
 - **Cooldown:** evita spam. Si una regla dispara para `entityId`, no vuelve a disparar para el mismo `entityId` en X horas.
 - **Retención:** notificaciones > 30 días se limpian automáticamente (cuando el cron se active).
 - **Broadcasts vs Notifications:**
@@ -61,7 +63,7 @@ Centro de control de alertas in-app. Muestra histórico de notificaciones genera
 
 ## 5. Dependencias e implicaciones cruzadas
 
-- **Tablas:** `notifications`, `alert_rules`, `broadcasts` (global), `financial_alerts` (relacionada).
+- **Tablas:** `alert_notifications`, `alert_rules`, `broadcasts` (global), `financial_alerts` (relacionada).
 - **Otras páginas afectadas:**
   - `/invoices` — al confirmar factura con spike, dispara `PRICE_CHANGE`.
   - `/recipes` y `/ingredients` — `MARGIN_DROP`, `MENU_ITEM_UNPROFITABLE`.
@@ -81,6 +83,7 @@ Centro de control de alertas in-app. Muestra histórico de notificaciones genera
 - **Polling cada 30s** en `NotificationCenter` puede ser excesivo para muchas tabs abiertas. Considerar realtime.
 - **Polling tolerante:** si falla una petición puntual del polling, se ignora para no molestar al usuario; si falla la carga explícita al abrir el popover, muestra toast.
 - **Email:** depende de provider configurado (probablemente Resend o similar, no visible en el código revisado).
+- **Entrega no bloqueante:** si falla la inserción de una notificación de publicación o reunión, la publicación/solicitud no se revierte; se registra warning estructurado y el flujo principal sigue.
 
 ## 7. Al añadir/modificar una función aquí
 

@@ -115,6 +115,34 @@ export async function insertMeetingRequest(input: {
         .single()
 }
 
+export async function insertPortalNotification(input: {
+    restaurantId: string
+    type: 'REPORT_PUBLISHED' | 'CLIENT_MEETING_REQUEST'
+    severity: 'INFO' | 'WARNING'
+    title: string
+    message: string
+    reportId: string
+    entityName: string
+    metadata?: Record<string, unknown>
+}) {
+    const supabase = await createClient()
+    return supabase
+        .from('alert_notifications')
+        .insert({
+            restaurant_id: input.restaurantId,
+            rule_id: null,
+            type: input.type,
+            severity: input.severity,
+            title: input.title,
+            message: input.message,
+            entity_type: 'REPORT',
+            entity_id: input.reportId,
+            entity_name: input.entityName,
+            metadata: input.metadata ?? {},
+            read: false,
+        })
+}
+
 export async function fetchPortalPeriodComparisonRows(input: {
     restaurantId: string
     periodFrom: string

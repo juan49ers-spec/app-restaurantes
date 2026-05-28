@@ -56,7 +56,7 @@
 | `business_rules` | `restaurant_id`, `rule_name`, `rule_type`, `value` (JSONB), `valid_from`, `valid_until`, `is_active`, `version` | Versioning de reglas (COGS%, labor%, márgenes target, umbrales merma). |
 | `financial_alerts` | `restaurant_id`, `alert_type` (margin_deviation/expense_anomaly/waste_spike), `severity` (info/warning/critical), `title`, `metadata` (JSONB), `is_read`, `resolved_at` | Alertas automáticas. |
 | `alert_rules` | `restaurant_id`, `rule_type`, `conditions` (JSONB), `channels`, `cooldown_hours`, `is_active` | Reglas que disparan notificaciones. |
-| `notifications` | `restaurant_id`, `type`, `severity`, `title`, `body`, `entity_id`, `read`, `read_at`, `created_at` | Notificaciones in-app. Limpieza automática >30 días. |
+| `alert_notifications` | `restaurant_id`, `rule_id` nullable, `type`, `severity`, `title`, `message`, `entity_type`, `entity_id`, `entity_name`, `metadata`, `read`, `read_at`, `created_at` | Notificaciones in-app. Las notificaciones derivadas de reglas usan `rule_id`; las de entrega (`REPORT_PUBLISHED`, `CLIENT_MEETING_REQUEST`) pueden tener `rule_id = NULL`. |
 | `broadcasts` | `id`, `title`, `body`, `severity`, `active_from`, `active_until`, `created_by` | Anuncios globales del super-admin. **Sin `restaurant_id`** (sistema). |
 | `scenarios` | `id`, `user_id`, `name`, `base_revenue`, `base_expenses`, `adjustments` (JSONB) | Simulaciones what-if del simulador financiero. |
 | `professional_report_drafts` | `restaurant_id`, `period_from`, `period_to`, `version`, `status`, `schema_version`, `report_snapshot` (JSONB), `narrative_overrides` (JSONB), `exported_at`, `published_at`, `published_by`, `viewed_at` | Versiones guardadas de informes profesionales. Snapshot inmutable para exportacion. Desde Fase 6 puede incluir `menu_performance`; desde Fase 8 puede incluir `menu_engineering` derivado de un snapshot BCG `ANALYZED`. Desde Fase 9 solo las filas con `published_at IS NOT NULL` aparecen en el portal cliente. Desde Fase 14, `viewed_at` registra la apertura del detalle web del informe por el cliente/restaurante. |
@@ -110,7 +110,7 @@ Usadas como operaciones atómicas (transacciones):
 2. **Timestamps:** `created_at`, `updated_at` siempre en UTC.
 3. **Idempotencia:** clave única `idempotency_key` en `invoices` y `operating_expenses` evita duplicados si una mutación se reintenta.
 4. **Soft closure:** `monthly_results.is_closed/closed_at/closed_by` permite "cerrar" un mes sin borrarlo.
-5. **JSONB flexible:** `invoices.scanned_data` (resultado OCR), `business_rules.value`, `notifications.metadata`, `scenarios.adjustments`.
+5. **JSONB flexible:** `invoices.scanned_data` (resultado OCR), `business_rules.value`, `alert_notifications.metadata`, `scenarios.adjustments`.
 6. **Enums fuertes** en `OperatingExpenseCategory` (15 valores), `StaffRole`, `ContractType`, `InvoiceStatus`, `WasteReason`, `StockMovementType`.
 
 ## Reglas duras al modificar el esquema

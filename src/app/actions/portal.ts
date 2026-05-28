@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabaseServer'
 import { logAuditEvent } from '@/lib/audit'
 import {
@@ -15,6 +16,7 @@ import {
     type PortalMeetingRequestResult,
     type PortalContext,
 } from '@/lib/portal'
+import { insertPortalNotification } from '@/lib/portal-queries'
 import { evaluateProfessionalReportQualityGate, type ProfessionalRestaurantReport } from '@/lib/reporting'
 import { getUserRestaurant } from './utils'
 
@@ -25,6 +27,7 @@ const MeetingRequestSchema = z.object({
     reportId: z.string().uuid(),
     message: z.string().max(2000).optional(),
 })
+const log = createActionLogger('portal-actions')
 
 export async function publishReportDraft(id: string): Promise<ActionResponse<{ id: string; publishedAt: string }>> {
     const parsed = DraftIdSchema.safeParse(id)
@@ -84,6 +87,23 @@ export async function publishReportDraft(id: string): Promise<ActionResponse<{ i
         target_id: data.id,
         restaurantId,
     })
+
+    const notificationRes = await insertPortalNotification({
+        restaurantId,
+        type: 'REPORT_PUBLISHED',
+        severity: 'INFO',
+        title: 'Informe publicado en portal',
+        message: 'El informe ya está visible para el cliente restaurante.',
+        reportId: data.id,
+        entityName: 'Informe publicado',
+        metadata: {
+            published_at: data.published_at,
+        },
+    })
+
+    if (notificationRes.error) {
+        log.warn({ err: notificationRes.error, reportId: data.id }, 'No se pudo crear la notificación de informe publicado')
+    }
 
     return { success: true, data: { id: data.id, publishedAt: data.published_at } }
 }

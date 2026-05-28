@@ -9,7 +9,9 @@ export const AlertTypeSchema = z.enum([
   'SUPPLIER_PRICE_INCREASE',
   'MENU_ITEM_UNPROFITABLE',
   'INVOICE_ANOMALY',
-  'PRICE_DISCREPANCY'
+  'PRICE_DISCREPANCY',
+  'REPORT_PUBLISHED',
+  'CLIENT_MEETING_REQUEST'
 ])
 
 export type AlertType = z.infer<typeof AlertTypeSchema>
@@ -47,12 +49,12 @@ export type AlertRule = z.infer<typeof AlertRuleSchema>
 export const AlertNotificationSchema = z.object({
   id: z.string().uuid().optional(),
   restaurant_id: z.string().uuid(),
-  rule_id: z.string().uuid(),
+  rule_id: z.string().uuid().nullable().optional(),
   type: AlertTypeSchema,
   severity: AlertSeveritySchema,
   title: z.string(),
   message: z.string(),
-  entity_type: z.enum(['INGREDIENT', 'RECIPE', 'SUPPLIER', 'INVOICE', 'MENU']),
+  entity_type: z.enum(['INGREDIENT', 'RECIPE', 'SUPPLIER', 'INVOICE', 'MENU', 'REPORT']),
   entity_id: z.string(),
   entity_name: z.string(),
   metadata: z.record(z.string(), z.unknown()).optional(),
@@ -173,5 +175,13 @@ export const ALERT_TEMPLATES: Record<AlertType, { title: string; message: string
   PRICE_DISCREPANCY: {
     title: 'Discrepancia de Precio',
     message: 'Diferencia de precio detectada entre proveedores para {{entity_name}}',
+  },
+  REPORT_PUBLISHED: {
+    title: 'Informe publicado',
+    message: 'El informe {{entity_name}} ya está visible en el portal cliente',
+  },
+  CLIENT_MEETING_REQUEST: {
+    title: 'Solicitud de reunión',
+    message: 'El cliente ha solicitado revisar {{entity_name}}',
   },
 }

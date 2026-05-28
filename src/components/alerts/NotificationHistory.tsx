@@ -79,6 +79,8 @@ export function NotificationHistory({ notifications, total }: NotificationHistor
         return `/invoices/${notification.entity_id}`
       case 'MENU':
         return '/menu-engineering'
+      case 'REPORT':
+        return `/portal/reports/${notification.entity_id}`
       default:
         return '#'
     }
