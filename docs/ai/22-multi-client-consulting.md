@@ -45,6 +45,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - `createAdminClientWorkspace(input)` crea `restaurants` con `owner_id` existente y, si se indica consultor, hace `upsert` en `consultant_restaurants` con `status='ACTIVE'`.
 - `ClientOnboardingWizard` es UI cliente para el alta guiada; no decide permisos ni envía `restaurant_id` operativo.
 - `ClientOnboardingWizard` muestra un recorrido post-alta orientado al primer informe publicado. Los enlaces apuntan a módulos existentes y no ejecutan acciones operativas por sí mismos.
+- Si la asignación del consultor falla después de crear el restaurante, `createAdminClientWorkspace()` hace rollback compensatorio eliminando el restaurante recién creado para evitar altas parciales.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -56,6 +57,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - No se crean usuarios de cliente final ni portal self-service de carga de datos en esta fase.
 - El alta guiada no crea usuarios Auth. Usa usuarios existentes como owner/consultor porque la creación de usuarios requiere un flujo admin separado.
 - El recorrido de primer informe no publica automáticamente ni carga datos. Solo ordena el trabajo del consultor; los bloqueos reales siguen en `/consultant` y `/reports`.
+- El estado inicial mostrado tras crear cliente es informativo: restaurante, owner, consultor y primer informe. No sustituye la cartera ni la checklist real de `/consultant`.
 - La tabla nueva tiene RLS y `GRANT SELECT` explícito para compatibilidad con la Data API moderna de Supabase.
 - La escritura de relaciones queda limitada por política RLS de super-admin (`public.is_super_admin()`, respaldada por `public.super_admins`), además del `requireAdmin()` de las actions.
 
@@ -75,6 +77,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - Si un usuario solo tiene relaciones de consultor y ningún restaurante propio, necesita seleccionar un cliente válido para que las pantallas operativas funcionen completamente.
 - Si hay un cliente duplicado como owner y como consultant link, el rol `OWNER` gana al fusionar cartera.
 - Si la política de super-admin o la allowlist `public.super_admins` no están aplicadas en Supabase real, la UI admin cargará pero las mutaciones pueden fallar por RLS.
+- Si falla la relación consultor-restaurante durante el alta guiada, el restaurante se limpia automáticamente. Si la limpieza falla, la action avisa que hay que revisar `/admin/restaurants`.
 
 ## 7. Al añadir/modificar una función aquí
 

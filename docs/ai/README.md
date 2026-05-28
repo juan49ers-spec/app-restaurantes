@@ -97,6 +97,7 @@ Cuando vayas a tocar una funcionalidad:
 - [Cierre Fase 29 — Deploy y validación producción](./phase-29-production-deploy.md) — despliegue Vercel, health check y QA visual remota.
 - [Cierre Fase 30 — Guía demo cliente](./phase-30-client-demo.md) — guion comercial para enseñar el flujo consultor -> cliente con seguridad.
 - [Cierre Fase 31 — Seguridad QA](./phase-31-qa-security.md) — credenciales E2E fuera del código y test guardia anti-secretos.
+- [Cierre Fase 32 — Onboarding real de clientes](./phase-32-client-onboarding.md) — alta consultor-first sin clientes incompletos y estado inicial claro.
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 

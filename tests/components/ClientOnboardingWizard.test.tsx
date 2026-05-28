@@ -43,6 +43,10 @@ describe('ClientOnboardingWizard', () => {
       })
     })
     expect(await screen.findByText('Nuevo Cliente creado correctamente.')).toBeInTheDocument()
+    expect(screen.getByText('Estado inicial')).toBeInTheDocument()
+    expect(screen.getByText('Restaurante creado')).toBeInTheDocument()
+    expect(screen.getByText('Owner asignado')).toBeInTheDocument()
+    expect(screen.getAllByText('Consultor asignado').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByRole('link', { name: /Ir a la cartera del consultor/i })).toHaveAttribute('href', '/consultant')
   })
 

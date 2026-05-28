@@ -8,18 +8,19 @@ const RELATIONSHIP_ID = '33333333-3333-4333-8333-333333333333'
 
 let calls: Array<{
   table: string
-  operation: 'upsert' | 'update' | 'insert'
+  operation: 'upsert' | 'update' | 'insert' | 'delete'
   value: Record<string, unknown>
   options?: Record<string, unknown>
   filters: Array<['eq', string, unknown]>
 }> = []
+let relationshipError: { message: string } | null = null
 
 class MockQuery {
   private filters: Array<['eq', string, unknown]> = []
 
   constructor(
     private readonly table: string,
-    private readonly operation: 'upsert' | 'update' | 'insert',
+    private readonly operation: 'upsert' | 'update' | 'insert' | 'delete',
     private readonly value: Record<string, unknown>,
     private readonly options?: Record<string, unknown>,
   ) {}
@@ -57,7 +58,10 @@ class MockQuery {
       options: this.options,
       filters: this.filters,
     })
-    return Promise.resolve({ data: null, error: null }).then(resolve, reject)
+    const error = this.table === 'consultant_restaurants' && this.operation === 'upsert'
+      ? relationshipError
+      : null
+    return Promise.resolve({ data: null, error }).then(resolve, reject)
   }
 }
 
@@ -67,6 +71,7 @@ const mockSupabase = {
       new MockQuery(table, 'upsert', value, options),
     update: (value: Record<string, unknown>) => new MockQuery(table, 'update', value),
     insert: (value: Record<string, unknown>) => new MockQuery(table, 'insert', value),
+    delete: () => new MockQuery(table, 'delete', {}),
   })),
 }
 
@@ -87,6 +92,7 @@ describe('admin consultant access actions', () => {
     vi.resetModules()
     vi.clearAllMocks()
     calls = []
+    relationshipError = null
   })
 
   it('upserts a consultant restaurant relationship with admin-only server validation', async () => {
@@ -182,6 +188,53 @@ describe('admin consultant access actions', () => {
         },
         options: { onConflict: 'consultant_user_id,restaurant_id' },
         filters: [],
+      },
+    ])
+  })
+
+  it('rolls back the created restaurant when consultant assignment fails during onboarding', async () => {
+    relationshipError = { message: 'RLS blocked relationship insert' }
+    const { createAdminClientWorkspace } = await import('@/app/actions/admin')
+
+    const result = await createAdminClientWorkspace({
+      restaurantName: 'Cliente Incompleto',
+      ownerUserId: CONSULTANT_ID,
+      consultantUserId: CONSULTANT_ID,
+    })
+
+    expect(result).toEqual({
+      success: false,
+      error: 'No se pudo asignar el consultor. El alta se ha cancelado sin dejar un cliente incompleto.',
+    })
+    expect(calls).toEqual([
+      {
+        table: 'restaurants',
+        operation: 'insert',
+        value: {
+          name: 'Cliente Incompleto',
+          owner_id: CONSULTANT_ID,
+        },
+        options: undefined,
+        filters: [],
+      },
+      {
+        table: 'consultant_restaurants',
+        operation: 'upsert',
+        value: {
+          consultant_user_id: CONSULTANT_ID,
+          restaurant_id: RESTAURANT_ID,
+          role: 'CONSULTANT',
+          status: 'ACTIVE',
+        },
+        options: { onConflict: 'consultant_user_id,restaurant_id' },
+        filters: [],
+      },
+      {
+        table: 'restaurants',
+        operation: 'delete',
+        value: {},
+        options: undefined,
+        filters: [['eq', 'id', RESTAURANT_ID]],
       },
     ])
   })

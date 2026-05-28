@@ -39,6 +39,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - `ClientOnboardingWizard`: alta guiada de restaurante cliente para el modelo consultor-first.
 - Crea un restaurante con `owner_id` existente y, opcionalmente, una relación `consultant_restaurants` activa con el consultor.
 - Después del alta muestra el recorrido comercial hacia el primer informe publicado: seleccionar cliente activo, importar ventas/gastos, completar datos operativos, guardar READY, publicar y validar portal.
+- También muestra un estado inicial del alta: restaurante creado, owner asignado, consultor asignado y primer informe pendiente.
 - El bloque final recuerda ejecutar `npm run qa:client-flow` antes de enseñar el portal con datos reales.
 
 ### `/admin/billing`
@@ -72,13 +73,14 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - `endBroadcast(id)`.
 - `upsertConsultantRestaurantAccess(payload)` — crea/actualiza relación consultor-restaurante. Requiere admin, valida UUID/rol/estado con Zod y usa `upsert` por `(consultant_user_id, restaurant_id)`.
 - `updateConsultantRestaurantAccessStatus(payload)` — cambia estado de una relación existente. Requiere admin y revalida `/admin/consultants` + `/consultant`.
-- `createAdminClientWorkspace(payload)` — crea restaurante cliente con owner existente y relación opcional con consultor. Requiere admin, valida con Zod y revalida `/admin/restaurants`, `/admin/consultants`, `/admin/client-onboarding` y `/consultant`.
+- `createAdminClientWorkspace(payload)` — crea restaurante cliente con owner existente y relación opcional con consultor. Requiere admin, valida con Zod y revalida `/admin/restaurants`, `/admin/consultants`, `/admin/client-onboarding` y `/consultant`. Si falla la relación con consultor, intenta limpiar el restaurante recién creado para no dejar un cliente incompleto.
 - `logAuditEvent(event)` inserta eventos operativos explícitos en `admin_audit_log` sin bloquear la acción principal si la auditoría falla. Se usa para impersonación, publicación/despublicación de informes, solicitudes de reunión, cambios de cliente activo del consultor, branding del consultor y cambios de estado de reunión.
 
 **Componentes:**
 - `AdminShell` — sidebar admin con NAV_ITEMS hardcoded.
 - `AdminDashboardClient`, `RestaurantList`, `UserManagement`, `ConsultantAccessManager`, `ClientOnboardingWizard`, `BillingManager`, `BillingModulesConfig`, `AuditLogViewer`, `ValidationInboxComponent`.
 - `ClientOnboardingWizard` muestra enlaces de navegación hacia módulos existentes, pero no ejecuta imports, no publica informes y no salta el quality gate.
+- El estado inicial de `ClientOnboardingWizard` es derivado de los usuarios ya cargados y de la respuesta de `createAdminClientWorkspace`; no concede permisos ni sustituye la cartera de `/consultant`.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -98,6 +100,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - **Filtros admin de consultores:** son estado local de UI; no cambian permisos. Las mutaciones siguen pasando por server action + RLS.
 - **Alta guiada:** no crea restaurantes sin owner. `restaurants.owner_id` es obligatorio, por lo que el admin debe seleccionar un usuario existente como owner.
 - **Primer informe:** la guía post-alta no sustituye la checklist de `/consultant` ni el quality gate de `/reports`; solo reduce fricción operativa para el consultor.
+- **Sin altas parciales:** si el restaurante se crea pero falla asignar consultor, la action revierte eliminando ese restaurante recién creado. Si también falla la limpieza, avisa explícitamente para revisar `/admin/restaurants`.
 
 ## 5. Dependencias e implicaciones cruzadas
 

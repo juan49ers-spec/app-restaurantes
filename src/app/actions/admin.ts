@@ -207,10 +207,23 @@ export async function createAdminClientWorkspace(
 
         if (relationshipError) {
             log.error({ err: relationshipError, restaurantId: restaurant.id }, 'Error assigning consultant during onboarding')
+            const { error: cleanupError } = await supabase
+                .from('restaurants')
+                .delete()
+                .eq('id', restaurant.id)
+
+            if (cleanupError) {
+                log.error({ err: cleanupError, restaurantId: restaurant.id }, 'Error rolling back client restaurant after consultant assignment failure')
+                return {
+                    success: false,
+                    error: 'No se pudo asignar el consultor y tampoco limpiar el restaurante creado. Revisa el panel de restaurantes.',
+                    restaurantId: restaurant.id,
+                }
+            }
+
             return {
                 success: false,
-                error: 'Restaurante creado, pero no se pudo asignar el consultor.',
-                restaurantId: restaurant.id,
+                error: 'No se pudo asignar el consultor. El alta se ha cancelado sin dejar un cliente incompleto.',
             }
         }
     }

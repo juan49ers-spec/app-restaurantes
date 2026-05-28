@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
-import { ArrowRight, CheckCircle2, ClipboardCheck, Loader2, Store, UploadCloud } from 'lucide-react'
+import { ArrowRight, CheckCircle2, CircleDashed, ClipboardCheck, Loader2, Store, UploadCloud } from 'lucide-react'
 import { createAdminClientWorkspace } from '@/app/actions/admin'
 import type { AdminConsultantAccessData } from '@/app/actions/admin-queries'
 import { Button } from '@/components/ui/button'
@@ -64,6 +64,28 @@ export function ClientOnboardingWizard({ data }: ClientOnboardingWizardProps) {
     () => data.users.find(user => user.id === consultantUserId),
     [consultantUserId, data.users]
   )
+  const initialStatusItems = [
+    {
+      label: 'Restaurante creado',
+      complete: Boolean(createdRestaurant),
+      detail: createdRestaurant?.name ?? 'Pendiente de crear',
+    },
+    {
+      label: 'Owner asignado',
+      complete: Boolean(selectedOwner),
+      detail: selectedOwner?.email ?? 'Selecciona un owner',
+    },
+    {
+      label: 'Consultor asignado',
+      complete: Boolean(selectedConsultant),
+      detail: selectedConsultant?.email ?? 'Puede asignarse más tarde',
+    },
+    {
+      label: 'Primer informe',
+      complete: false,
+      detail: 'Se prepara desde la mesa del consultor',
+    },
+  ] as const
 
   function createWorkspace() {
     startTransition(async () => {
@@ -162,6 +184,25 @@ export function ClientOnboardingWizard({ data }: ClientOnboardingWizardProps) {
               </a>
             </div>
           )}
+
+          <div className="rounded-xl border border-white/5 bg-neutral-950/60 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-neutral-500">Estado inicial</p>
+            <div className="mt-3 space-y-2">
+              {initialStatusItems.map(item => (
+                <div key={item.label} className="flex items-start gap-2">
+                  {item.complete ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
+                  ) : (
+                    <CircleDashed className="mt-0.5 h-4 w-4 text-neutral-500" />
+                  )}
+                  <div>
+                    <p className="text-xs font-bold text-neutral-100">{item.label}</p>
+                    <p className="text-[11px] leading-4 text-neutral-500">{item.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
