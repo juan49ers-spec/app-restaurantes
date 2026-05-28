@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabaseServer"
 import { format, startOfMonth, endOfMonth } from "date-fns"
 import { redirect } from "next/navigation"
 import { EXPENSE_GROUPS, DailySales, OperatingExpense } from "@/types/schema"
+import { isAdminEmail } from "@/lib/admin-emails"
 
 interface PageProps {
   searchParams: Promise<{
@@ -21,8 +22,7 @@ export default async function DashboardPage(props: PageProps) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase())
+  const isAdmin = isAdminEmail(user?.email)
 
   if (isAdmin) {
     redirect('/admin')

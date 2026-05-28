@@ -12,7 +12,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 
 ### `/admin` (dashboard)
 
-1. Admin entra. `AdminLayout` verifica `user.email ∈ ADMIN_EMAILS`. Si no, `redirect('/')`.
+1. Admin entra. `AdminLayout` verifica `isAdminEmail(user.email)`. Si no, `redirect('/')`.
 2. Layout envuelve en `<AdminShell>` (sidebar + nav). La ruta admin fuerza render dinámico (`dynamic = 'force-dynamic'`) porque depende de sesión/cookies y queries Supabase.
 3. Page carga `getAdminDashboardData()`:
    - Total restaurantes activos, ventas/gastos del mes, 50 audit logs recientes.
@@ -71,7 +71,8 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 
 ## 4. Reglas de negocio y restricciones
 
-- **Acceso:** check de email contra `ADMIN_EMAILS` en `AdminLayout`. Si email no está, redirect inmediato.
+- **Acceso app:** check de email con `isAdminEmail()` en `AdminLayout`. Si email no está en `ADMIN_EMAILS`, redirect inmediato.
+- **Acceso RLS admin:** mutaciones protegidas por SQL usan `public.is_super_admin()`, que lee `public.super_admins`.
 - **`requireAdmin()` en TODAS las queries y mutations:** doble cinturón (layout + action).
 - **`requireSuperAdmin()`** para mutaciones de billing — debe quedar más restrictivo que admin general (en la práctica son los mismos emails actualmente, pero el helper existe para diferenciar a futuro).
 - **`active_addons` se sincroniza con `modules`** cada vez que se actualiza el plan. Si los desincronizas, los filtros del sidebar de usuarios fallan.
@@ -96,7 +97,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 
 ## 6. Casos límite y errores conocidos
 
-- **Email admin con espacio inicial:** se compara con `.trim().toLowerCase()`. Asegúrate de que `ADMIN_EMAILS` esté en minúsculas sin espacios.
+- **Email admin con espacio inicial:** se compara con `.trim().toLowerCase()`. Asegúrate de que `ADMIN_EMAILS` esté separado por comas y sin espacios innecesarios.
 - **Eliminar restaurante con su único owner:** el owner queda huérfano (sin restaurante). En su próximo login irá a `/onboarding`.
 - **Cambiar plan de un restaurante impersonado:** la cookie se mantiene, pero al refrescar la app, el sidebar puede actualizar antes que la cookie. Operacionalmente OK pero confuso.
 - **Validation inbox cross-restaurant:** tiene una lógica mixta — `page.tsx` lee `ingestion_buffer` filtrando por `restaurant_id` del usuario logueado (no admin general). Confirmar si es intencional.
@@ -133,9 +134,10 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - Audit log con paginación → cargar página 2.
 
 **Si añades un nuevo email admin:**
-1. Edita `ADMIN_EMAILS` en `middleware.ts`, `app/page.tsx` y `actions/admin-queries.ts`.
-2. Probar login con ese email → debe redirigir a `/admin`.
-3. Considerar centralizar la lista en un sitio único (refactor pendiente).
+1. Edita `ADMIN_EMAILS` en `.env.local` y en el entorno de Vercel.
+2. Inserta el mismo email en `public.super_admins` para que las políticas RLS admin también lo acepten.
+3. Probar login con ese email → debe redirigir a `/admin` y poder ejecutar una mutación admin.
+4. No añadas whitelists hardcoded nuevas; usa `src/lib/admin-emails.ts`.
 
 **Si añades una nueva mutación admin:**
 1. `requireAdmin()` o `requireSuperAdmin()` al inicio.
@@ -144,6 +146,6 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 4. `revalidatePath('/admin/...')` + `revalidatePath('/', 'layout')` para refrescar el usuario afectado.
 
 **Cambios delicados:**
-- Centralizar `ADMIN_EMAILS` en una tabla o env var: bueno a futuro, requiere actualizar 3+ referencias.
+- Mover admins a una tabla/RBAC real: bueno a futuro si el panel admin crece, pero hoy `ADMIN_EMAILS` centralizado en env es suficiente.
 - Convertir borrado de restaurante en soft delete: cambia el contrato actual ("eliminar = irrecuperable").
 - Cambiar `auth.uid()` durante impersonación: rompe la trazabilidad. No hacer.

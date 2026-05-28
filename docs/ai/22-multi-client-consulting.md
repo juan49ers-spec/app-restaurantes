@@ -46,7 +46,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - El modelo n=1 sigue siendo válido. Si el usuario solo tiene un restaurante, el panel de cartera no se muestra.
 - No se crean usuarios de cliente final ni portal self-service de carga de datos en esta fase.
 - La tabla nueva tiene RLS y `GRANT SELECT` explícito para compatibilidad con la Data API moderna de Supabase.
-- La escritura de relaciones queda limitada por política RLS de super-admin (`public.is_super_admin()`), además del `requireAdmin()` de las actions.
+- La escritura de relaciones queda limitada por política RLS de super-admin (`public.is_super_admin()`, respaldada por `public.super_admins`), además del `requireAdmin()` de las actions.
 
 ## 5. Dependencias e implicaciones cruzadas
 
@@ -63,7 +63,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - Si la cookie apunta a un restaurante ya revocado, se ignora y se vuelve al restaurante propio/fallback.
 - Si un usuario solo tiene relaciones de consultor y ningún restaurante propio, necesita seleccionar un cliente válido para que las pantallas operativas funcionen completamente.
 - Si hay un cliente duplicado como owner y como consultant link, el rol `OWNER` gana al fusionar cartera.
-- Si la política de super-admin no está aplicada en Supabase real, la UI admin cargará pero las mutaciones pueden fallar por RLS.
+- Si la política de super-admin o la allowlist `public.super_admins` no están aplicadas en Supabase real, la UI admin cargará pero las mutaciones pueden fallar por RLS.
 
 ## 7. Al añadir/modificar una función aquí
 

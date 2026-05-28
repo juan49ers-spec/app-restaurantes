@@ -11,14 +11,10 @@
 
 ## Decisión de rol
 
-- **No hay tabla `user_roles`.** El rol se decide por email contra una whitelist hardcoded.
-- **Lista de admins:** `ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']`.
-- Esta lista aparece **en tres sitios** y debe mantenerse sincronizada:
-  - `src/proxy.ts`
-  - `src/app/page.tsx:23`
-  - `src/app/actions/admin-queries.ts` (y derivados de admin actions)
-
-Implicación: añadir/quitar un admin = editar las 3 referencias.
+- **No hay tabla `user_roles`.** El rol admin se decide por email contra `ADMIN_EMAILS`.
+- **Lista de admins app:** se centraliza en `src/lib/admin-emails.ts`, que lee `process.env.ADMIN_EMAILS` y usa fallback seguro si la variable no existe.
+- **Lista de admins SQL:** `public.super_admins` alimenta `public.is_super_admin()` para políticas RLS.
+- **Implicación:** añadir/quitar un admin = actualizar `ADMIN_EMAILS` en el entorno de despliegue y `public.super_admins` en Supabase. No duplicar listas en páginas, proxy ni actions.
 
 ## Proxy (`src/proxy.ts`)
 
@@ -53,7 +49,7 @@ En cada render:
 
 Centralizada en `src/app/actions/utils.ts::getUserRestaurant()` con orden de prioridad:
 
-1. **Si es admin con impersonación activa** (cookie `impersonated_restaurant_id` + email en `ADMIN_EMAILS`): usa ese `restaurant_id`.
+1. **Si es admin con impersonación activa** (cookie `impersonated_restaurant_id` + `isAdminEmail(user.email)`): usa ese `restaurant_id`.
 2. **Si hay cliente de consultoría activo** (cookie `active_consultant_restaurant_id`): solo se usa si existe una relación `consultant_restaurants` activa para `auth.uid()`.
 3. Restaurante donde `owner_id = user.id`.
 4. Fallback: `user.user_metadata.restaurant_id`.
@@ -102,7 +98,7 @@ En `src/lib/auth-helpers.ts` y en `src/app/actions/`:
 
 - `requireAuth()` — redirige a `/login` si no hay usuario.
 - `requireRestaurant()` — redirige a `/onboarding` si no hay restaurante.
-- `requireAdmin()` — checa email contra `ADMIN_EMAILS`. Si no, `redirect('/')` o error.
+- `requireAdmin()` — checa email con `isAdminEmail()`. Si no, `redirect('/')` o error.
 - `requireSuperAdmin()` — más restrictivo (usado en billing actions). Actualmente equivalente a `requireAdmin` salvo confirmar.
 
 Patrón de uso en una page server:
@@ -143,7 +139,7 @@ export default async function Page() {
 
 1. Cualquier mutación que toque datos de un restaurante debe resolver el `restaurant_id` server-side.
 2. Cualquier ruta admin debe llamar `requireAdmin()` antes de cualquier query.
-3. Si añades un nuevo email admin, edítalo en los 3 sitios donde está hardcoded.
+3. Si añades un nuevo email admin, actualiza `ADMIN_EMAILS` en `.env.local`/Vercel y añade el email a `public.super_admins`; no hardcodees listas nuevas.
 4. Si añades un nuevo módulo de plan, debes: (a) añadirlo al enum de `modules`, (b) actualizar el filtro de sidebar, (c) actualizar `toggleRestaurantModule()` para sincronizar `active_addons`.
 5. **No** confíes en el cliente para decidir si el usuario es admin. Re-validar siempre en server.
 6. Si una página debe ocultarse del sidebar pero requerir acceso directo controlado, comprobar `active_addons` también en el server de la página, no solo en el sidebar.
@@ -151,7 +147,7 @@ export default async function Page() {
 ## Cosas no obvias
 
 - El layout root **siempre** consulta `getActiveBroadcasts()` sin caché. Cada render del layout = una consulta a `broadcasts`.
-- El email se compara con `email.trim().toLowerCase()`. Asegúrate de meter los emails en `ADMIN_EMAILS` ya en minúsculas.
+- El email se compara con `email.trim().toLowerCase()`. Asegúrate de meter los emails en `ADMIN_EMAILS` separados por coma y sin espacios innecesarios.
 - La impersonación NO cambia el `auth.uid()`. Sigue siendo el admin. Los `audit_logs` van a registrar al admin como `changed_by`, pero los datos modificados van al `restaurant_id` impersonado. Útil para auditoría.
 - `requireRestaurant()` está en `lib/auth-helpers.ts` pero no se usa universalmente — algunas páginas validan manualmente con `getCurrentRestaurant()` + `redirect`.
 - El onboarding hace `window.location.href` (no `router.push`) a propósito: necesita re-ejecutar el proxy con la nueva sesión/cookies.

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from "@/lib/supabaseServer"
+import { isAdminEmail } from "@/lib/admin-emails"
 import { redirect } from "next/navigation"
 
 async function getOptionalCookieValue(name: string) {
@@ -23,8 +24,7 @@ export async function getUserRestaurant(): Promise<string | null> {
 
     // --- IMPERSONATION LOGIC ---
     // Only super admins can impersonate a restaurant.
-    const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-    if (user.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
+    if (isAdminEmail(user.email)) {
         const impersonatedId = await getOptionalCookieValue('impersonated_restaurant_id')
         if (impersonatedId) {
             return impersonatedId

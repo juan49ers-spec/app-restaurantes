@@ -12,6 +12,7 @@ import { cookies } from "next/headers"
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner"
 import { BroadcastBanner } from "@/components/common/BroadcastBanner"
 import { getActiveBroadcasts } from "@/app/actions/broadcasts"
+import { isAdminEmail } from "@/lib/admin-emails"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -43,6 +44,7 @@ export default async function RootLayout({
     ? await supabase.auth.getUser()
     : { data: { user: null } }
   const impersonatedRestaurantName = cookieStore.get('impersonated_restaurant_name')?.value
+  const isAdmin = isAdminEmail(user?.email)
 
   // Get active addons and restaurant info for navigation filtering
   let activeAddons: string[] = []
@@ -63,7 +65,7 @@ export default async function RootLayout({
       <body className={`${inter.variable} antialiased min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950/50 selection:bg-primary/30 selection:text-primary-foreground font-sans`}>
         <BroadcastBanner broadcasts={broadcasts} />
         <MotionProvider>
-          <AppLayout user={user ?? undefined} activeAddons={activeAddons} restaurantId={restaurantId} restaurantName={restaurantName}>
+          <AppLayout user={user ?? undefined} activeAddons={activeAddons} restaurantId={restaurantId} restaurantName={restaurantName} isAdmin={isAdmin}>
             {children}
           </AppLayout>
         </MotionProvider>

@@ -33,9 +33,10 @@ interface SidebarProps {
     activeAddons?: string[]
     restaurantId?: string
     restaurantName?: string
+    isAdmin?: boolean
 }
 
-export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile, activeAddons = [], restaurantId, restaurantName }: SidebarProps) {
+export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollapse, isMobile, activeAddons = [], restaurantId, restaurantName, isAdmin = false }: SidebarProps) {
     const pathname = usePathname()
     const router = useRouter()
 
@@ -71,6 +72,7 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                         activeAddons={activeAddons}
                         restaurantId={restaurantId}
                         restaurantName={restaurantName}
+                        isAdmin={isAdmin}
                     />
                 </SheetContent>
             </Sheet>
@@ -99,6 +101,7 @@ export function Sidebar({ className, user, collapsed, setCollapsed: toggleCollap
                 activeAddons={activeAddons}
                 restaurantId={restaurantId}
                 restaurantName={restaurantName}
+                isAdmin={isAdmin}
             />
         </aside>
     )
@@ -115,9 +118,10 @@ interface SidebarContentProps {
     activeAddons: string[]
     restaurantId?: string
     restaurantName?: string
+    isAdmin: boolean
 }
 
-function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout, activeAddons, restaurantId, restaurantName }: SidebarContentProps) {
+function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGroups, user, onLogout, activeAddons, restaurantId, restaurantName, isAdmin }: SidebarContentProps) {
     const router = useRouter()
 
     const getInitials = () => {
@@ -135,11 +139,10 @@ function SidebarContent({ pathname, collapsed, toggleCollapse, isMobile, menuGro
 
     const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Invitado"
     const userRole = user?.user_metadata?.role || "Usuario"
-    const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-    const isAdmin = userRole === 'admin' || userRole === 'superadmin' || (user?.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase()))
+    const canSeeAllModules = isAdmin || userRole === 'admin' || userRole === 'superadmin'
 
     const filteredMenuGroups = menuGroups.map(group => {
-        if (isAdmin) return group // Admins see everything
+        if (canSeeAllModules) return group // Admins see everything
         if (group.title === "CORE") return group
         if (group.title === "OPERATIVA" && activeAddons.includes('operativa')) return group
         if (group.title === "ESTRUCTURA" && activeAddons.includes('personal')) return group

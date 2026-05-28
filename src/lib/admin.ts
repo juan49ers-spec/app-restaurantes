@@ -1,10 +1,5 @@
 import { createClient } from "@/lib/supabaseServer"
-
-function getAdminEmails(): string[] {
-    const envAdmins = process.env.ADMIN_EMAILS
-    if (!envAdmins) return []
-    return envAdmins.split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
-}
+import { getAdminEmailList, isAdminEmail } from "@/lib/admin-emails"
 
 export async function isSuperAdmin(userId?: string): Promise<boolean> {
     const supabase = await createClient()
@@ -12,13 +7,13 @@ export async function isSuperAdmin(userId?: string): Promise<boolean> {
     if (!userId) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user?.email) return false
-        return getAdminEmails().includes(user.email.trim().toLowerCase())
+        return isAdminEmail(user.email)
     }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user || user.id !== userId) return false
     if (!user.email) return false
-    return getAdminEmails().includes(user.email.trim().toLowerCase())
+    return isAdminEmail(user.email)
 }
 
 export async function requireAdmin() {
@@ -29,13 +24,10 @@ export async function requireAdmin() {
         throw new Error("Unauthorized: authentication required")
     }
 
-    if (!getAdminEmails().includes(user.email.trim().toLowerCase())) {
+    if (!isAdminEmail(user.email)) {
         throw new Error("Unauthorized: admin access required")
     }
 
     return user
 }
-
-export function getAdminEmailList(): string[] {
-    return getAdminEmails()
-}
+export { getAdminEmailList }

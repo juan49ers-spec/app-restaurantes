@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isAdminEmail } from '@/lib/admin-emails'
 
 function hasSupabaseAuthCookie(request: NextRequest) {
     return request.cookies
@@ -75,8 +76,7 @@ export async function proxy(request: NextRequest) {
         }
 
         // Redirección centralizada para base de roles
-        const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
-        const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.trim().toLowerCase())
+        const isAdmin = isAdminEmail(user?.email)
 
         // Si intenta ir a /login ya estando logueado
         if (user && request.nextUrl.pathname.startsWith('/login')) {

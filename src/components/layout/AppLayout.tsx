@@ -16,9 +16,10 @@ interface AppLayoutProps {
     activeAddons?: string[]
     restaurantId?: string
     restaurantName?: string
+    isAdmin?: boolean
 }
 
-export function AppLayout({ children, user, activeAddons = [], restaurantId, restaurantName }: AppLayoutProps) {
+export function AppLayout({ children, user, activeAddons = [], restaurantId, restaurantName, isAdmin = false }: AppLayoutProps) {
     const [collapsed, setCollapsed] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     const [scenarioId, setScenarioId] = useState<string | null>(null)
@@ -83,6 +84,7 @@ export function AppLayout({ children, user, activeAddons = [], restaurantId, res
                 activeAddons={activeAddons}
                 restaurantId={restaurantId}
                 restaurantName={restaurantName}
+                isAdmin={isAdmin}
             />
             <main
                 className={cn(

@@ -36,4 +36,13 @@ describe('RLS policy coverage for critical tenant tables', () => {
     expect(sql).toContain('super admins can manage consultant client links')
     expect(sql).toContain('with check (public.is_super_admin())')
   })
+
+  it('keeps super admin checks backed by a database allowlist', () => {
+    const sql = migrationSql()
+
+    expect(sql).toContain('create table if not exists public.super_admins')
+    expect(sql).toContain('create or replace function public.is_super_admin()')
+    expect(sql).toContain('join public.super_admins')
+    expect(sql).toContain('grant execute on function public.is_super_admin() to authenticated')
+  })
 })

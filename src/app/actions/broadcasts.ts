@@ -1,13 +1,12 @@
 'use server'
 
 import { createActionLogger } from '@/lib/logger'
+import { isAdminEmail } from '@/lib/admin-emails'
 import { createClient } from '@/lib/supabaseServer'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 const log = createActionLogger('broadcasts')
-
-const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
 
 const broadcastSchema = z.object({
     title: z.string().min(1, 'El título es obligatorio'),
@@ -24,7 +23,7 @@ export async function requireSuperAdmin() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.trim().toLowerCase())) {
+    if (!user || !user.email || !isAdminEmail(user.email)) {
         throw new Error('No tienes permisos de super_admin')
     }
 

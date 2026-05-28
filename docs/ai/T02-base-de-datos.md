@@ -62,13 +62,14 @@
 | `professional_report_drafts` | `restaurant_id`, `period_from`, `period_to`, `version`, `status`, `schema_version`, `report_snapshot` (JSONB), `narrative_overrides` (JSONB), `exported_at`, `published_at`, `published_by`, `viewed_at` | Versiones guardadas de informes profesionales. Snapshot inmutable para exportacion. Desde Fase 6 puede incluir `menu_performance`; desde Fase 8 puede incluir `menu_engineering` derivado de un snapshot BCG `ANALYZED`. Desde Fase 9 solo las filas con `published_at IS NOT NULL` aparecen en el portal cliente. Desde Fase 14, `viewed_at` registra la apertura del detalle web del informe por el cliente/restaurante. |
 | `portal_meeting_requests` | `restaurant_id`, `report_id`, `message`, `status`, `created_by`, `created_at` | Solicitudes de reunión desde el portal cliente. `status`: `PENDING`, `ACKNOWLEDGED`, `COMPLETED`. RLS por restaurante propietario. |
 | `consultant_restaurants` | `consultant_user_id`, `restaurant_id`, `role`, `status` | Relación explícita consultor-restaurante para cartera multi-cliente. `status='ACTIVE'` permite seleccionar el restaurante en `/consultant`; `PAUSED`/`REVOKED` no dan acceso operativo. La escritura queda limitada a super-admins por política RLS adicional. |
+| `super_admins` | `email`, `created_at` | Allowlist SQL de super-admins usada por `public.is_super_admin()`. Debe mantenerse alineada con `ADMIN_EMAILS` del entorno de la app. |
 | `menu_reports` / `menu_report_items` | `menu_reports.restaurant_id`, snapshots de coste/precio/cantidad en items | Informes BCG de Menu Engineering. Desde `20260526083000_secure_menu_engineering_rls.sql` ambos tienen RLS: `menu_reports` filtra por restaurante propietario y `menu_report_items` hereda permisos por su reporte padre. |
 | `ingestion_buffer` | items extraídos por OCR pendientes de mapear | Cola intermedia entre OCR y `invoice_items` confirmados. |
 
 ## RLS (Row Level Security)
 
 - **Patrón base:** `USING (restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()))`.
-- Tablas globales (`billing_modules`, `broadcasts`, `auth.users`) tienen políticas distintas o son leídas en server con service role.
+- Tablas globales (`billing_modules`, `broadcasts`, `super_admins`, `auth.users`) tienen políticas distintas o son leídas en server con service role/funciones `SECURITY DEFINER`.
 - `audit_logs` requiere rol admin para SELECT (lo consume `/admin/audit`).
 - **No bypass cliente:** todas las acciones de mutación se hacen en server actions; el `restaurant_id` se inyecta server-side (ver [T03](./T03-autenticacion.md)).
 
@@ -101,6 +102,7 @@ Usadas como operaciones atómicas (transacciones):
 - `process_daily_sales_atomic(restaurant_id, date, sales jsonb)` — explota recetas vendidas en consumo de ingredientes y deduce stock. Lo llama `processRecipeSales`.
 - `increment_inventory_stock(restaurant_id, ingredient_id, delta)` — entrada/salida con check de no-negativos.
 - `admin_list_users()`, `admin_update_user_restaurant(...)`, `admin_delete_restaurant_cascade(...)`, `admin_get_system_health()` — operaciones de super-admin.
+- `public.is_super_admin()` — función `SECURITY DEFINER` que cruza `auth.users.email` con `public.super_admins`. Alimenta políticas RLS admin.
 
 ## Convenciones transversales
 
