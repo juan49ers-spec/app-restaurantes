@@ -100,6 +100,7 @@ Cuando vayas a tocar una funcionalidad:
 - [Cierre Fase 32 — Onboarding real de clientes](./phase-32-client-onboarding.md) — alta consultor-first sin clientes incompletos y estado inicial claro.
 - [Cierre Fase 33 — Importación asistida](./phase-33-assisted-imports.md) — validación compartida de archivos CSV antes de preview/preflight/import.
 - [Cierre Fase 34 — Primer informe guiado](./phase-34-first-report-guide.md) — asistente operativo para llevar el primer informe hasta `/reports` y `/portal` sin saltarse quality gate.
+- [Cierre Fase 35 — Portal Cliente V4](./phase-35-client-portal-v4.md) — plan accionable dentro del informe para guiar lectura, prioridades y reunión.
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 

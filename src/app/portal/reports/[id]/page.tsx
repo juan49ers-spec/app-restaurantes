@@ -3,6 +3,7 @@ import { getCurrentRestaurant } from '@/app/actions/user'
 import { formatPortalKpiValue } from '@/components/portal/format'
 import { PortalChapterSection } from '@/components/portal/PortalChapterSection'
 import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
+import { PortalClientReviewPlan } from '@/components/portal/PortalClientReviewPlan'
 import { PortalDeliveryPack } from '@/components/portal/PortalDeliveryPack'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalExpenseBreakdown } from '@/components/portal/PortalExpenseBreakdown'
@@ -19,7 +20,7 @@ import {
   getPublishedReportDetailForRestaurant,
   markPublishedReportViewedForRestaurant,
 } from '@/lib/portal'
-import { buildPortalSuggestedActions } from '@/lib/portal-insights'
+import { buildPortalClientReviewPlan, buildPortalSuggestedActions } from '@/lib/portal-insights'
 import type { ProfessionalReportSection } from '@/lib/reporting'
 
 interface PortalReportDetailPageProps {
@@ -59,18 +60,25 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
     }),
   ])
   const suggestedActions = buildPortalSuggestedActions(presentation)
+  const reviewPlan = buildPortalClientReviewPlan({
+    viewedAt: draft.viewedAt,
+    meetingStatus: draft.meetingStatus,
+    suggestedActions,
+  })
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="min-w-0 space-y-6">
-        <PortalExecutiveBrief
-          presentation={presentation}
-          reportId={draft.id}
-          version={draft.version}
-          status={draft.status}
-          mode="detail"
-          restaurantName={restaurant.name}
-        />
+        <div id="resumen-ejecutivo">
+          <PortalExecutiveBrief
+            presentation={presentation}
+            reportId={draft.id}
+            version={draft.version}
+            status={draft.status}
+            mode="detail"
+            restaurantName={restaurant.name}
+          />
+        </div>
 
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {presentation.kpis.map(kpi => (
@@ -96,8 +104,12 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
 
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
           {comparisonRes.data && <PortalPeriodComparisonPanel comparison={comparisonRes.data} />}
-          <PortalSuggestedActions actions={suggestedActions} />
+          <div id="acciones-sugeridas">
+            <PortalSuggestedActions actions={suggestedActions} />
+          </div>
         </section>
+
+        <PortalClientReviewPlan plan={reviewPlan} />
 
         {trendRes.data && <PortalMultiPeriodTrend trend={trendRes.data} />}
         {expenseBreakdownRes.data && <PortalExpenseBreakdown breakdown={expenseBreakdownRes.data} />}
@@ -130,7 +142,9 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
         <div className="lg:sticky lg:top-6">
           <div className="space-y-4">
             <PortalChapterNavigation chapters={presentation.chapters} />
-            <PortalMeetingRequestDialog reportId={draft.id} />
+            <div id="solicitar-reunion">
+              <PortalMeetingRequestDialog reportId={draft.id} />
+            </div>
             <div className="rounded-lg border border-slate-200 bg-white p-5">
               <p className="text-sm font-semibold text-slate-950">Calidad del informe</p>
               <p className="mt-3 text-3xl font-semibold text-slate-950">{report.quality.confidence}%</p>

@@ -19,10 +19,11 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 5. Ve una comparativa ejecutiva del periodo publicado frente al mes anterior: ventas, gastos, resultado operativo y presión de gasto.
 6. En el detalle, consulta tendencia de hasta 3 meses y desglose de gastos por categoría para entender evolución y focos de coste.
 7. Revisa acciones sugeridas deterministas basadas en KPIs/conclusiones del snapshot, sin IA generativa.
-8. En el detalle, navega por capítulos mediante anclas internas sin salir del portal.
-9. Puede consultar el histórico de informes publicados, con estado claro del ciclo de entrega: nuevo, leído, reunión solicitada, en preparación o revisado.
-10. Puede solicitar una reunión de revisión.
-11. Puede volver a ControlHub para operar la app interna.
+8. En el detalle, ve un plan de revisión accionable que le indica si toca leer el informe, revisar prioridades, pedir reunión o esperar al consultor.
+9. En el detalle, navega por capítulos mediante anclas internas sin salir del portal.
+10. Puede consultar el histórico de informes publicados, con estado claro del ciclo de entrega: nuevo, leído, reunión solicitada, en preparación o revisado.
+11. Puede solicitar una reunión de revisión.
+12. Puede volver a ControlHub para operar la app interna.
 
 ## 3. Flujo técnico de datos
 
@@ -43,6 +44,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `PortalMultiPeriodTrend` muestra hasta 3 meses de ventas, gastos y resultado operativo. Consume `PortalMultiPeriodTrend` calculado en servidor desde datos agregados.
 - `PortalExpenseBreakdown` muestra gastos por categoría, ordenados por variación absoluta frente al mes anterior. Consume `PortalExpenseCategoryBreakdown` calculado en servidor y usa etiquetas españolas de `EXPENSE_CATEGORY_LABELS`.
 - `PortalSuggestedActions` muestra hasta 3 acciones sugeridas a revisar con el consultor. Las acciones salen de `buildPortalSuggestedActions(presentation)`, una función pura basada en tonos de KPIs/conclusiones.
+- `PortalClientReviewPlan` muestra el plan accionable del cliente para el detalle del informe. Consume `buildPortalClientReviewPlan({ viewedAt, meetingStatus, suggestedActions })` y no persiste estado propio.
 - `PortalReviewRoadmap` muestra el recorrido de revisión del cliente: informe publicado, lectura, estado de reunión y próximas acciones. Consume `viewed_at`, `meetingStatus` y número de acciones sugeridas; no persiste estado nuevo.
 - `PortalReportSummary` mantiene el histórico publicado con enlaces al detalle web y PDF imprimible. Además muestra el estado de entrega derivado de `viewed_at` y de la última solicitud de reunión.
 - `PortalMeetingRequestDialog` usa `/api/portal/meeting-request` para solicitar reunión desde el cliente. Mantiene un estado optimista persistido en `sessionStorage` por informe para que el feedback "Solicitud registrada" sobreviva a remounts del árbol cliente tras la petición.
@@ -119,6 +121,8 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - El estado del histórico se deriva así: sin lectura = `Nuevo`; leído sin reunión = `Leído`; solicitud `PENDING` = `Reunión solicitada`; `ACKNOWLEDGED` = `Reunión en preparación`; `COMPLETED` = `Revisado`.
 - El recorrido de revisión del portal usa los mismos datos derivados que el histórico. No crea una fuente de estado adicional.
 - Las acciones sugeridas del portal son reglas deterministas sobre KPIs/conclusiones (`prime_cost`, materia prima, personal, ventas, rentabilidad). No son IA y no deben afirmar causalidad no soportada por los datos.
+- El plan de revisión del cliente es derivado de `viewed_at`, `meetingStatus` y acciones sugeridas. No crea columnas nuevas ni duplica el estado del histórico.
+- El plan de revisión enlaza por anclas a `#resumen-ejecutivo`, `#acciones-sugeridas` o `#solicitar-reunion`; no dispara mutaciones.
 - `restaurant_id` nunca viaja desde cliente.
 
 ## 5. Dependencias e implicaciones cruzadas
@@ -131,6 +135,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - **Gastos operativos:** aporta `operating_expenses.category` para el desglose por categoría.
 - **Base de datos:** depende de `professional_report_drafts`, `restaurants` y `portal_meeting_requests`.
 - **Insights del portal:** `src/lib/portal-insights.ts` mantiene cálculos puros de comparativa mensual, tendencia multi-periodo, desglose de gastos y acciones sugeridas. No importa Supabase ni componentes.
+- **Plan de revisión:** `buildPortalClientReviewPlan()` vive también en `src/lib/portal-insights.ts` porque es lógica editorial pura del portal.
 - **Layout:** `AppLayout` exime `/portal` para no mostrar sidebar operativo.
 - **Consultas compartidas:** `src/lib/portal.ts` mantiene el mapper de informes publicados y el contexto vivo reutilizable por pages y actions.
 - **Queries compartidas:** `src/lib/portal-queries.ts` centraliza el acceso a Supabase del portal para que nuevas lecturas no vuelvan a mezclar queries con presentación en `portal.ts`.
@@ -155,6 +160,10 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si solo hay un mes con datos, la tendencia muestra `Sin tendencia histórica`.
 - Si no hay gastos del mes anterior, el desglose muestra importes actuales y evita deltas porcentuales.
 - Si no hay acciones sugeridas, el recorrido de revisión muestra que no hay acciones urgentes, pero mantiene la recomendación de revisar el histórico y hacer seguimiento.
+- Si el cliente aún no abrió el detalle, el plan de revisión prioriza leer el informe completo.
+- Si el cliente ya leyó el informe y hay acciones sugeridas, el plan prioriza revisar esas acciones antes de pedir reunión.
+- Si ya existe solicitud de reunión, el plan no invita a duplicarla: muestra el estado abierto y enlaza al bloque de solicitud.
+- Si la reunión está completada, el plan marca todos los pasos como listos y apunta al histórico del portal.
 - Si un informe se despublica, el paquete de entrega deja de estar accesible porque depende de que el snapshot esté publicado en portal.
 
 ## 7. Al añadir/modificar una función aquí

@@ -64,6 +64,35 @@ export interface PortalExpenseCategoryBreakdown {
   hasPreviousData: boolean
 }
 
+export type PortalMeetingStatus = 'PENDING' | 'ACKNOWLEDGED' | 'COMPLETED' | null
+
+export type PortalClientReviewPlanStatus =
+  | 'READ_REPORT'
+  | 'REVIEW_PRIORITIES'
+  | 'MEETING_REQUESTED'
+  | 'MEETING_IN_PREPARATION'
+  | 'REVIEW_COMPLETED'
+
+export type PortalClientReviewPlanItemStatus = 'done' | 'current' | 'pending'
+
+export interface PortalClientReviewPlanItem {
+  id: 'read-report' | 'review-actions' | 'meeting'
+  label: string
+  body: string
+  status: PortalClientReviewPlanItemStatus
+}
+
+export interface PortalClientReviewPlan {
+  status: PortalClientReviewPlanStatus
+  headline: string
+  summary: string
+  primaryAction: {
+    label: string
+    href: string
+  }
+  items: PortalClientReviewPlanItem[]
+}
+
 export function previousCalendarMonthBounds(periodFrom: string) {
   const [year, month] = periodFrom.split('-').map(Number)
   const previousMonthStart = new Date(Date.UTC(year, month - 2, 1))
@@ -306,4 +335,105 @@ export function buildPortalSuggestedActions(
   }
 
   return actions.slice(0, 3)
+}
+
+function reviewPlanItem(
+  id: PortalClientReviewPlanItem['id'],
+  label: string,
+  body: string,
+  status: PortalClientReviewPlanItemStatus,
+): PortalClientReviewPlanItem {
+  return { id, label, body, status }
+}
+
+export function buildPortalClientReviewPlan(input: {
+  viewedAt: string | null
+  meetingStatus: PortalMeetingStatus
+  suggestedActions: PortalSuggestedAction[]
+}): PortalClientReviewPlan {
+  const hasActions = input.suggestedActions.length > 0
+
+  if (!input.viewedAt) {
+    return {
+      status: 'READ_REPORT',
+      headline: 'Empieza por leer el informe completo',
+      summary: 'Abre el detalle para revisar conclusiones, KPIs y capítulos antes de pedir una reunión.',
+      primaryAction: {
+        label: 'Abrir informe completo',
+        href: '#resumen-ejecutivo',
+      },
+      items: [
+        reviewPlanItem('read-report', 'Leer informe', 'Revisa el resumen ejecutivo y los KPIs principales.', 'current'),
+        reviewPlanItem('review-actions', 'Preparar prioridades', 'Anota los puntos que quieras revisar con tu consultor.', 'pending'),
+        reviewPlanItem('meeting', 'Solicitar reunión', 'Pide revisión cuando tengas claras las dudas del periodo.', 'pending'),
+      ],
+    }
+  }
+
+  if (input.meetingStatus === 'COMPLETED') {
+    return {
+      status: 'REVIEW_COMPLETED',
+      headline: 'Revisión completada',
+      summary: 'La reunión de seguimiento ya está cerrada. Mantén el histórico como referencia para el siguiente periodo.',
+      primaryAction: {
+        label: 'Volver al histórico',
+        href: '/portal',
+      },
+      items: [
+        reviewPlanItem('read-report', 'Informe leído', 'El detalle ya se ha revisado.', 'done'),
+        reviewPlanItem('review-actions', 'Prioridades revisadas', 'Las conclusiones ya pasaron por revisión.', 'done'),
+        reviewPlanItem('meeting', 'Seguimiento cerrado', 'La solicitud de reunión está completada.', 'done'),
+      ],
+    }
+  }
+
+  if (input.meetingStatus === 'ACKNOWLEDGED' || input.meetingStatus === 'PENDING') {
+    return {
+      status: input.meetingStatus === 'ACKNOWLEDGED' ? 'MEETING_IN_PREPARATION' : 'MEETING_REQUESTED',
+      headline: input.meetingStatus === 'ACKNOWLEDGED' ? 'Tu reunión está en preparación' : 'Solicitud enviada',
+      summary: input.meetingStatus === 'ACKNOWLEDGED'
+        ? 'Tu consultor ya tiene registrada la solicitud y preparará la revisión.'
+        : 'La solicitud está pendiente de confirmación por el consultor.',
+      primaryAction: {
+        label: 'Ver solicitud',
+        href: '#solicitar-reunion',
+      },
+      items: [
+        reviewPlanItem('read-report', 'Informe leído', 'El detalle ya se ha abierto.', 'done'),
+        reviewPlanItem(
+          'review-actions',
+          hasActions ? 'Prioridades detectadas' : 'Sin prioridades urgentes',
+          hasActions
+            ? 'Lleva estas prioridades a la revisión.'
+            : 'El informe no marca urgencias, pero puedes comentar dudas.',
+          'done',
+        ),
+        reviewPlanItem('meeting', 'Reunión solicitada', 'El seguimiento con el consultor está abierto.', 'current'),
+      ],
+    }
+  }
+
+  return {
+    status: 'REVIEW_PRIORITIES',
+    headline: hasActions ? 'Prepara las prioridades de la reunión' : 'Revisión sin urgencias destacadas',
+    summary: hasActions
+      ? 'Revisa las acciones sugeridas y pide reunión si quieres aterrizarlas con tu consultor.'
+      : 'El informe no marca acciones urgentes. Puedes revisar el histórico o pedir contexto si lo necesitas.',
+    primaryAction: {
+      label: hasActions ? 'Revisar prioridades' : 'Solicitar revisión',
+      href: hasActions ? '#acciones-sugeridas' : '#solicitar-reunion',
+    },
+    items: [
+      reviewPlanItem('read-report', 'Informe leído', 'El detalle ya se ha abierto.', 'done'),
+      reviewPlanItem(
+        'review-actions',
+        hasActions ? 'Revisar acciones sugeridas' : 'Sin acciones urgentes',
+        hasActions
+          ? 'Prioriza los puntos que quieras tratar con el consultor.'
+          : 'Mantén seguimiento del periodo sin alarmas innecesarias.',
+        hasActions ? 'current' : 'done',
+      ),
+      reviewPlanItem('meeting', 'Solicitar reunión', 'Abre seguimiento si necesitas contexto o decisión acompañada.', 'pending'),
+    ],
+  }
 }
