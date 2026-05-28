@@ -58,6 +58,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `getPortalExpenseBreakdownForRestaurant({ restaurantId, periodFrom, periodTo })` vive en `src/lib/portal.ts`. Carga `operating_expenses.category/amount` del periodo publicado y del mes anterior con scope `restaurant_id`, y delega en `buildPortalExpenseCategoryBreakdown()`.
 - `requestConsultantMeeting(input)` crea una fila `portal_meeting_requests` solo si no existe ya una solicitud abierta (`PENDING` o `ACKNOWLEDGED`) para ese informe y restaurante. Si existe, devuelve la solicitud existente con `reused: true`.
 - `publishReportDraft(id)` y `unpublishReportDraft(id)` se usan desde la mesa interna. Publicar valida que el draft esta `READY`, pertenece al restaurante activo y que el snapshot supera `evaluateProfessionalReportQualityGate()` sin bloqueos.
+- Las acciones críticas del ciclo de entrega registran auditoría en `admin_audit_log`: `report.publish`, `report.unpublish` y `portal.meeting_request`. La metadata incluye `restaurant_id`, y en reuniones incluye `report_id` y si la solicitud fue reutilizada.
 
 **API routes:** `src/app/api/portal/meeting-request/route.ts`
 
@@ -85,6 +86,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `professional_report_drafts.published_by` conserva quién publicó.
 - `professional_report_drafts.viewed_at` marca la última apertura del detalle web por parte del cliente/restaurante.
 - `portal_meeting_requests` guarda solicitudes de reunión.
+- `admin_audit_log` guarda eventos explícitos del flujo de entrega para trazabilidad operativa.
 - El histórico del portal une los informes publicados con la última solicitud de reunión del informe para mostrar `meetingStatus` sin persistir un estado duplicado en `professional_report_drafts`.
 
 ## 4. Reglas de negocio y restricciones
@@ -103,6 +105,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - No se crean duplicados si el cliente vuelve a pulsar "Solicitar reunión" para el mismo informe mientras haya una solicitud `PENDING` o `ACKNOWLEDGED`.
 - La base de datos refuerza ese anti-duplicado con un índice parcial único por `restaurant_id + report_id` para solicitudes abiertas.
 - La solicitud aparece en `/consultant` para seguimiento del consultor.
+- Publicar, despublicar y solicitar/reutilizar reunión dejan rastro en `admin_audit_log`, pero un fallo de auditoría no debe impedir la acción principal si la escritura funcional ya ha terminado.
 - Los enlaces PDF desde el portal abren la vista imprimible en una pestaña nueva para no sacar al cliente del área limpia. Esa vista incluye el plan de revisión recomendado generado de forma determinista desde el snapshot.
 - El paquete de entrega debe recordar que informe web y PDF salen del mismo snapshot publicado. No debe sugerir que son documentos diferentes con datos distintos.
 - La portada ejecutiva del portal muestra solo una lectura principal y una selección de KPIs/prioridades. El detalle completo vive en `/portal/reports/[id]`.

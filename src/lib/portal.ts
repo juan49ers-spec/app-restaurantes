@@ -22,6 +22,7 @@ import {
     updatePublishedReportViewedRow,
 } from '@/lib/portal-queries'
 import type { ProfessionalRestaurantReport } from '@/lib/reporting'
+import { logAuditEvent } from '@/lib/audit'
 
 export type ActionResponse<T> = {
     success: boolean
@@ -296,7 +297,19 @@ export async function requestConsultantMeetingForRestaurant(input: {
     const { data: existingRequest, error: existingRequestError } = await fetchOpenMeetingRequest(input.reportId, input.restaurantId)
 
     if (existingRequestError) return { success: false, error: 'No se pudo validar si ya existe una solicitud abierta.' }
-    if (existingRequest) return { success: true, data: { id: existingRequest.id, reused: true } }
+    if (existingRequest) {
+        await logAuditEvent({
+            action: 'portal.meeting_request',
+            target_type: 'portal_meeting_request',
+            target_id: existingRequest.id,
+            restaurantId: input.restaurantId,
+            metadata: {
+                report_id: input.reportId,
+                reused: true,
+            },
+        })
+        return { success: true, data: { id: existingRequest.id, reused: true } }
+    }
 
     const { data, error } = await insertMeetingRequest({
         restaurantId: input.restaurantId,
@@ -306,6 +319,17 @@ export async function requestConsultantMeetingForRestaurant(input: {
     })
 
     if (error || !data) return { success: false, error: 'No se pudo solicitar la reunión.' }
+
+    await logAuditEvent({
+        action: 'portal.meeting_request',
+        target_type: 'portal_meeting_request',
+        target_id: data.id,
+        restaurantId: input.restaurantId,
+        metadata: {
+            report_id: input.reportId,
+            reused: false,
+        },
+    })
 
     return { success: true, data: { id: data.id, reused: false } }
 }

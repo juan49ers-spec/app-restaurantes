@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabaseServer"
+import { createActionLogger } from "@/lib/logger"
 
-interface AuditEvent {
+export interface AuditEvent {
     action: string
     target_type: string
     target_id: string
+    restaurantId?: string | null
     metadata?: Record<string, unknown>
 }
 
@@ -17,9 +19,12 @@ export async function logAuditEvent(event: AuditEvent): Promise<void> {
             action: event.action,
             target_type: event.target_type,
             target_id: event.target_id,
-            metadata: event.metadata ?? {},
+            metadata: {
+                ...(event.metadata ?? {}),
+                ...(event.restaurantId ? { restaurant_id: event.restaurantId } : {}),
+            },
         })
-    } catch {
-        console.error("[Audit] Failed to log event:", event.action)
+    } catch (error) {
+        createActionLogger('audit').warn({ err: error, action: event.action }, 'Failed to log audit event')
     }
 }

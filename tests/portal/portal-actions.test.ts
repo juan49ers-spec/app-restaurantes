@@ -247,6 +247,16 @@ describe('portal server actions', () => {
     expect(call?.updateValue).toEqual(expect.objectContaining({
       published_by: 'user-1',
     }))
+    expect(calls.find(item =>
+      item.table === 'admin_audit_log' &&
+      item.insertValue?.action === 'report.publish'
+    )?.insertValue).toEqual(expect.objectContaining({
+      actor_user_id: 'user-1',
+      action: 'report.publish',
+      target_type: 'professional_report_draft',
+      target_id: REPORT_ID,
+      metadata: expect.objectContaining({ restaurant_id: RESTAURANT_ID }),
+    }))
   })
 
   it('rejects publishing when the saved report snapshot has critical blockers', async () => {
@@ -289,6 +299,33 @@ describe('portal server actions', () => {
     const result = await publishReportDraft(REPORT_ID)
 
     expect(result).toEqual({ success: false, error: 'No se pudo publicar el informe.' })
+  })
+
+  it('audits unpublishing a report for the active restaurant', async () => {
+    const { unpublishReportDraft } = await import('@/app/actions/portal')
+
+    const result = await unpublishReportDraft(REPORT_ID)
+
+    expect(result).toEqual({ success: true, data: { id: REPORT_ID } })
+    const updateCall = calls.find(item => item.table === 'professional_report_drafts' && item.updateValue)
+    expect(updateCall?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'id', REPORT_ID],
+      ['eq', 'restaurant_id', RESTAURANT_ID],
+    ]))
+    expect(updateCall?.updateValue).toEqual(expect.objectContaining({
+      published_at: null,
+      viewed_at: null,
+    }))
+    expect(calls.find(item =>
+      item.table === 'admin_audit_log' &&
+      item.insertValue?.action === 'report.unpublish'
+    )?.insertValue).toEqual(expect.objectContaining({
+      actor_user_id: 'user-1',
+      action: 'report.unpublish',
+      target_type: 'professional_report_draft',
+      target_id: REPORT_ID,
+      metadata: expect.objectContaining({ restaurant_id: RESTAURANT_ID }),
+    }))
   })
 
   it('lists only published reports without report snapshots', async () => {
@@ -436,6 +473,20 @@ describe('portal server actions', () => {
       status: 'PENDING',
       created_by: 'user-1',
     })
+    expect(calls.find(item =>
+      item.table === 'admin_audit_log' &&
+      item.insertValue?.action === 'portal.meeting_request'
+    )?.insertValue).toEqual(expect.objectContaining({
+      actor_user_id: 'user-1',
+      action: 'portal.meeting_request',
+      target_type: 'portal_meeting_request',
+      target_id: '22222222-2222-4222-8222-222222222222',
+      metadata: expect.objectContaining({
+        restaurant_id: RESTAURANT_ID,
+        report_id: REPORT_ID,
+        reused: false,
+      }),
+    }))
   })
 
   it('reuses an open meeting request instead of creating a duplicate', async () => {
@@ -453,5 +504,18 @@ describe('portal server actions', () => {
       data: { id: '33333333-3333-4333-8333-333333333333', reused: true },
     })
     expect(calls.some(call => call.table === 'portal_meeting_requests' && call.insertValue)).toBe(false)
+    expect(calls.find(item =>
+      item.table === 'admin_audit_log' &&
+      item.insertValue?.action === 'portal.meeting_request'
+    )?.insertValue).toEqual(expect.objectContaining({
+      action: 'portal.meeting_request',
+      target_type: 'portal_meeting_request',
+      target_id: '33333333-3333-4333-8333-333333333333',
+      metadata: expect.objectContaining({
+        restaurant_id: RESTAURANT_ID,
+        report_id: REPORT_ID,
+        reused: true,
+      }),
+    }))
   })
 })

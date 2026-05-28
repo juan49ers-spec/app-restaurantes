@@ -73,6 +73,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - `upsertConsultantRestaurantAccess(payload)` — crea/actualiza relación consultor-restaurante. Requiere admin, valida UUID/rol/estado con Zod y usa `upsert` por `(consultant_user_id, restaurant_id)`.
 - `updateConsultantRestaurantAccessStatus(payload)` — cambia estado de una relación existente. Requiere admin y revalida `/admin/consultants` + `/consultant`.
 - `createAdminClientWorkspace(payload)` — crea restaurante cliente con owner existente y relación opcional con consultor. Requiere admin, valida con Zod y revalida `/admin/restaurants`, `/admin/consultants`, `/admin/client-onboarding` y `/consultant`.
+- `logAuditEvent(event)` inserta eventos operativos explícitos en `admin_audit_log` sin bloquear la acción principal si la auditoría falla. Se usa para impersonación, publicación/despublicación de informes, solicitudes de reunión, cambios de cliente activo del consultor, branding del consultor y cambios de estado de reunión.
 
 **Componentes:**
 - `AdminShell` — sidebar admin con NAV_ITEMS hardcoded.
@@ -93,13 +94,14 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - **Borrar restaurante (`admin_delete_restaurant_cascade`):** operación destructiva. Elimina todo el árbol (ingredients, recipes, invoices, employees, etc.). No reversible.
 - **Broadcasts:** sin `restaurant_id`. Globales. Solo super-admin.
 - **Relaciones consultor-restaurante:** solo admins pueden gestionarlas desde `/admin/consultants`. La tabla tiene RLS de lectura para consultor/owner y una política de escritura para super-admins (`public.is_super_admin()`).
+- **Auditoría operativa explícita:** los eventos de entrega consultor-cliente se registran en `admin_audit_log` con `action`, `target_type`, `target_id` y `metadata.restaurant_id`. La auditoría no sustituye permisos/RLS y no debe recibir secretos ni payloads completos.
 - **Filtros admin de consultores:** son estado local de UI; no cambian permisos. Las mutaciones siguen pasando por server action + RLS.
 - **Alta guiada:** no crea restaurantes sin owner. `restaurants.owner_id` es obligatorio, por lo que el admin debe seleccionar un usuario existente como owner.
 - **Primer informe:** la guía post-alta no sustituye la checklist de `/consultant` ni el quality gate de `/reports`; solo reduce fricción operativa para el consultor.
 
 ## 5. Dependencias e implicaciones cruzadas
 
-- **Tablas:** `restaurants`, `auth.users`, `consultant_restaurants`, `audit_logs`, `billing_modules`, `billing_events`, `broadcasts`, `ingestion_buffer`, y todo el árbol de datos del restaurante cuando se elimina.
+- **Tablas:** `restaurants`, `auth.users`, `consultant_restaurants`, `audit_logs`, `admin_audit_log`, `billing_modules`, `billing_events`, `broadcasts`, `ingestion_buffer`, y todo el árbol de datos del restaurante cuando se elimina.
 - **Otras páginas afectadas:**
   - Cualquier cambio aquí afecta a los restaurantes-cliente. `toggleRestaurantModule` cambia lo que ven en sidebar inmediatamente (vía `revalidatePath('/', 'layout')`).
   - Impersonación hace que las páginas operativas (`/`, `/financial-control`, etc.) muestren datos del restaurante impersonado.
@@ -117,6 +119,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - **Relación consultor pausada/revocada:** la cookie `active_consultant_restaurant_id` queda ignorada por `getUserRestaurant()` al no existir relación `ACTIVE`.
 - **Sin lock al cambiar de plan:** si dos admins cambian plan a la vez para el mismo restaurante, last-write-wins.
 - **`audit_logs` puede crecer mucho:** sin purga automática. Considerar archivado.
+- **`admin_audit_log` puede crecer con entregas reales:** sin purga automática. Considerar retención/archivado antes de alto volumen.
 - **Health check `admin_get_system_health` puede ser lento** si hay muchos usuarios y restaurantes — no está paginado.
 - **Build estático:** las rutas admin no deben prerenderizarse; si una subruta admin empieza a fallar en build por sesión/cookies, revisar que cuelgue del layout dinámico o declarar `dynamic` donde corresponda.
 

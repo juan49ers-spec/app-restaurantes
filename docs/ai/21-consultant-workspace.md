@@ -47,6 +47,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - `getPreparationChecklistForPeriod(input)` valida el mes con Zod (`YYYY-MM`), resuelve `restaurant_id` con `getUserRestaurant()`, calcula `from/to` del mes pedido y ejecuta las mismas queries de conteo que `getConsultantWorkspace()` pero para el periodo indicado. También carga el último draft `READY` exacto del periodo y evalúa su snapshot con `evaluateProfessionalReportQualityGate()`. Devuelve `ConsultantPreparationChecklist`.
 - `getConsultantPortfolio()` carga restaurantes propios y relaciones activas de `consultant_restaurants`, fusionando duplicados con prioridad de owner.
 - `selectConsultantClient(input)` valida UUID, comprueba en servidor que el usuario es propietario o consultor activo, y escribe la cookie `active_consultant_restaurant_id` para que `getUserRestaurant()` resuelva ese cliente en las siguientes acciones.
+- `selectConsultantClient(input)`, `updateConsultantBranding(input)` y `updateMeetingRequestStatus(input)` registran eventos en `admin_audit_log` para trazabilidad del trabajo del consultor.
 - Las respuestas de `consultant.ts` usan el helper compartido `ok()/fail()` de `src/app/actions/action-result.ts` como piloto para reducir repetición manteniendo el contrato histórico `{ success, data?, error? }`.
 - Los conteos de checklist están extraídos a `fetchChecklistCounts()` para reutilización sin duplicación.
 - El quality gate de preparación está separado en `fetchLatestReadyReportQualityGate()` y no recalcula informes: solo lee el snapshot guardado del último `READY`.
@@ -82,6 +83,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - El portal cliente sigue siendo solo entrega: informe, PDF, histórico y solicitud de reunión.
 - Una solicitud puede estar en `PENDING`, `ACKNOWLEDGED` o `COMPLETED`.
 - El estado de reunión no modifica el informe publicado.
+- Los cambios de cliente activo, branding del consultor y estado de reunión quedan auditados en `admin_audit_log`. La auditoría es no bloqueante y no sustituye las validaciones de restaurante activo.
 - La identidad del consultor se guarda en `restaurants.consultant_name`, `consultant_email` y `consultant_logo_url`.
 - La URL del logo debe ser URL válida o quedar vacía.
 - La checklist es derivada, no persistida. El estado se calcula desde tablas fuente para el periodo seleccionado.
@@ -110,6 +112,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - **Reports:** crea versiones `READY` y las publica.
 - **Portal cliente:** consume los informes publicados y la identidad del consultor.
 - **Base de datos:** usa `restaurants`, `professional_report_drafts` y `portal_meeting_requests`.
+- **Auditoría:** escribe eventos explícitos en `admin_audit_log` para selección de cliente, cambios de branding y cambios de estado de reunión.
 - **Datos operativos:** la checklist lee conteos de `daily_sales`, `operating_expenses`, `invoices`, `employees`, `shifts`, `recipes`, `daily_recipe_sales` y `menu_reports`.
 - **Importadores CSV:** ventas, gastos, cabeceras de recetas, empleados, ventas por receta, turnos y cabeceras de factura alimentan estos conteos. Las cabeceras de receta permiten preparar carta sin escandallo completo; los empleados importados permiten preparar turnos; las cabeceras de factura importadas cuentan como facturas revisadas si quedan `completed`, pero no sustituyen líneas de factura, movimientos de stock ni gastos operativos.
 - **Lógica compartida:** `src/lib/consultant/` mantiene helpers puros reutilizables por actions y tests. No debe importar `createClient()` ni resolver sesión.
@@ -138,6 +141,7 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - Si fallan informes o solicitudes, muestra un aviso y conserva el resto de la mesa operativa.
 - Si una solicitud apunta a un informe despublicado o eliminado, se conserva la solicitud pero sin enlace de reporte.
 - Si la actualización de marca falla, el portal mantiene la identidad anterior.
+- Si la auditoría falla tras una mutación correcta, la mutación no se revierte; el logger estructurado registra el fallo para investigación.
 - Si el consultor trabaja como admin impersonando un restaurante, las actions siguen resolviendo el restaurante impersonado mediante `getUserRestaurant()`.
 
 ## 7. Al añadir/modificar una función aquí

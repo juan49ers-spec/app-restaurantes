@@ -7,7 +7,12 @@ const USER_ID = '99999999-9999-4999-8999-999999999999'
 const ACTIVE_RESTAURANT_ID = '11111111-1111-4111-8111-111111111111'
 const LINKED_RESTAURANT_ID = '22222222-2222-4222-8222-222222222222'
 
-let calls: Array<{ table: string; select?: string; filters: Filter[] }> = []
+let calls: Array<{
+  table: string
+  select?: string
+  filters: Filter[]
+  insertValue?: Record<string, unknown>
+}> = []
 let cookieWrites: Array<{ name: string; value: string }> = []
 let ownedRestaurants: unknown[] = []
 let linkedRestaurants: unknown[] = []
@@ -18,7 +23,11 @@ class MockQuery {
   private filters: Filter[] = []
   private selectValue?: string
 
-  constructor(private readonly table: string) {}
+  constructor(
+    private readonly table: string,
+    private readonly operation: 'select' | 'insert' = 'select',
+    private readonly mutationValue?: Record<string, unknown>,
+  ) {}
 
   select(value?: string) {
     this.selectValue = value
@@ -30,6 +39,10 @@ class MockQuery {
     return this
   }
 
+  insert(value: Record<string, unknown>) {
+    return new MockQuery(this.table, 'insert', value)
+  }
+
   maybeSingle() {
     return Promise.resolve(this.resolveSingle())
   }
@@ -39,14 +52,25 @@ class MockQuery {
   }
 
   private resolveMany(): QueryResult {
-    calls.push({ table: this.table, select: this.selectValue, filters: this.filters })
+    calls.push({
+      table: this.table,
+      select: this.selectValue,
+      filters: this.filters,
+      insertValue: this.operation === 'insert' ? this.mutationValue : undefined,
+    })
+    if (this.operation === 'insert') return { data: this.mutationValue ?? null, error: null }
     if (this.table === 'restaurants') return { data: ownedRestaurants, error: null }
     if (this.table === 'consultant_restaurants') return { data: linkedRestaurants, error: null }
     return { data: [], error: null }
   }
 
   private resolveSingle(): QueryResult {
-    calls.push({ table: this.table, select: this.selectValue, filters: this.filters })
+    calls.push({
+      table: this.table,
+      select: this.selectValue,
+      filters: this.filters,
+      insertValue: this.operation === 'insert' ? this.mutationValue : undefined,
+    })
     if (this.table === 'restaurants' && allowOwnedSelection) {
       return { data: { id: ACTIVE_RESTAURANT_ID }, error: null }
     }
@@ -147,6 +171,16 @@ describe('consultant portfolio actions', () => {
       name: 'active_consultant_restaurant_id',
       value: LINKED_RESTAURANT_ID,
     }])
+    expect(calls.find(item =>
+      item.table === 'admin_audit_log' &&
+      item.insertValue?.action === 'consultant.select_client'
+    )?.insertValue).toEqual(expect.objectContaining({
+      actor_user_id: USER_ID,
+      action: 'consultant.select_client',
+      target_type: 'restaurant',
+      target_id: LINKED_RESTAURANT_ID,
+      metadata: expect.objectContaining({ restaurant_id: LINKED_RESTAURANT_ID }),
+    }))
   })
 
   it('rejects selecting a restaurant outside the consultant portfolio', async () => {

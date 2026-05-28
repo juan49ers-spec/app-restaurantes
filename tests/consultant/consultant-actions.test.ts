@@ -31,6 +31,7 @@ let calls: Array<{
   filters: Filter[]
   select?: string
   updateValue?: Record<string, unknown>
+  insertValue?: Record<string, unknown>
   orders: Array<{ column: string; ascending?: boolean }>
   countMode?: string
   head?: boolean
@@ -44,7 +45,7 @@ class MockQuery {
 
   constructor(
     private readonly table: string,
-    private readonly operation: 'select' | 'update' = 'select',
+    private readonly operation: 'select' | 'update' | 'insert' = 'select',
     private readonly mutationValue?: Record<string, unknown>,
   ) {}
 
@@ -60,6 +61,10 @@ class MockQuery {
 
   update(value: Record<string, unknown>) {
     return new MockQuery(this.table, 'update', value)
+  }
+
+  insert(value: Record<string, unknown>) {
+    return new MockQuery(this.table, 'insert', value)
   }
 
   eq(column: string, value: unknown) {
@@ -127,6 +132,7 @@ class MockQuery {
       filters: this.filters,
       select: this.selectValue,
       updateValue: this.operation === 'update' ? this.mutationValue : undefined,
+      insertValue: this.operation === 'insert' ? this.mutationValue : undefined,
       orders: this.orders,
       countMode: this.countMode,
       head: this.head,
@@ -181,6 +187,12 @@ class MockQuery {
 
 const mockSupabase = {
   from: vi.fn((table: string) => new MockQuery(table)),
+  auth: {
+    getUser: vi.fn(async () => ({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    })),
+  },
 }
 
 vi.mock('@/lib/supabaseServer', () => ({
@@ -523,6 +535,16 @@ describe('consultant server actions', () => {
       consultant_email: 'hola@zinergia.es',
       consultant_logo_url: null,
     })
+    expect(calls.find(item =>
+      item.table === 'admin_audit_log' &&
+      item.insertValue?.action === 'consultant.branding_update'
+    )?.insertValue).toEqual(expect.objectContaining({
+      actor_user_id: 'user-1',
+      action: 'consultant.branding_update',
+      target_type: 'restaurant',
+      target_id: RESTAURANT_ID,
+      metadata: expect.objectContaining({ restaurant_id: RESTAURANT_ID }),
+    }))
   })
 
   it('rejects invalid consultant branding input', async () => {
@@ -549,5 +571,18 @@ describe('consultant server actions', () => {
       ['eq', 'id', REQUEST_ID],
       ['eq', 'restaurant_id', RESTAURANT_ID],
     ]))
+    expect(calls.find(item =>
+      item.table === 'admin_audit_log' &&
+      item.insertValue?.action === 'consultant.meeting_status_update'
+    )?.insertValue).toEqual(expect.objectContaining({
+      actor_user_id: 'user-1',
+      action: 'consultant.meeting_status_update',
+      target_type: 'portal_meeting_request',
+      target_id: REQUEST_ID,
+      metadata: expect.objectContaining({
+        restaurant_id: RESTAURANT_ID,
+        status: 'ACKNOWLEDGED',
+      }),
+    }))
   })
 })

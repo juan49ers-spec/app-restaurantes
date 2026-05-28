@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabaseServer'
+import { logAuditEvent } from '@/lib/audit'
 import {
     getPortalContextForRestaurant,
     getPublishedReportDetailForRestaurant,
@@ -77,6 +78,13 @@ export async function publishReportDraft(id: string): Promise<ActionResponse<{ i
     revalidatePath('/portal')
     revalidatePath(`/portal/reports/${parsed.data}`)
 
+    await logAuditEvent({
+        action: 'report.publish',
+        target_type: 'professional_report_draft',
+        target_id: data.id,
+        restaurantId,
+    })
+
     return { success: true, data: { id: data.id, publishedAt: data.published_at } }
 }
 
@@ -101,6 +109,13 @@ export async function unpublishReportDraft(id: string): Promise<ActionResponse<{
     revalidatePath('/reports')
     revalidatePath('/portal')
     revalidatePath(`/portal/reports/${parsed.data}`)
+
+    await logAuditEvent({
+        action: 'report.unpublish',
+        target_type: 'professional_report_draft',
+        target_id: data.id,
+        restaurantId,
+    })
 
     return { success: true, data: { id: data.id } }
 }

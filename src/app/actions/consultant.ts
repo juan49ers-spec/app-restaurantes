@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabaseServer'
+import { logAuditEvent } from '@/lib/audit'
 import {
   buildDeliveryReports,
   buildPreparationChecklist,
@@ -224,6 +225,13 @@ export async function selectConsultantClient(
   revalidatePath('/consultant')
   revalidatePath('/', 'layout')
 
+  await logAuditEvent({
+    action: 'consultant.select_client',
+    target_type: 'restaurant',
+    target_id: parsed.data.restaurantId,
+    restaurantId: parsed.data.restaurantId,
+  })
+
   return ok({ restaurantId: parsed.data.restaurantId })
 }
 
@@ -362,6 +370,13 @@ export async function updateConsultantBranding(
   revalidatePath('/portal')
   revalidatePath('/portal', 'layout')
 
+  await logAuditEvent({
+    action: 'consultant.branding_update',
+    target_type: 'restaurant',
+    target_id: restaurantId,
+    restaurantId,
+  })
+
   return ok(mapRestaurant(data as RestaurantRow))
 }
 
@@ -387,6 +402,16 @@ export async function updateMeetingRequestStatus(
 
   revalidatePath('/consultant')
   revalidatePath('/portal')
+
+  await logAuditEvent({
+    action: 'consultant.meeting_status_update',
+    target_type: 'portal_meeting_request',
+    target_id: data.id,
+    restaurantId,
+    metadata: {
+      status: data.status,
+    },
+  })
 
   return ok({
     id: data.id,
