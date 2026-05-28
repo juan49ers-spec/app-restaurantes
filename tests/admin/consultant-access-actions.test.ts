@@ -8,7 +8,7 @@ const RELATIONSHIP_ID = '33333333-3333-4333-8333-333333333333'
 
 let calls: Array<{
   table: string
-  operation: 'upsert' | 'update'
+  operation: 'upsert' | 'update' | 'insert'
   value: Record<string, unknown>
   options?: Record<string, unknown>
   filters: Array<['eq', string, unknown]>
@@ -19,7 +19,7 @@ class MockQuery {
 
   constructor(
     private readonly table: string,
-    private readonly operation: 'upsert' | 'update',
+    private readonly operation: 'upsert' | 'update' | 'insert',
     private readonly value: Record<string, unknown>,
     private readonly options?: Record<string, unknown>,
   ) {}
@@ -27,6 +27,26 @@ class MockQuery {
   eq(column: string, value: unknown) {
     this.filters.push(['eq', column, value])
     return this
+  }
+
+  select() {
+    return this
+  }
+
+  single() {
+    calls.push({
+      table: this.table,
+      operation: this.operation,
+      value: this.value,
+      options: this.options,
+      filters: this.filters,
+    })
+    return Promise.resolve({
+      data: this.table === 'restaurants'
+        ? { id: RESTAURANT_ID, name: this.value.name }
+        : null,
+      error: null,
+    })
   }
 
   then(resolve: (value: QueryResult) => unknown, reject?: (reason?: unknown) => unknown) {
@@ -46,6 +66,7 @@ const mockSupabase = {
     upsert: (value: Record<string, unknown>, options?: Record<string, unknown>) =>
       new MockQuery(table, 'upsert', value, options),
     update: (value: Record<string, unknown>) => new MockQuery(table, 'update', value),
+    insert: (value: Record<string, unknown>) => new MockQuery(table, 'insert', value),
   })),
 }
 
@@ -123,5 +144,45 @@ describe('admin consultant access actions', () => {
       options: undefined,
       filters: [['eq', 'id', RELATIONSHIP_ID]],
     }])
+  })
+
+  it('creates a client restaurant and assigns it to a consultant during onboarding', async () => {
+    const { createAdminClientWorkspace } = await import('@/app/actions/admin')
+
+    const result = await createAdminClientWorkspace({
+      restaurantName: 'Nuevo Cliente',
+      ownerUserId: CONSULTANT_ID,
+      consultantUserId: CONSULTANT_ID,
+    })
+
+    expect(result).toEqual({
+      success: true,
+      restaurantId: RESTAURANT_ID,
+      restaurantName: 'Nuevo Cliente',
+    })
+    expect(calls).toEqual([
+      {
+        table: 'restaurants',
+        operation: 'insert',
+        value: {
+          name: 'Nuevo Cliente',
+          owner_id: CONSULTANT_ID,
+        },
+        options: undefined,
+        filters: [],
+      },
+      {
+        table: 'consultant_restaurants',
+        operation: 'upsert',
+        value: {
+          consultant_user_id: CONSULTANT_ID,
+          restaurant_id: RESTAURANT_ID,
+          role: 'CONSULTANT',
+          status: 'ACTIVE',
+        },
+        options: { onConflict: 'consultant_user_id,restaurant_id' },
+        filters: [],
+      },
+    ])
   })
 })

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabaseServer'
 export const dynamic = 'force-dynamic'
 
 type HealthStatus = 'healthy' | 'unhealthy'
+const DATABASE_CHECK_TIMEOUT_MS = 2500
 
 export async function GET() {
   const startedAt = Date.now()
@@ -31,11 +32,13 @@ export async function GET() {
 
 async function checkDatabase() {
   try {
-    const supabase = await createClient()
-    const { error } = await supabase
-      .from('restaurants')
-      .select('id')
-      .limit(1)
+    const { error } = await withTimeout(async () => {
+      const supabase = await createClient()
+      return supabase
+        .from('restaurants')
+        .select('id')
+        .limit(1)
+    }, DATABASE_CHECK_TIMEOUT_MS)
 
     if (error) {
       return { ok: false, message: 'Database check failed.' }
@@ -45,4 +48,16 @@ async function checkDatabase() {
   } catch {
     return { ok: false, message: 'Database check failed.' }
   }
+}
+
+function withTimeout<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Health check timed out.'))
+    }, timeoutMs)
+
+    operation()
+      .then(resolve, reject)
+      .finally(() => clearTimeout(timer))
+  })
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockSelect = vi.fn()
 const mockLimit = vi.fn()
@@ -21,6 +21,10 @@ describe('/api/health', () => {
     vi.clearAllMocks()
     mockSelect.mockReturnValue({ limit: mockLimit })
     mockLimit.mockResolvedValue({ data: [{ id: 'restaurant-1' }], error: null })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('returns healthy status without exposing secrets when database responds', async () => {
@@ -46,6 +50,21 @@ describe('/api/health', () => {
     expect(response.status).toBe(503)
     expect(json.status).toBe('unhealthy')
     expect(json.checks.database.ok).toBe(false)
+    expect(json.checks.database.message).toBe('Database check failed.')
+  })
+
+  it('returns unhealthy status when database check times out', async () => {
+    vi.useFakeTimers()
+    mockLimit.mockReturnValue(new Promise(() => {}))
+    const { GET } = await importRoute()
+
+    const responsePromise = GET()
+    await vi.advanceTimersByTimeAsync(2501)
+    const response = await responsePromise
+    const json = await response.json()
+
+    expect(response.status).toBe(503)
+    expect(json.status).toBe('unhealthy')
     expect(json.checks.database.message).toBe('Database check failed.')
   })
 })

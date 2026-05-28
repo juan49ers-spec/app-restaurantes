@@ -42,6 +42,7 @@ describe('deterministic report narrative templates', () => {
     expect(narrative.severity).toBe('critical')
     expect(narrative.headline).toMatch(/Prioridad alta/i)
     expect(narrative.bullets).toEqual(['Materia prima: 44.2%. Objetivo 33%'])
+    expect(narrative.recommendations[0]).toMatch(/compras/i)
   })
 
   it('returns a warning narrative for publishable reports with vigilance points', () => {
@@ -60,6 +61,7 @@ describe('deterministic report narrative templates', () => {
     expect(narrative.severity).toBe('warning')
     expect(narrative.summary).toMatch(/entregable/i)
     expect(narrative.bullets[0]).toBe('Personal: 35.4%. Objetivo 33%')
+    expect(narrative.recommendations[0]).toMatch(/turnos/i)
   })
 
   it('returns a positive executive narrative when no KPI is critical or warning', () => {
@@ -86,5 +88,23 @@ describe('deterministic report narrative templates', () => {
 
     expect(narrative.severity).toBe('positive')
     expect(narrative.bullets).toEqual(['Margen neto: 14.8%.', 'Prime cost: 58.1%.'])
+    expect(narrative.recommendations).toContain('Elegir una mejora operativa pequeña y medirla en el siguiente informe.')
+  })
+
+  it('formats non-percentage KPI values without forcing a percent sign', () => {
+    const narrative = buildDeterministicReportNarrative(presentationWithKpis([
+      {
+        id: 'net_profit',
+        label: 'Resultado neto',
+        value: -1250,
+        unit: 'eur',
+        note: 'Resultado negativo',
+        tone: 'critical',
+        sourceIds: [],
+      },
+    ]))
+
+    expect(narrative.bullets[0]).toBe('Resultado neto: -1250 EUR. Resultado negativo')
+    expect(narrative.recommendations[0]).toMatch(/margen/i)
   })
 })

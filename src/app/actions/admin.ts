@@ -20,6 +20,12 @@ const UpdateConsultantAccessStatusSchema = z.object({
     status: z.enum(['ACTIVE', 'PAUSED', 'REVOKED']),
 })
 
+const AdminClientWorkspaceSchema = z.object({
+    restaurantName: z.string().trim().min(2, 'Nombre de restaurante obligatorio.'),
+    ownerUserId: z.string().uuid(),
+    consultantUserId: z.string().uuid().optional().nullable(),
+})
+
 export async function toggleRestaurantModule(
     restaurantId: string,
     module: 'financial_control' | 'operativa' | 'proveedores' | 'personal',
@@ -163,4 +169,60 @@ export async function updateConsultantRestaurantAccessStatus(
     revalidatePath('/admin/consultants')
     revalidatePath('/consultant')
     return { success: true }
+}
+
+export async function createAdminClientWorkspace(
+    input: z.input<typeof AdminClientWorkspaceSchema>
+) {
+    await requireAdmin()
+    const parsed = AdminClientWorkspaceSchema.safeParse(input)
+    if (!parsed.success) {
+        return { success: false, error: 'Datos de onboarding inválidos.' }
+    }
+
+    const supabase = await createClient()
+    const { data: restaurant, error: restaurantError } = await supabase
+        .from('restaurants')
+        .insert({
+            name: parsed.data.restaurantName,
+            owner_id: parsed.data.ownerUserId,
+        })
+        .select('id, name')
+        .single()
+
+    if (restaurantError || !restaurant) {
+        log.error({ err: restaurantError }, 'Error creating admin client restaurant')
+        return { success: false, error: 'No se pudo crear el restaurante cliente.' }
+    }
+
+    if (parsed.data.consultantUserId) {
+        const { error: relationshipError } = await supabase
+            .from('consultant_restaurants')
+            .upsert({
+                consultant_user_id: parsed.data.consultantUserId,
+                restaurant_id: restaurant.id,
+                role: 'CONSULTANT',
+                status: 'ACTIVE',
+            }, { onConflict: 'consultant_user_id,restaurant_id' })
+
+        if (relationshipError) {
+            log.error({ err: relationshipError, restaurantId: restaurant.id }, 'Error assigning consultant during onboarding')
+            return {
+                success: false,
+                error: 'Restaurante creado, pero no se pudo asignar el consultor.',
+                restaurantId: restaurant.id,
+            }
+        }
+    }
+
+    revalidatePath('/admin/restaurants')
+    revalidatePath('/admin/consultants')
+    revalidatePath('/admin/client-onboarding')
+    revalidatePath('/consultant')
+
+    return {
+        success: true,
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name,
+    }
 }

@@ -1,7 +1,7 @@
 # 22 — Multi-client consulting
 
 **Ruta:** `/consultant` (evolución multi-cliente)
-**Archivos clave:** `src/app/actions/consultant.ts`, `src/app/actions/admin.ts`, `src/app/actions/admin-queries.ts`, `src/app/actions/utils.ts`, `src/lib/consultant/access.ts`, `src/components/consultant/ClientPortfolioPanel.tsx`, `src/components/admin/ConsultantAccessManager.tsx`, `supabase/migrations/20260528114500_consultant_restaurants.sql`, `supabase/migrations/20260528133000_admin_manage_consultant_restaurants.sql`
+**Archivos clave:** `src/app/actions/consultant.ts`, `src/app/actions/admin.ts`, `src/app/actions/admin-queries.ts`, `src/app/actions/utils.ts`, `src/lib/consultant/access.ts`, `src/components/consultant/ClientPortfolioPanel.tsx`, `src/components/admin/ConsultantAccessManager.tsx`, `src/components/admin/ClientOnboardingWizard.tsx`, `supabase/migrations/20260528114500_consultant_restaurants.sql`, `supabase/migrations/20260528133000_admin_manage_consultant_restaurants.sql`
 **Transversales relacionados:** [T02](./T02-base-de-datos.md), [T03](./T03-autenticacion.md), [T06](./T06-server-actions-comunes.md), [17](./17-admin.md), [21](./21-consultant-workspace.md)
 
 ## 1. Propósito y rol en el negocio
@@ -20,9 +20,12 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 ### Admin
 
 1. El super-admin entra en `/admin/consultants`.
-2. Selecciona usuario consultor, restaurante, rol y estado.
-3. Guarda la relación con `upsertConsultantRestaurantAccess()`.
-4. Puede pausar, reactivar o revocar relaciones existentes.
+2. Revisa métricas globales y cartera agrupada por consultor.
+3. Filtra relaciones por estado o busca por consultor/restaurante.
+4. Selecciona usuario consultor, restaurante, rol y estado.
+5. Guarda la relación con `upsertConsultantRestaurantAccess()`.
+6. Puede pausar, reactivar o revocar relaciones existentes.
+7. Para altas nuevas, entra en `/admin/client-onboarding`, crea el restaurante con owner existente y asigna consultor en la misma operación.
 
 ## 3. Flujo técnico de datos
 
@@ -37,6 +40,9 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - `ClientPortfolioPanel` renderiza la cartera y llama a la action de selección. No envía ni decide permisos; solo solicita abrir un restaurante.
 - `/admin/consultants` carga `getConsultantAccessAdminData()` y renderiza `ConsultantAccessManager`.
 - `upsertConsultantRestaurantAccess(input)` y `updateConsultantRestaurantAccessStatus(input)` requieren `requireAdmin()`, validan con Zod y escriben en `consultant_restaurants`.
+- `ConsultantAccessManager` deriva en cliente métricas, cartera por consultor, filtros y búsqueda a partir de `users`, `restaurants` y `relationships`. No hace queries adicionales ni decide permisos.
+- `createAdminClientWorkspace(input)` crea `restaurants` con `owner_id` existente y, si se indica consultor, hace `upsert` en `consultant_restaurants` con `status='ACTIVE'`.
+- `ClientOnboardingWizard` es UI cliente para el alta guiada; no decide permisos ni envía `restaurant_id` operativo.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -44,7 +50,9 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - Seleccionar cliente no da acceso por sí mismo: la action verifica propiedad o relación activa antes de escribir la cookie.
 - Una relación `PAUSED` o `REVOKED` no permite seleccionar el restaurante.
 - El modelo n=1 sigue siendo válido. Si el usuario solo tiene un restaurante, el panel de cartera no se muestra.
+- La UI admin puede filtrar y buscar relaciones, pero esos filtros no son una frontera de seguridad.
 - No se crean usuarios de cliente final ni portal self-service de carga de datos en esta fase.
+- El alta guiada no crea usuarios Auth. Usa usuarios existentes como owner/consultor porque la creación de usuarios requiere un flujo admin separado.
 - La tabla nueva tiene RLS y `GRANT SELECT` explícito para compatibilidad con la Data API moderna de Supabase.
 - La escritura de relaciones queda limitada por política RLS de super-admin (`public.is_super_admin()`, respaldada por `public.super_admins`), además del `requireAdmin()` de las actions.
 

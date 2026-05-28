@@ -43,9 +43,10 @@ Tabla `period_reports`, clave compuesta: `restaurant_id + module_name + period_k
 
 - `src/lib/automation/report-narrative-templates.ts` recibe `ProfessionalReportPresentation`.
 - Prioriza KPIs `critical` sobre `warning`.
-- Devuelve `severity`, `headline`, `summary` y `bullets` con valores y notas ya presentes en la presentación.
+- Devuelve `severity`, `headline`, `summary`, `bullets` y `recommendations` con valores y notas ya presentes en la presentación.
 - No consulta Supabase, no usa prompts y no llama a modelos externos.
 - Si no hay KPIs críticos ni warnings, devuelve una lectura positiva/neutral centrada en margen neto y prime cost cuando existen.
+- Las recomendaciones son reglas deterministas por tipo de KPI: materia prima, personal, prime cost, margen/resultado o ventas. No son órdenes automáticas ni recomendaciones inventadas por IA.
 
 ## 5. Al modificar
 

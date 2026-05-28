@@ -1,6 +1,6 @@
 # 17 — Admin (Panel super-administrador)
 
-**Rutas:** `/admin`, `/admin/restaurants`, `/admin/users`, `/admin/consultants`, `/admin/billing`, `/admin/audit`, `/admin/invoice-validation`
+**Rutas:** `/admin`, `/admin/restaurants`, `/admin/users`, `/admin/consultants`, `/admin/client-onboarding`, `/admin/billing`, `/admin/audit`, `/admin/invoice-validation`
 **Archivos clave:** `src/app/admin/layout.tsx`, `src/app/admin/page.tsx`, subrutas en `src/app/admin/*`, `src/app/actions/admin.ts`, `src/app/actions/admin-queries.ts`, `src/app/actions/admin-billing.ts`, `src/app/actions/impersonate.ts`, `src/app/actions/broadcasts.ts`, `src/components/admin/`
 **Transversales relacionados:** [T02](./T02-base-de-datos.md), [T03](./T03-autenticacion.md), [T06](./T06-server-actions-comunes.md)
 
@@ -32,6 +32,13 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - `ConsultantAccessManager`: gestiona relaciones consultor-restaurante en `consultant_restaurants`.
 - Acciones: crear/actualizar relación (`upsertConsultantRestaurantAccess`) y cambiar estado (`updateConsultantRestaurantAccessStatus`).
 - Estados: `ACTIVE` permite que el consultor seleccione el restaurante en `/consultant`; `PAUSED` y `REVOKED` cortan el acceso operativo.
+- La pantalla muestra métricas globales, cartera agrupada por consultor, filtros por estado y búsqueda por consultor/restaurante/rol/estado.
+- Si el admin selecciona una pareja consultor-restaurante ya existente, la UI avisa que Guardar actualizará la relación en vez de crear una nueva.
+
+### `/admin/client-onboarding`
+- `ClientOnboardingWizard`: alta guiada de restaurante cliente para el modelo consultor-first.
+- Crea un restaurante con `owner_id` existente y, opcionalmente, una relación `consultant_restaurants` activa con el consultor.
+- Después del alta muestra el recorrido operativo: importar datos, completar carta/turnos/facturas, generar READY y revisar portal.
 
 ### `/admin/billing`
 - `BillingManager` + `BillingModulesConfig`.
@@ -64,10 +71,11 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - `endBroadcast(id)`.
 - `upsertConsultantRestaurantAccess(payload)` — crea/actualiza relación consultor-restaurante. Requiere admin, valida UUID/rol/estado con Zod y usa `upsert` por `(consultant_user_id, restaurant_id)`.
 - `updateConsultantRestaurantAccessStatus(payload)` — cambia estado de una relación existente. Requiere admin y revalida `/admin/consultants` + `/consultant`.
+- `createAdminClientWorkspace(payload)` — crea restaurante cliente con owner existente y relación opcional con consultor. Requiere admin, valida con Zod y revalida `/admin/restaurants`, `/admin/consultants`, `/admin/client-onboarding` y `/consultant`.
 
 **Componentes:**
 - `AdminShell` — sidebar admin con NAV_ITEMS hardcoded.
-- `AdminDashboardClient`, `RestaurantList`, `UserManagement`, `BillingManager`, `BillingModulesConfig`, `AuditLogViewer`, `ValidationInboxComponent`.
+- `AdminDashboardClient`, `RestaurantList`, `UserManagement`, `ConsultantAccessManager`, `ClientOnboardingWizard`, `BillingManager`, `BillingModulesConfig`, `AuditLogViewer`, `ValidationInboxComponent`.
 
 ## 4. Reglas de negocio y restricciones
 
@@ -83,6 +91,8 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - **Borrar restaurante (`admin_delete_restaurant_cascade`):** operación destructiva. Elimina todo el árbol (ingredients, recipes, invoices, employees, etc.). No reversible.
 - **Broadcasts:** sin `restaurant_id`. Globales. Solo super-admin.
 - **Relaciones consultor-restaurante:** solo admins pueden gestionarlas desde `/admin/consultants`. La tabla tiene RLS de lectura para consultor/owner y una política de escritura para super-admins (`public.is_super_admin()`).
+- **Filtros admin de consultores:** son estado local de UI; no cambian permisos. Las mutaciones siguen pasando por server action + RLS.
+- **Alta guiada:** no crea restaurantes sin owner. `restaurants.owner_id` es obligatorio, por lo que el admin debe seleccionar un usuario existente como owner.
 
 ## 5. Dependencias e implicaciones cruzadas
 
