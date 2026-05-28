@@ -121,6 +121,7 @@ type ActionResponse<T> = {
 - **Historial/exportacion:** `getProfessionalReportDraftHistory(period)`, `getSavedProfessionalReportDraft(id)` y `markProfessionalReportDraftExported(id)` siempre filtran por restaurante activo.
 - **Portal cliente:** `publishReportDraft(id)`, `unpublishReportDraft(id)`, `getPublishedReports()`, `getPublishedReportDetail(id)`, `getPortalContext()` y `requestConsultantMeeting(input)` siempre resuelven `restaurant_id` en servidor. El portal solo muestra drafts con `published_at IS NOT NULL`. `publishReportDraft(id)` solo publica drafts `READY` cuyo snapshot pertenece al restaurante activo y pasa `evaluateProfessionalReportQualityGate()` sin bloqueos. `requestConsultantMeeting(input)` reutiliza solicitudes abiertas para el mismo informe (`PENDING`/`ACKNOWLEDGED`) y evita duplicados.
 - **Mesa de consultoría:** `getConsultantWorkspace()`, `getConsultantPortfolio()`, `selectConsultantClient(input)`, `getPreparationChecklistForPeriod(input)`, `updateConsultantBranding(input)` y `updateMeetingRequestStatus(input)` resuelven acceso en servidor. Gestionan cartera de clientes, flujo de entrega, checklist por periodo y solicitudes sin convertir el portal cliente en zona de carga de datos. `selectConsultantClient(input)` acepta un UUID candidato, pero solo para validarlo contra ownership o `consultant_restaurants.status='ACTIVE'` antes de escribir la cookie server-side.
+- **Admin multi-cliente:** `getConsultantAccessAdminData()`, `upsertConsultantRestaurantAccess(input)` y `updateConsultantRestaurantAccessStatus(input)` viven en admin y requieren `requireAdmin()`. Son las únicas mutaciones UI para `consultant_restaurants`.
 - **Seed demo reporting:** `seedProfessionalReportDemoData()` resuelve el restaurante en servidor y solo debe usarse como herramienta QA/dev; no acepta `restaurant_id`.
 - **Toggles:** `toggle*`. Ej: `toggleRestaurantModule`, `toggleEmployeeStatus`.
 - **Acciones del super-admin:** prefijo `admin` en el archivo (`admin-billing.ts`) y nombres como `changeRestaurantPlan`, `adjustCredits`, `registerPayment`.
@@ -132,9 +133,10 @@ type ActionResponse<T> = {
 
 1. `auth.getUser()` → user.
 2. Si es admin con cookie de impersonación → ese restaurante.
-3. `restaurants.owner_id = user.id`.
-4. Fallback `user.user_metadata.restaurant_id`.
-5. Null si nada.
+3. Si existe cookie `active_consultant_restaurant_id`, se acepta solo si hay relación activa en `consultant_restaurants`.
+4. `restaurants.owner_id = user.id`.
+5. Fallback `user.user_metadata.restaurant_id`.
+6. Null si nada.
 
 **Regla:** ninguna action acepta `restaurant_id` como argumento del cliente. Siempre se resuelve aquí. Las acciones de admin que necesitan apuntar a otro restaurante (`updateUserRestaurant`, `toggleRestaurantModule`, etc.) reciben el `restaurant_id` como argumento **explícito** pero **solo se llaman desde rutas protegidas con `requireAdmin()`**.
 

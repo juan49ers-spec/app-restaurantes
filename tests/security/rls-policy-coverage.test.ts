@@ -33,5 +33,7 @@ describe('RLS policy coverage for critical tenant tables', () => {
     expect(sql).toContain('consultant_user_id = auth.uid()')
     expect(sql).toContain('select id from public.restaurants where owner_id = auth.uid()')
     expect(sql).toContain('grant select on public.consultant_restaurants to authenticated')
+    expect(sql).toContain('super admins can manage consultant client links')
+    expect(sql).toContain('with check (public.is_super_admin())')
   })
 })

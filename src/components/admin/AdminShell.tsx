@@ -15,7 +15,8 @@ import {
     ChevronRight,
     Activity,
     Users,
-    CreditCard
+    CreditCard,
+    BriefcaseBusiness
 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { toast } from 'sonner'
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
     { href: '/admin', label: 'Panel General', icon: BarChart3, exact: true },
     { href: '/admin/restaurants', label: 'Restaurantes', icon: Building2 },
     { href: '/admin/users', label: 'Usuarios', icon: Users },
+    { href: '/admin/consultants', label: 'Consultores', icon: BriefcaseBusiness },
     { href: '/admin/billing', label: 'Facturación', icon: CreditCard },
     { href: '/admin/audit', label: 'Auditoría', icon: Shield },
     { href: '/admin/invoice-validation', label: 'Validación Facturas', icon: FileText },

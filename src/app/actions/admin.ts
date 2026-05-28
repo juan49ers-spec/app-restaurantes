@@ -3,9 +3,22 @@
 import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
+import { z } from 'zod'
 import { requireAdmin } from "./admin-queries"
 
 const log = createActionLogger('admin')
+
+const ConsultantAccessSchema = z.object({
+    consultantUserId: z.string().uuid(),
+    restaurantId: z.string().uuid(),
+    role: z.enum(['CONSULTANT', 'VIEWER']).default('CONSULTANT'),
+    status: z.enum(['ACTIVE', 'PAUSED', 'REVOKED']).default('ACTIVE'),
+})
+
+const UpdateConsultantAccessStatusSchema = z.object({
+    id: z.string().uuid(),
+    status: z.enum(['ACTIVE', 'PAUSED', 'REVOKED']),
+})
 
 export async function toggleRestaurantModule(
     restaurantId: string,
@@ -95,5 +108,59 @@ export async function deleteRestaurant(restaurantId: string) {
 
     revalidatePath('/admin')
     revalidatePath('/admin/restaurants')
+    return { success: true }
+}
+
+export async function upsertConsultantRestaurantAccess(
+    input: z.input<typeof ConsultantAccessSchema>
+) {
+    await requireAdmin()
+    const parsed = ConsultantAccessSchema.safeParse(input)
+    if (!parsed.success) {
+        return { success: false, error: 'Datos de acceso inválidos.' }
+    }
+
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('consultant_restaurants')
+        .upsert({
+            consultant_user_id: parsed.data.consultantUserId,
+            restaurant_id: parsed.data.restaurantId,
+            role: parsed.data.role,
+            status: parsed.data.status,
+        }, { onConflict: 'consultant_user_id,restaurant_id' })
+
+    if (error) {
+        log.error({ err: error }, 'Error upserting consultant restaurant access')
+        return { success: false, error: 'No se pudo guardar la relación consultor-restaurante.' }
+    }
+
+    revalidatePath('/admin/consultants')
+    revalidatePath('/consultant')
+    return { success: true }
+}
+
+export async function updateConsultantRestaurantAccessStatus(
+    input: z.input<typeof UpdateConsultantAccessStatusSchema>
+) {
+    await requireAdmin()
+    const parsed = UpdateConsultantAccessStatusSchema.safeParse(input)
+    if (!parsed.success) {
+        return { success: false, error: 'Estado de acceso inválido.' }
+    }
+
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('consultant_restaurants')
+        .update({ status: parsed.data.status })
+        .eq('id', parsed.data.id)
+
+    if (error) {
+        log.error({ err: error, relationshipId: parsed.data.id }, 'Error updating consultant restaurant access')
+        return { success: false, error: 'No se pudo actualizar la relación consultor-restaurante.' }
+    }
+
+    revalidatePath('/admin/consultants')
+    revalidatePath('/consultant')
     return { success: true }
 }

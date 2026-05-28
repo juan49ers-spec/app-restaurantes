@@ -268,6 +268,24 @@ export interface AdminUserRow {
     is_admin: boolean
 }
 
+export type AdminConsultantRelationshipRole = 'OWNER' | 'CONSULTANT' | 'VIEWER'
+export type AdminConsultantRelationshipStatus = 'ACTIVE' | 'PAUSED' | 'REVOKED'
+
+export interface AdminConsultantRelationshipRow {
+    id: string
+    consultant_user_id: string
+    restaurant_id: string
+    role: AdminConsultantRelationshipRole
+    status: AdminConsultantRelationshipStatus
+    created_at: string
+}
+
+export interface AdminConsultantAccessData {
+    users: AdminUserRow[]
+    restaurants: Array<{ id: string; name: string }>
+    relationships: AdminConsultantRelationshipRow[]
+}
+
 export async function getAdminUsers(): Promise<AdminUserRow[]> {
     await requireAdmin()
     const supabase = await createClient()
@@ -297,4 +315,35 @@ export async function getAdminUsers(): Promise<AdminUserRow[]> {
         restaurant_name: u.restaurant_id ? (restaurantMap.get(u.restaurant_id) || 'Desconocido') : null,
         is_admin: ADMIN_EMAILS.includes((u.email || '').trim().toLowerCase()),
     }))
+}
+
+export async function getConsultantAccessAdminData(): Promise<AdminConsultantAccessData> {
+    await requireAdmin()
+    const supabase = await createClient()
+
+    const [users, restaurantsRes, relationshipsRes] = await Promise.all([
+        getAdminUsers(),
+        supabase
+            .from('restaurants')
+            .select('id, name')
+            .order('name', { ascending: true }),
+        supabase
+            .from('consultant_restaurants')
+            .select('id, consultant_user_id, restaurant_id, role, status, created_at')
+            .order('created_at', { ascending: false }),
+    ])
+
+    if (restaurantsRes.error) {
+        log.error({ err: restaurantsRes.error }, 'Error fetching restaurants for consultant access')
+    }
+
+    if (relationshipsRes.error) {
+        log.error({ err: relationshipsRes.error }, 'Error fetching consultant relationships')
+    }
+
+    return {
+        users,
+        restaurants: (restaurantsRes.data || []) as Array<{ id: string; name: string }>,
+        relationships: (relationshipsRes.data || []) as AdminConsultantRelationshipRow[],
+    }
 }

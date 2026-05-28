@@ -1,6 +1,6 @@
 # 17 — Admin (Panel super-administrador)
 
-**Rutas:** `/admin`, `/admin/restaurants`, `/admin/users`, `/admin/billing`, `/admin/audit`, `/admin/invoice-validation`
+**Rutas:** `/admin`, `/admin/restaurants`, `/admin/users`, `/admin/consultants`, `/admin/billing`, `/admin/audit`, `/admin/invoice-validation`
 **Archivos clave:** `src/app/admin/layout.tsx`, `src/app/admin/page.tsx`, subrutas en `src/app/admin/*`, `src/app/actions/admin.ts`, `src/app/actions/admin-queries.ts`, `src/app/actions/admin-billing.ts`, `src/app/actions/impersonate.ts`, `src/app/actions/broadcasts.ts`, `src/components/admin/`
 **Transversales relacionados:** [T02](./T02-base-de-datos.md), [T03](./T03-autenticacion.md), [T06](./T06-server-actions-comunes.md)
 
@@ -27,6 +27,11 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 ### `/admin/users`
 - `UserManagement`: lista usuarios registrados.
 - Acciones: asignar a restaurante (`updateUserRestaurant`), ver rol (admin/regular).
+
+### `/admin/consultants`
+- `ConsultantAccessManager`: gestiona relaciones consultor-restaurante en `consultant_restaurants`.
+- Acciones: crear/actualizar relación (`upsertConsultantRestaurantAccess`) y cambiar estado (`updateConsultantRestaurantAccessStatus`).
+- Estados: `ACTIVE` permite que el consultor seleccione el restaurante en `/consultant`; `PAUSED` y `REVOKED` cortan el acceso operativo.
 
 ### `/admin/billing`
 - `BillingManager` + `BillingModulesConfig`.
@@ -57,6 +62,8 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - `stopImpersonation()` — borra cookies.
 - `createBroadcast(payload)` — anuncio global (`requireSuperAdmin`).
 - `endBroadcast(id)`.
+- `upsertConsultantRestaurantAccess(payload)` — crea/actualiza relación consultor-restaurante. Requiere admin, valida UUID/rol/estado con Zod y usa `upsert` por `(consultant_user_id, restaurant_id)`.
+- `updateConsultantRestaurantAccessStatus(payload)` — cambia estado de una relación existente. Requiere admin y revalida `/admin/consultants` + `/consultant`.
 
 **Componentes:**
 - `AdminShell` — sidebar admin con NAV_ITEMS hardcoded.
@@ -74,10 +81,11 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - **Impersonación:** `auth.uid()` sigue siendo el del admin. Los `audit_logs.changed_by` apuntan al admin. Buena trazabilidad.
 - **Borrar restaurante (`admin_delete_restaurant_cascade`):** operación destructiva. Elimina todo el árbol (ingredients, recipes, invoices, employees, etc.). No reversible.
 - **Broadcasts:** sin `restaurant_id`. Globales. Solo super-admin.
+- **Relaciones consultor-restaurante:** solo admins pueden gestionarlas desde `/admin/consultants`. La tabla tiene RLS de lectura para consultor/owner y una política de escritura para super-admins (`public.is_super_admin()`).
 
 ## 5. Dependencias e implicaciones cruzadas
 
-- **Tablas:** `restaurants`, `auth.users`, `audit_logs`, `billing_modules`, `billing_events`, `broadcasts`, `ingestion_buffer`, y todo el árbol de datos del restaurante cuando se elimina.
+- **Tablas:** `restaurants`, `auth.users`, `consultant_restaurants`, `audit_logs`, `billing_modules`, `billing_events`, `broadcasts`, `ingestion_buffer`, y todo el árbol de datos del restaurante cuando se elimina.
 - **Otras páginas afectadas:**
   - Cualquier cambio aquí afecta a los restaurantes-cliente. `toggleRestaurantModule` cambia lo que ven en sidebar inmediatamente (vía `revalidatePath('/', 'layout')`).
   - Impersonación hace que las páginas operativas (`/`, `/financial-control`, etc.) muestren datos del restaurante impersonado.
@@ -92,6 +100,7 @@ Panel exclusivo para super-administradores de la plataforma (Anthropic-style, no
 - **Eliminar restaurante con su único owner:** el owner queda huérfano (sin restaurante). En su próximo login irá a `/onboarding`.
 - **Cambiar plan de un restaurante impersonado:** la cookie se mantiene, pero al refrescar la app, el sidebar puede actualizar antes que la cookie. Operacionalmente OK pero confuso.
 - **Validation inbox cross-restaurant:** tiene una lógica mixta — `page.tsx` lee `ingestion_buffer` filtrando por `restaurant_id` del usuario logueado (no admin general). Confirmar si es intencional.
+- **Relación consultor pausada/revocada:** la cookie `active_consultant_restaurant_id` queda ignorada por `getUserRestaurant()` al no existir relación `ACTIVE`.
 - **Sin lock al cambiar de plan:** si dos admins cambian plan a la vez para el mismo restaurante, last-write-wins.
 - **`audit_logs` puede crecer mucho:** sin purga automática. Considerar archivado.
 - **Health check `admin_get_system_health` puede ser lento** si hay muchos usuarios y restaurantes — no está paginado.
