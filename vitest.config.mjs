@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setupTests.ts'],
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**', '.next/**'],
     testTimeout: 10000,
     hookTimeout: 10000,
     teardownTimeout: 10000,
