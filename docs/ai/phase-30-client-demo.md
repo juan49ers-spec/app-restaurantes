@@ -6,10 +6,11 @@ Dar al consultor un guion claro para enseñar ControlHub a clientes sin improvis
 
 ## Preparación antes de enseñar
 
-1. Ejecutar `npm run qa:client-flow`.
-2. Si se enseña el portal real, ejecutar también `RUN_VISUAL_QA=true npm run qa:client-flow`.
-3. Confirmar que hay al menos un informe publicado en `/portal`.
-4. Abrir previamente:
+1. Ejecutar `npm run qa:commercial-demo`.
+2. Si se quiere una verificación más rápida durante desarrollo, ejecutar `npm run qa:client-flow`.
+3. Si se enseña el portal real, ejecutar también `RUN_VISUAL_QA=true npm run qa:client-flow`.
+4. Confirmar que hay al menos un informe publicado en `/portal`.
+5. Abrir previamente:
    - `/consultant`
    - `/portal`
    - `/portal/reports/[id]`
@@ -25,6 +26,7 @@ Explicar que el restaurante suele tener datos repartidos: ventas, gastos, factur
 
 Mostrar `/consultant`:
 
+- Asistente de primer informe guiado.
 - Checklist del periodo.
 - Bloqueantes y recomendaciones.
 - Flujo de entrega.
@@ -50,6 +52,7 @@ Mensaje clave: el cliente no entra al backoffice; entra a un área limpia y prof
 Mostrar `/portal/reports/[id]`:
 
 - Conclusiones ejecutivas.
+- Plan de revisión del cliente.
 - Capítulos.
 - Tendencia de 3 meses.
 - Desglose de gastos.

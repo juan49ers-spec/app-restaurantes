@@ -33,7 +33,14 @@ const deterministicSteps = [
   {
     label: 'Workspace consultor, checklist y cartera',
     command: 'npm',
-    args: ['run', 'test', '--', 'tests/consultant/consultant-actions.test.ts', 'tests/consultant/consultant-portfolio-actions.test.ts'],
+    args: [
+      'run',
+      'test',
+      '--',
+      'tests/consultant/consultant-actions.test.ts',
+      'tests/consultant/consultant-portfolio-actions.test.ts',
+      'tests/consultant/first-report-guide.test.ts',
+    ],
   },
   {
     label: 'Componentes visibles de entrega',
@@ -46,6 +53,9 @@ const deterministicSteps = [
       'tests/components/PortalReportSummary.test.tsx',
       'tests/components/DeliveryWorkflowPanel.test.tsx',
       'tests/components/ClientPortfolioPanel.test.tsx',
+      'tests/components/FirstReportGuidePanel.test.tsx',
+      'tests/components/PortalClientReviewPlan.test.tsx',
+      'tests/portal/portal-client-review-plan.test.ts',
     ],
   },
 ]

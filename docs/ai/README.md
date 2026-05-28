@@ -103,6 +103,7 @@ Cuando vayas a tocar una funcionalidad:
 - [Cierre Fase 35 — Portal Cliente V4](./phase-35-client-portal-v4.md) — plan accionable dentro del informe para guiar lectura, prioridades y reunión.
 - [Cierre Fase 36 — Notificaciones reales de entrega](./phase-36-delivery-notifications.md) — publicación de informes y solicitudes de reunión visibles en notificaciones in-app.
 - [Cierre Fase 37 — Hardening multi-cliente](./phase-37-multi-client-hardening.md) — limpieza de cookies de cliente activo cuando la relación de consultor deja de ser válida.
+- [Cierre Fase 38 — Demo comercial cerrada](./phase-38-commercial-demo-readiness.md) — comando único de QA comercial y guardia para el flujo enseñable.
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 
