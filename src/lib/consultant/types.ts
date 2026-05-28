@@ -108,6 +108,33 @@ export interface ConsultantPreparationChecklist {
   items: ConsultantPreparationChecklistItem[]
 }
 
+export type ConsultantFirstReportGuideStatus =
+  | 'RESOLVE_DATA'
+  | 'CREATE_READY'
+  | 'FIX_QUALITY_GATE'
+  | 'PUBLISH_READY'
+  | 'CLIENT_DELIVERY_READY'
+
+export type ConsultantFirstReportGuideStepStatus = 'done' | 'current' | 'pending'
+
+export interface ConsultantFirstReportGuideStep {
+  id: 'data' | 'ready' | 'quality' | 'publication'
+  label: string
+  description: string
+  status: ConsultantFirstReportGuideStepStatus
+}
+
+export interface ConsultantFirstReportGuide {
+  status: ConsultantFirstReportGuideStatus
+  title: string
+  summary: string
+  primaryAction: {
+    label: string
+    href: string
+  }
+  steps: ConsultantFirstReportGuideStep[]
+}
+
 export interface ConsultantWorkspace {
   restaurant: ConsultantWorkspaceRestaurant
   publishedReports: ConsultantPublishedReport[]

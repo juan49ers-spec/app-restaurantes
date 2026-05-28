@@ -4,6 +4,7 @@ export {
   mergeConsultantPortfolio,
 } from './access'
 export { buildDeliveryReports } from './delivery'
+export { buildFirstReportGuide } from './first-report-guide'
 export { mapPublishedReport, mapRestaurant } from './mappers'
 export {
   buildPreparationChecklist,

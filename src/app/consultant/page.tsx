@@ -5,11 +5,13 @@ import { getConsultantPortfolio, getConsultantWorkspace } from '@/app/actions/co
 import { ClientPortfolioPanel } from '@/components/consultant/ClientPortfolioPanel'
 import { ConsultantBrandingForm } from '@/components/consultant/ConsultantBrandingForm'
 import { DeliveryWorkflowPanel } from '@/components/consultant/DeliveryWorkflowPanel'
+import { FirstReportGuidePanel } from '@/components/consultant/FirstReportGuidePanel'
 import { MeetingRequestsPanel } from '@/components/consultant/MeetingRequestsPanel'
 import { PreparationChecklist } from '@/components/consultant/PreparationChecklist'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { buildFirstReportGuide } from '@/lib/consultant'
 import { formatDateEs } from '@/lib/date-format'
 
 export default async function ConsultantWorkspacePage() {
@@ -37,6 +39,7 @@ export default async function ConsultantWorkspacePage() {
     : [...warnings, portfolioResponse.error || 'No se pudo cargar la cartera de clientes.']
   const openRequests = meetingRequests.filter(request => request.status !== 'COMPLETED').length
   const latestReport = publishedReports[0]
+  const firstReportGuide = buildFirstReportGuide(preparation)
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
@@ -114,6 +117,8 @@ export default async function ConsultantWorkspacePage() {
       </section>
 
       <PreparationChecklist initialChecklist={preparation} />
+
+      <FirstReportGuidePanel guide={firstReportGuide} />
 
       <DeliveryWorkflowPanel reports={deliveryReports} />
 
