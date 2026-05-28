@@ -193,6 +193,10 @@ src/
 
 ## AI Agent Tools
 
+### Context7 MCP — documentación actualizada de librerías
+
+Cuando trabajes con librerías, frameworks, APIs o pasos de configuración que puedan haber cambiado, usa Context7 MCP para resolver la librería y consultar documentación actualizada antes de implementar. Esto aplica especialmente a Next.js, Supabase, Vercel, Vitest, Playwright, React, shadcn/ui y SDKs externos.
+
 ### LazyLoadingAI - Code Context Optimizer
 
 **LazyLoadingAI** es un servidor MCP (Model Context Protocol) que permite a los agentes de código entender codebases enormes sin desperdiciar tokens de contexto.

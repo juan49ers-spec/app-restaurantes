@@ -75,6 +75,11 @@
       "command": "mcp-code-graph",
       "args": [],
       "env": {}
+    },
+    "context7": {
+      "name": "Context7 MCP",
+      "serverUrl": "https://mcp.context7.com/mcp",
+      "headers": {}
     }
   }
 }
