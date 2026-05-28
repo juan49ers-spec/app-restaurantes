@@ -3,6 +3,7 @@ import { getCurrentRestaurant } from '@/app/actions/user'
 import { formatPortalKpiValue } from '@/components/portal/format'
 import { PortalChapterSection } from '@/components/portal/PortalChapterSection'
 import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
+import { PortalDeliveryPack } from '@/components/portal/PortalDeliveryPack'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalExpenseBreakdown } from '@/components/portal/PortalExpenseBreakdown'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
@@ -106,6 +107,8 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
           meetingStatus={draft.meetingStatus}
           suggestedActionCount={suggestedActions.length}
         />
+
+        <PortalDeliveryPack reportId={draft.id} />
 
         {presentation.chapters.map(chapter => {
           const chapterSections = chapter.sectionIds

@@ -38,6 +38,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - La lectura principal prioriza conclusiones `critical` o `warning` antes que positivas, porque el portal debe destacar lo que requiere atención del cliente.
 - `PortalChapterNavigation` renderiza navegación accesible por capítulos usando anclas `#chapter-{id}` en el detalle.
 - `PortalChapterSection` renderiza cada capítulo del detalle con lectura principal, bloques de métricas, confianza/evidencias e incidencias de calidad cuando existen. Consume secciones del snapshot publicado y `narrativeOverrides`; no consulta datos ni recalcula métricas.
+- `PortalDeliveryPack` agrupa los entregables disponibles para el cliente: informe web, PDF imprimible y revisión con consultor. No genera documentos nuevos; ordena salidas ya existentes del snapshot publicado.
 - `PortalPeriodComparisonPanel` muestra una comparación del periodo publicado contra el mes natural anterior. Consume `PortalPeriodComparison` ya calculado en servidor.
 - `PortalMultiPeriodTrend` muestra hasta 3 meses de ventas, gastos y resultado operativo. Consume `PortalMultiPeriodTrend` calculado en servidor desde datos agregados.
 - `PortalExpenseBreakdown` muestra gastos por categoría, ordenados por variación absoluta frente al mes anterior. Consume `PortalExpenseCategoryBreakdown` calculado en servidor y usa etiquetas españolas de `EXPENSE_CATEGORY_LABELS`.
@@ -103,6 +104,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - La base de datos refuerza ese anti-duplicado con un índice parcial único por `restaurant_id + report_id` para solicitudes abiertas.
 - La solicitud aparece en `/consultant` para seguimiento del consultor.
 - Los enlaces PDF desde el portal abren la vista imprimible en una pestaña nueva para no sacar al cliente del área limpia. Esa vista incluye el plan de revisión recomendado generado de forma determinista desde el snapshot.
+- El paquete de entrega debe recordar que informe web y PDF salen del mismo snapshot publicado. No debe sugerir que son documentos diferentes con datos distintos.
 - La portada ejecutiva del portal muestra solo una lectura principal y una selección de KPIs/prioridades. El detalle completo vive en `/portal/reports/[id]`.
 - La navegación por capítulos del detalle es solo UI local basada en `presentation.chapters`; no cambia URL de datos ni dispara queries nuevas.
 - La comparativa mensual es lectura derivada, no modifica el snapshot y no cambia la calidad del informe. Usa `daily_sales.revenue_total` y `operating_expenses.amount` del restaurante activo para el periodo publicado y el mes natural anterior.
@@ -148,6 +150,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si solo hay un mes con datos, la tendencia muestra `Sin tendencia histórica`.
 - Si no hay gastos del mes anterior, el desglose muestra importes actuales y evita deltas porcentuales.
 - Si no hay acciones sugeridas, el recorrido de revisión muestra que no hay acciones urgentes, pero mantiene la recomendación de revisar el histórico y hacer seguimiento.
+- Si un informe se despublica, el paquete de entrega deja de estar accesible porque depende de que el snapshot esté publicado en portal.
 
 ## 7. Al añadir/modificar una función aquí
 

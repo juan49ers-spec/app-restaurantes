@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentRestaurant } from '@/app/actions/user'
 import { formatPortalKpiValue } from '@/components/portal/format'
+import { PortalDeliveryPack } from '@/components/portal/PortalDeliveryPack'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
 import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
@@ -110,6 +111,8 @@ export default async function PortalPage() {
         meetingStatus={latest.meetingStatus}
         suggestedActionCount={suggestedActions.length}
       />
+
+      <PortalDeliveryPack reportId={latest.id} />
 
       <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-bold tracking-tight text-slate-950">Histórico de informes publicados</h2>

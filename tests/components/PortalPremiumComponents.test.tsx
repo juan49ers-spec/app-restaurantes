@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { PortalChapterSection } from '@/components/portal/PortalChapterSection'
 import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
+import { PortalDeliveryPack } from '@/components/portal/PortalDeliveryPack'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
 import { PortalReviewRoadmap } from '@/components/portal/PortalReviewRoadmap'
@@ -171,6 +172,16 @@ describe('Portal premium components', () => {
     expect(screen.getByText('Reunión en preparación')).toBeInTheDocument()
     expect(screen.getByText('Próximas acciones definidas')).toBeInTheDocument()
     expect(screen.getByText(/2 puntos recomendados/i)).toBeInTheDocument()
+  })
+
+  it('renders the delivery pack with web, PDF and review outputs', () => {
+    render(<PortalDeliveryPack reportId="report-1" />)
+
+    expect(screen.getByRole('heading', { name: 'Todo lo necesario para revisar el periodo' })).toBeInTheDocument()
+    expect(screen.getByText('Informe web')).toBeInTheDocument()
+    expect(screen.getByText('PDF imprimible')).toBeInTheDocument()
+    expect(screen.getByText('Revisión con consultor')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Abrir PDF/i })).toHaveAttribute('href', '/reports/print/report-1')
   })
 
   it('renders a guided chapter section with narrative, metrics and data issues', () => {
