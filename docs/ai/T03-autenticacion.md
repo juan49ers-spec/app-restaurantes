@@ -63,7 +63,7 @@ Hay también `getCurrentRestaurant()` en `src/app/actions/user.ts` que retorna e
 
 La Fase 17 introduce `consultant_restaurants` para que un usuario consultor pueda trabajar con varios restaurantes sin ser owner de todos. La selección se hace desde `/consultant` con `selectConsultantClient({ restaurantId })`, pero esa action valida server-side que el usuario es propietario o tiene una relación activa antes de escribir la cookie `active_consultant_restaurant_id`.
 
-La cookie no concede permisos por sí sola: `getUserRestaurant()` consulta la tabla antes de aceptarla. Si la relación se revoca, la cookie queda ignorada y el flujo cae al restaurante propio o al fallback legacy.
+La cookie no concede permisos por sí sola: `getUserRestaurant()` consulta la tabla antes de aceptarla. Si la relación se revoca, se pausa o deja de existir, la cookie se elimina y el flujo cae al restaurante propio o al fallback legacy.
 
 ## Onboarding (`/onboarding`)
 

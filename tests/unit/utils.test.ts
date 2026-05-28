@@ -17,6 +17,15 @@ vi.mock('next/navigation', () => ({
   redirect: (url: string) => mockRedirect(url)
 }))
 
+const mockCookieGet = vi.fn()
+const mockCookieDelete = vi.fn()
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(async () => ({
+    get: mockCookieGet,
+    delete: mockCookieDelete,
+  })),
+}))
+
 // Mock de createClient
 const mockSupabaseChain = {
   auth: {
@@ -36,6 +45,7 @@ vi.mock('@/lib/supabaseServer', () => ({
 describe('Utils Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCookieGet.mockReturnValue(undefined)
   })
 
   describe('getUserRestaurant', () => {
@@ -210,6 +220,53 @@ describe('Utils Actions', () => {
       // Como el código de metadata está comentado, debe retornar el de la DB
       expect(result).toBe('db-restaurant-id')
       expect(mockSupabaseChain.from).toHaveBeenCalledWith('restaurants')
+    })
+
+    it('debería limpiar la cookie de cliente activo cuando la relación ya no es válida', async () => {
+      const { getUserRestaurant } = await import('@/app/actions/utils')
+
+      const mockUser = { id: 'consultant-1', email: 'consultant@example.com' }
+      mockCookieGet.mockImplementation((name: string) =>
+        name === 'active_consultant_restaurant_id'
+          ? { value: 'client-restaurant-1' }
+          : undefined
+      )
+      mockSupabaseChain.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      })
+      mockSupabaseChain.maybeSingle
+        .mockResolvedValueOnce({ data: null, error: null })
+        .mockResolvedValueOnce({ data: { id: 'owned-restaurant-1' }, error: null })
+
+      const result = await getUserRestaurant()
+
+      expect(result).toBe('owned-restaurant-1')
+      expect(mockSupabaseChain.from).toHaveBeenCalledWith('consultant_restaurants')
+      expect(mockCookieDelete).toHaveBeenCalledWith('active_consultant_restaurant_id')
+    })
+
+    it('debería mantener la cookie cuando la relación de consultor sigue activa', async () => {
+      const { getUserRestaurant } = await import('@/app/actions/utils')
+
+      mockCookieGet.mockImplementation((name: string) =>
+        name === 'active_consultant_restaurant_id'
+          ? { value: 'client-restaurant-1' }
+          : undefined
+      )
+      mockSupabaseChain.auth.getUser.mockResolvedValue({
+        data: { user: { id: 'consultant-1', email: 'consultant@example.com' } },
+        error: null,
+      })
+      mockSupabaseChain.maybeSingle.mockResolvedValueOnce({
+        data: { restaurant_id: 'client-restaurant-1' },
+        error: null,
+      })
+
+      const result = await getUserRestaurant()
+
+      expect(result).toBe('client-restaurant-1')
+      expect(mockCookieDelete).not.toHaveBeenCalled()
     })
   })
 })

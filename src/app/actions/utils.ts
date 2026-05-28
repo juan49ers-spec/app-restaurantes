@@ -14,6 +14,16 @@ async function getOptionalCookieValue(name: string) {
     }
 }
 
+async function clearOptionalCookie(name: string) {
+    try {
+        const { cookies } = await import('next/headers')
+        const cookieStore = await cookies()
+        cookieStore.delete(name)
+    } catch {
+        // Cookie access is unavailable in some test/runtime contexts; ignoring keeps the resolver non-blocking.
+    }
+}
+
 export async function getUserRestaurant(): Promise<string | null> {
     const supabase = await createClient()
     const { data: { user }, error } = await supabase.auth.getUser()
@@ -42,6 +52,7 @@ export async function getUserRestaurant(): Promise<string | null> {
             .maybeSingle()
 
         if (consultantLink) return activeConsultantRestaurantId
+        await clearOptionalCookie('active_consultant_restaurant_id')
     }
 
     // 1. Query DB for restaurant owned by this user

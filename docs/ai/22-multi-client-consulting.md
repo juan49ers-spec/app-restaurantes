@@ -38,6 +38,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
   2. cookie `active_consultant_restaurant_id` si existe relación activa;
   3. restaurante propio por `owner_id`;
   4. fallback legacy `user_metadata.restaurant_id`.
+- Si la cookie `active_consultant_restaurant_id` apunta a una relación inexistente, pausada o revocada, `getUserRestaurant()` la elimina y continúa con el restaurante propio/fallback.
 - `ClientPortfolioPanel` renderiza la cartera y llama a la action de selección. No envía ni decide permisos; solo solicita abrir un restaurante.
 - `/admin/consultants` carga `getConsultantAccessAdminData()` y renderiza `ConsultantAccessManager`.
 - `upsertConsultantRestaurantAccess(input)` y `updateConsultantRestaurantAccessStatus(input)` requieren `requireAdmin()`, validan con Zod y escriben en `consultant_restaurants`.
@@ -73,7 +74,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 ## 6. Casos límite y errores conocidos
 
 - Si la migración no está aplicada, la app sigue funcionando para propietarios porque `getUserRestaurant()` cae al modelo `owner_id`.
-- Si la cookie apunta a un restaurante ya revocado, se ignora y se vuelve al restaurante propio/fallback.
+- Si la cookie apunta a un restaurante ya revocado, pausado o inexistente, se elimina, se ignora y se vuelve al restaurante propio/fallback.
 - Si un usuario solo tiene relaciones de consultor y ningún restaurante propio, necesita seleccionar un cliente válido para que las pantallas operativas funcionen completamente.
 - Si hay un cliente duplicado como owner y como consultant link, el rol `OWNER` gana al fusionar cartera.
 - Si la política de super-admin o la allowlist `public.super_admins` no están aplicadas en Supabase real, la UI admin cargará pero las mutaciones pueden fallar por RLS.
