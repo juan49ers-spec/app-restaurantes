@@ -4,6 +4,7 @@ import { PortalChapterSection } from '@/components/portal/PortalChapterSection'
 import { PortalChapterNavigation } from '@/components/portal/PortalChapterNavigation'
 import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
+import { PortalReviewRoadmap } from '@/components/portal/PortalReviewRoadmap'
 import { PortalSuggestedActions } from '@/components/portal/PortalSuggestedActions'
 import type { ProfessionalReportPresentation, ProfessionalReportSection } from '@/lib/reporting'
 import type { PortalPeriodComparison, PortalSuggestedAction } from '@/lib/portal-insights'
@@ -153,6 +154,23 @@ describe('Portal premium components', () => {
     expect(screen.getByText('Acciones sugeridas para revisar')).toBeInTheDocument()
     expect(screen.getByText('Revisar prime cost con el consultor')).toBeInTheDocument()
     expect(screen.getByText('Urgente')).toBeInTheDocument()
+  })
+
+  it('renders the client review roadmap with delivery status', () => {
+    render(
+      <PortalReviewRoadmap
+        viewedAt="2026-05-28T10:00:00.000Z"
+        meetingStatus="ACKNOWLEDGED"
+        suggestedActionCount={2}
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: 'Del informe a la decisión' })).toBeInTheDocument()
+    expect(screen.getByText('Informe publicado')).toBeInTheDocument()
+    expect(screen.getByText('Informe leído')).toBeInTheDocument()
+    expect(screen.getByText('Reunión en preparación')).toBeInTheDocument()
+    expect(screen.getByText('Próximas acciones definidas')).toBeInTheDocument()
+    expect(screen.getByText(/2 puntos recomendados/i)).toBeInTheDocument()
   })
 
   it('renders a guided chapter section with narrative, metrics and data issues', () => {

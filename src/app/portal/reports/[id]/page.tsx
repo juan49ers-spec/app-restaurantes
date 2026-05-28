@@ -8,6 +8,7 @@ import { PortalExpenseBreakdown } from '@/components/portal/PortalExpenseBreakdo
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
 import { PortalMultiPeriodTrend } from '@/components/portal/PortalMultiPeriodTrend'
 import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
+import { PortalReviewRoadmap } from '@/components/portal/PortalReviewRoadmap'
 import { PortalSuggestedActions } from '@/components/portal/PortalSuggestedActions'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
 import {
@@ -99,6 +100,12 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
 
         {trendRes.data && <PortalMultiPeriodTrend trend={trendRes.data} />}
         {expenseBreakdownRes.data && <PortalExpenseBreakdown breakdown={expenseBreakdownRes.data} />}
+
+        <PortalReviewRoadmap
+          viewedAt={draft.viewedAt}
+          meetingStatus={draft.meetingStatus}
+          suggestedActionCount={suggestedActions.length}
+        />
 
         {presentation.chapters.map(chapter => {
           const chapterSections = chapter.sectionIds

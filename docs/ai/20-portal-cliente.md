@@ -42,6 +42,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `PortalMultiPeriodTrend` muestra hasta 3 meses de ventas, gastos y resultado operativo. Consume `PortalMultiPeriodTrend` calculado en servidor desde datos agregados.
 - `PortalExpenseBreakdown` muestra gastos por categoría, ordenados por variación absoluta frente al mes anterior. Consume `PortalExpenseCategoryBreakdown` calculado en servidor y usa etiquetas españolas de `EXPENSE_CATEGORY_LABELS`.
 - `PortalSuggestedActions` muestra hasta 3 acciones sugeridas a revisar con el consultor. Las acciones salen de `buildPortalSuggestedActions(presentation)`, una función pura basada en tonos de KPIs/conclusiones.
+- `PortalReviewRoadmap` muestra el recorrido de revisión del cliente: informe publicado, lectura, estado de reunión y próximas acciones. Consume `viewed_at`, `meetingStatus` y número de acciones sugeridas; no persiste estado nuevo.
 - `PortalReportSummary` mantiene el histórico publicado con enlaces al detalle web y PDF imprimible. Además muestra el estado de entrega derivado de `viewed_at` y de la última solicitud de reunión.
 - `PortalMeetingRequestDialog` usa `/api/portal/meeting-request` para solicitar reunión desde el cliente. Mantiene un estado optimista persistido en `sessionStorage` por informe para que el feedback "Solicitud registrada" sobreviva a remounts del árbol cliente tras la petición.
 
@@ -109,6 +110,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - La tendencia multi-periodo es lectura derivada de los dos meses anteriores más el periodo publicado. No sustituye a la comparativa mensual; aporta contexto de trayectoria.
 - El desglose de gastos por categoría es lectura derivada de `operating_expenses`. Un gasto que sube se marca como peor y uno que baja como mejor, porque en este panel `lowerIsBetter=true`.
 - El estado del histórico se deriva así: sin lectura = `Nuevo`; leído sin reunión = `Leído`; solicitud `PENDING` = `Reunión solicitada`; `ACKNOWLEDGED` = `Reunión en preparación`; `COMPLETED` = `Revisado`.
+- El recorrido de revisión del portal usa los mismos datos derivados que el histórico. No crea una fuente de estado adicional.
 - Las acciones sugeridas del portal son reglas deterministas sobre KPIs/conclusiones (`prime_cost`, materia prima, personal, ventas, rentabilidad). No son IA y no deben afirmar causalidad no soportada por los datos.
 - `restaurant_id` nunca viaja desde cliente.
 
@@ -145,6 +147,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si falla la tendencia multi-periodo o el desglose por categoría, el detalle conserva el informe publicado, comparativa mensual, acciones y capítulos.
 - Si solo hay un mes con datos, la tendencia muestra `Sin tendencia histórica`.
 - Si no hay gastos del mes anterior, el desglose muestra importes actuales y evita deltas porcentuales.
+- Si no hay acciones sugeridas, el recorrido de revisión muestra que no hay acciones urgentes, pero mantiene la recomendación de revisar el histórico y hacer seguimiento.
 
 ## 7. Al añadir/modificar una función aquí
 

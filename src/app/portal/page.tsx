@@ -6,6 +6,7 @@ import { PortalExecutiveBrief } from '@/components/portal/PortalExecutiveBrief'
 import { PortalMeetingRequestDialog } from '@/components/portal/PortalMeetingRequestDialog'
 import { PortalPeriodComparisonPanel } from '@/components/portal/PortalPeriodComparisonPanel'
 import { PortalReportSummary } from '@/components/portal/PortalReportSummary'
+import { PortalReviewRoadmap } from '@/components/portal/PortalReviewRoadmap'
 import { PortalSuggestedActions } from '@/components/portal/PortalSuggestedActions'
 import { Button } from '@/components/ui/button'
 import { buildProfessionalReportPresentation } from '@/lib/reporting'
@@ -103,6 +104,12 @@ export default async function PortalPage() {
         {comparison && <PortalPeriodComparisonPanel comparison={comparison} />}
         <PortalSuggestedActions actions={suggestedActions} />
       </section>
+
+      <PortalReviewRoadmap
+        viewedAt={latest.viewedAt}
+        meetingStatus={latest.meetingStatus}
+        suggestedActionCount={suggestedActions.length}
+      />
 
       <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-bold tracking-tight text-slate-950">Histórico de informes publicados</h2>
