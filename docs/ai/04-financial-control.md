@@ -52,7 +52,7 @@ getMonthlyTarget(restaurantId, monthYear)
 - `closeMonth(monthYear)` — congela el mes en `monthly_results` con `is_closed=true, closed_by, closed_at`, resolviendo el restaurante en servidor.
 
 **Componente cliente principal:** `FinancialControlClient` (en `client.tsx`). Mantiene tab activo, modales, fecha local. Tabs se cargan con `Suspense + lazy`.
-`FinancialCsvImportPanel` vive dentro de `FinancialControlClient` y permite cargar CSV de ventas o gastos. Calcula el preview en cliente con el motor puro `parseFinancialCsvPreview()`, ofrece plantilla descargable para el tipo seleccionado y exige un preflight limpio con `validateFinancialCsvImport()` antes de llamar a `importFinancialCsv()`. También usa `ImportIssuesDownloadButton` para exportar errores de archivo, filas inválidas y duplicados internos como CSV de incidencias.
+`FinancialCsvImportPanel` vive dentro de `FinancialControlClient` y permite cargar CSV de ventas o gastos. Calcula el preview en cliente con el motor puro `parseFinancialCsvPreview()`, ofrece plantilla descargable para el tipo seleccionado y exige un preflight limpio con `validateFinancialCsvImport()` antes de llamar a `importFinancialCsv()`. También usa `CsvFileInput` para validar archivo `.csv` y tamaño máximo antes de leerlo, e `ImportIssuesDownloadButton` para exportar errores de archivo, filas inválidas y duplicados internos como CSV de incidencias.
 `ImpuestosDashboard` carga el trimestre de forma asíncrona y activa `isLoading` al cambiar de trimestre, evitando setState síncrono dentro del effect. `DesarrolloNegocio` calcula insights como derivado simple de métricas para no depender de memoización frágil.
 `ResultadosDashboard` queda como orquestador del tab de resultados. Las piezas reutilizables (`KpiCard`, `DiagnosisCardComponent`, `CollapsibleSection`), el `EMPTY_DATA`, helpers de formato y hooks de diagnóstico/inteligencia viven en `ResultadosDashboardParts.tsx` para mantener el dashboard por debajo del límite de mantenimiento sin cambiar fórmulas.
 
@@ -118,6 +118,7 @@ getMonthlyTarget(restaurantId, monthYear)
 - **CSV gastos e idempotencia:** dos gastos iguales en el mismo CSV se bloquean como duplicado interno. Un reintento posterior del mismo archivo queda protegido por `idempotency_key`.
 - **CSV UI defensiva:** el botón de importación queda deshabilitado si el preview local detecta errores de archivo, filas inválidas, duplicados internos, cero filas válidas o si todavía no existe una comprobación limpia contra BD. Aunque la UI habilite el botón por un bug futuro, la action vuelve a validar todo en servidor.
 - **CSV incidencias:** la descarga de incidencias se genera desde el preview local y no sustituye la validación server-side. Es una ayuda operativa para corregir el archivo.
+- **CSV archivo:** `CsvFileInput` rechaza archivos que no sean `.csv` y limita el tamaño por defecto a 1 MB para evitar lecturas enormes en navegador. La validación real sigue en servidor.
 - **CSV ventas existentes:** una venta diaria ya existente para `(restaurant_id, date)` bloquea la importación CSV para evitar sobrescrituras accidentales.
 - **CSV gastos existentes:** un gasto con el mismo `idempotency_key` bloquea la importación desde UI antes de confirmar. La action también lo revalida.
 

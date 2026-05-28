@@ -53,8 +53,9 @@ Ingesta automatizada de facturas de proveedores. El usuario sube PDF/JPG, GPT-4o
 2. `validateInvoicesCsvImport({ csvText })` revalida el parser en servidor, resuelve `restaurant_id` con `getUserRestaurant()`, cruza proveedores contra `suppliers` del restaurante y detecta duplicados exactos.
 3. `importInvoicesCsv({ csvText })` repite todo el preflight antes de escribir e inserta filas en `invoices` con `status='completed'` y `scanned_data.source='csv_import'`.
 4. Este flujo **solo crea cabeceras históricas**. No crea `invoice_items`, no genera `stock_movements`, no actualiza `inventory_stock` y no inserta `operating_expenses`.
-5. `ImportIssuesDownloadButton` exporta errores de archivo, filas inválidas y duplicados internos del preview para corregir el CSV fuera de la app.
-6. Cambiar el archivo o editar el texto invalida el preflight anterior para evitar importar un contenido distinto al ya comprobado.
+5. `CsvFileInput` valida que el archivo sea `.csv` y que no exceda el tamaño máximo local antes de leerlo en navegador.
+6. `ImportIssuesDownloadButton` exporta errores de archivo, filas inválidas y duplicados internos del preview para corregir el CSV fuera de la app.
+7. Cambiar el archivo o editar el texto invalida el preflight anterior para evitar importar un contenido distinto al ya comprobado.
 
 **Revisar y guardar (`updateInvoice`):**
 

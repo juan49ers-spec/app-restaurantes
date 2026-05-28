@@ -49,7 +49,7 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 - `getPolicies()`.
 - `validateShiftsCsvImport({ csvText })` — preflight server-side del CSV de turnos. Revalida parser, resuelve `restaurant_id`, cruza `employee_id`/`employee_name` contra `employees` del restaurante, calcula coste estimado con tarifa actual y detecta duplicados existentes por pareja exacta empleado-fecha-hora.
 - `validateEmployeesCsvImport({ csvText })` — preflight server-side del CSV de empleados. Revalida parser, resuelve `restaurant_id` y detecta empleados existentes por email o nombre completo normalizado.
-- `EmployeesCsvImportPanel` y `ShiftsCsvImportPanel` reutilizan `CsvFileInput`. Cambiar archivo o editar el textarea reinicia mensajes y preflight para evitar importar un CSV distinto al ya comprobado.
+- `EmployeesCsvImportPanel` y `ShiftsCsvImportPanel` reutilizan `CsvFileInput`. Cambiar archivo o editar el textarea reinicia mensajes y preflight para evitar importar un CSV distinto al ya comprobado. El input compartido rechaza archivos no `.csv` y CSVs demasiado grandes antes de leerlos en navegador.
 
 **Escritura:**
 - `upsertEmployee(payload)`, `toggleEmployeeStatus(id)`, `deleteEmployee(id)` — resuelven el restaurante activo en servidor e ignoran cualquier `restaurant_id` enviado por cliente.

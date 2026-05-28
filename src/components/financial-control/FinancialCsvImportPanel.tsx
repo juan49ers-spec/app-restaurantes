@@ -5,8 +5,8 @@ import { AlertTriangle, CheckCircle2, Download, FileText, Upload } from "lucide-
 import { importFinancialCsv, validateFinancialCsvImport } from "@/app/actions/financial-import"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { CsvFileInput } from "@/components/importing/CsvFileInput"
 import { ImportIssuesDownloadButton } from "@/components/importing/ImportIssuesDownloadButton"
 import {
     FINANCIAL_CSV_TEMPLATES,
@@ -70,13 +70,10 @@ export function FinancialCsvImportPanel() {
         setPreflight({ status: "idle" })
     }
 
-    async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-        const file = event.target.files?.[0]
-        if (!file) return
-
+    function resetWithCsvText(text: string) {
         setMessage(null)
         setPreflight({ status: "idle" })
-        setCsvText(await file.text())
+        setCsvText(text)
     }
 
     function handlePreflight() {
@@ -166,10 +163,7 @@ export function FinancialCsvImportPanel() {
                 </div>
 
                 <div className="w-full max-w-sm space-y-2">
-                    <label htmlFor="financial-csv-file" className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                        Archivo CSV
-                    </label>
-                    <Input id="financial-csv-file" type="file" accept=".csv,text/csv" onChange={handleFileChange} />
+                    <CsvFileInput id="financial-csv-file" onTextLoaded={resetWithCsvText} />
                     <Button asChild variant="outline" size="sm" className="w-full">
                         <a href={templateHref} download={kind === "sales" ? "plantilla-ventas.csv" : "plantilla-gastos.csv"}>
                             <Download className="size-3.5" />

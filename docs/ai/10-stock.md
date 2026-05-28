@@ -32,7 +32,7 @@ Inventario operativo en tiempo real. Cuántas unidades tengo de cada ingrediente
 - `previewStockImpact(restaurantId, date, sales[])` — calcula sin escribir.
 - `validateRecipeSalesCsvImport({ csvText })` — preflight server-side para CSV de ventas por receta. Revalida parser, resuelve `restaurant_id`, cruza `recipe_id`/`recipe_name` contra `recipes` del restaurante y detecta duplicados existentes en `daily_recipe_sales`.
 - `ImportIssuesDownloadButton` permite exportar errores de archivo, filas inválidas y duplicados internos del preview como CSV de incidencias.
-- `RecipeSalesCsvImportPanel` reutiliza `CsvFileInput`; cambiar archivo o editar el textarea invalida la comprobación previa de duplicados para mantener el patrón preview → preflight → import.
+- `RecipeSalesCsvImportPanel` reutiliza `CsvFileInput`; cambiar archivo o editar el textarea invalida la comprobación previa de duplicados para mantener el patrón preview → preflight → import. El input compartido bloquea archivos no `.csv` y CSVs demasiado grandes antes de leerlos en navegador.
 
 **Escritura:**
 - `importRecipeSalesCsv({ csvText })` — importa filas en `daily_recipe_sales` con `restaurant_id` server-side. No llama al RPC de stock y no descuenta inventario; está pensado para carga histórica/consultoría, informes y Menu Engineering.

@@ -47,6 +47,7 @@ Las fichas técnicas (escandallos) de los platos del menú. Documentan la fórmu
 - El panel reutiliza `CsvFileInput` para cargar archivos `.csv`; editar el textarea o cambiar de archivo reinicia mensajes y preflight para que la importación siempre corresponda al contenido comprobado.
 - `parseRecipesCsvPreview()` es un motor puro en `src/lib/importing/recipes-csv.ts`: normaliza cabeceras, soporta decimales españoles, valida `name`, `selling_price`, `current_cost`, `target_margin_pct`, `prep_time_minutes`, `yields` y `hourly_rate`, detecta duplicados internos por nombre normalizado y resume precio/coste medio.
 - El panel ofrece plantilla descargable e incidencias CSV descargables mediante `ImportIssuesDownloadButton`.
+- La selección de archivo usa `CsvFileInput`, que bloquea archivos no `.csv` y CSVs demasiado grandes antes de leerlos en cliente.
 
 **Hook clave:** `useRecipeCalculator` (ver [T05](./T05-hooks-y-providers.md)) — orquesta el estado del editor: ingredientes, escalado, métricas derivadas (`totalCost`, `laborCost`, `primeCost`, `calculatedMargin`, `suggestedPrice`).
 
