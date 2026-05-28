@@ -12,7 +12,7 @@ import {
     Trash2
 } from "lucide-react"
 import type { Employee, Shift, ShiftType } from "@/types/schema"
-import { upsertShift, deleteShift } from "@/app/actions/staff"
+import { upsertShift, deleteShift } from "@/app/actions/staff-scheduling"
 import { format } from "date-fns"
 
 interface ShiftFormProps {

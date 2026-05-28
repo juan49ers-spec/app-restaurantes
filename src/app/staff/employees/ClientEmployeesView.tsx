@@ -19,7 +19,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { EmployeeModal } from "@/components/staff/EmployeeModal"
 import { EmployeesCsvImportPanel } from "@/components/staff/EmployeesCsvImportPanel"
-import { toggleEmployeeStatus } from "@/app/actions/staff"
+import { toggleEmployeeStatus } from "@/app/actions/staff-directory"
 import { toast } from "sonner"
 
 interface ClientEmployeesViewProps {

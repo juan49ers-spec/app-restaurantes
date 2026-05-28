@@ -8,7 +8,7 @@ import { IRPTable } from "./IRPTable"
 import { FiscalCalendar } from "./FiscalCalendar"
 import { DocumentChecklist } from "./DocumentChecklist"
 import { Download, ChevronLeft, ChevronRight, FileText, Loader2 } from "lucide-react"
-import { getQuarterlyFiscalData, QuarterlyFiscalData } from "@/app/actions/financial-control"
+import { getQuarterlyFiscalData, QuarterlyFiscalData } from "@/app/actions/financial-analysis"
 
 interface ImpuestosDashboardProps {
     restaurantId: string;

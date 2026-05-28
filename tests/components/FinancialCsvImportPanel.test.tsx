@@ -5,7 +5,7 @@ import { FinancialCsvImportPanel } from '@/components/financial-control/Financia
 const importFinancialCsv = vi.fn()
 const validateFinancialCsvImport = vi.fn()
 
-vi.mock('@/app/actions/financial-control', () => ({
+vi.mock('@/app/actions/financial-import', () => ({
   importFinancialCsv: (input: unknown) => importFinancialCsv(input),
   validateFinancialCsvImport: (input: unknown) => validateFinancialCsvImport(input),
 }))

@@ -1,11 +1,14 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { getUserRestaurant } from "./utils"
 import { revalidatePath } from "next/cache"
 import { MasterIngredient, CreateIngredientSchema, CreateIngredientInput } from "@/types/schema"
 import { executeSafeAction } from "./safe-action"
 import { z } from "zod"
+
+const log = createActionLogger('ingredients')
 
 export async function getIngredients() {
   const supabase = await createClient()
@@ -86,7 +89,7 @@ export async function getIngredientPriceHistory(ingredientId: string) {
     .limit(10) // Last 10 prices for context
 
   if (error) {
-    console.error("Error fetching price history:", error)
+    log.error({ err: error }, "Error fetching price history")
     return []
   }
   return data
@@ -200,7 +203,7 @@ export async function checkIngredientUsage(ingredientId: string) {
     .eq('master_ingredient_id', ingredientId)
 
   if (error) {
-    console.error("Error checking usage:", error)
+    log.error({ err: error }, "Error checking usage")
     return []
   }
 
@@ -286,7 +289,7 @@ export async function importIngredientsBulk(rows: Array<{
     .select()
 
   if (error) {
-    console.error('Error importing ingredients:', error)
+    log.error({ err: error }, 'Error importing ingredients')
     throw new Error(`Failed to import ingredients: ${error.message}`)
   }
 

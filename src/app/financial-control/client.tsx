@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button"
 import { MonthlyPerformanceWidget } from "@/components/financial-control/MonthlyPerformanceWidget"
 
 import type { DailySales, OperatingExpense } from "@/types/schema"
-import type { ExpenseDashboardData } from "@/app/actions/financial-control"
+import type { ExpenseDashboardData } from "@/app/actions/financial-analysis"
 import type { DashboardData as ResultsData } from "@/app/actions/resultados"
 
 import { Skeleton } from "@/components/ui/skeleton"

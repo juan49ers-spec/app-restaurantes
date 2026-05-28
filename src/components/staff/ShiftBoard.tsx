@@ -9,7 +9,8 @@ import {
     Euro,
     Info
 } from "lucide-react"
-import { getEmployees, getShifts, upsertShift, deleteShift, getStaffingForecast, type DailyForecast } from "@/app/actions/staff"
+import { getEmployees } from "@/app/actions/staff-directory"
+import { getShifts, upsertShift, deleteShift, getStaffingForecast, type DailyForecast } from "@/app/actions/staff-scheduling"
 import { format, startOfWeek, addDays, subWeeks, addWeeks, isSameDay } from "date-fns"
 import { es } from "date-fns/locale"
 import type { Employee, Shift } from "@/types/schema"

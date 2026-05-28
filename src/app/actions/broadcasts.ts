@@ -1,8 +1,11 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabaseServer'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+
+const log = createActionLogger('broadcasts')
 
 const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
 
@@ -44,7 +47,7 @@ export async function createBroadcast(rawData: unknown) {
         })
 
     if (error) {
-        console.error('Error creating broadcast:', error)
+        log.error({ err: error }, 'Error creating broadcast')
         return { success: false, error: 'Error al crear el anuncio' }
     }
 
@@ -63,7 +66,7 @@ export async function getActiveBroadcasts() {
         .order('created_at', { ascending: false })
 
     if (error) {
-        console.error('Error fetching broadcasts:', error)
+        log.error({ err: error }, 'Error fetching broadcasts')
         return []
     }
 
@@ -79,7 +82,7 @@ export async function deleteBroadcast(id: string) {
         .eq('id', id)
 
     if (error) {
-        console.error('Error deleting broadcast:', error)
+        log.error({ err: error }, 'Error deleting broadcast')
         return { success: false, error: 'Error al eliminar el anuncio' }
     }
 

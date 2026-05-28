@@ -1,9 +1,12 @@
 "use server"
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { MonthlyResult } from "@/types/resultados"
 import { getUserRestaurant } from "./utils"
+
+const log = createActionLogger('resultados')
 
 export async function insertMonthlyTestData(
     data: Partial<MonthlyResult> & { year: number; month: number }
@@ -67,7 +70,7 @@ export async function insertMonthlyTestData(
         return { success: true, error: null }
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Error al insertar los datos"
-        console.error("Error inserting test data:", err)
+        log.error({ err }, "Error inserting test data")
         return { success: false, error: message }
     }
 }
@@ -116,7 +119,7 @@ export async function getResultsDashboardData(
                 .limit(12)
         ])
 
-        if (historyResult.error) console.error("History error:", historyResult.error)
+        if (historyResult.error) log.error({ err: historyResult.error }, "History error")
 
         const dashboardData: DashboardData = {
             currentMonth: currentResult.data || null,
@@ -126,7 +129,7 @@ export async function getResultsDashboardData(
 
         return { data: dashboardData, error: null }
     } catch (err) {
-        console.error("Error fetching dashboard data:", err)
+        log.error({ err }, "Error fetching dashboard data")
         return { data: null, error: "Error al cargar el dashboard" }
     }
 }
@@ -167,7 +170,7 @@ export async function closeMonth(
         return { success: true, error: null }
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Error al cerrar el mes"
-        console.error("Error closing month:", err)
+        log.error({ err }, "Error closing month")
         return { success: false, error: message }
     }
 }

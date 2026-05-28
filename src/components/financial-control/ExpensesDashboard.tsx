@@ -8,7 +8,7 @@ import { ExpenseIntelligenceWidget } from "./ExpenseIntelligenceWidget"
 import { ExpenseDonutChart } from "./ExpenseDonutChart"
 import { ExpenseDetailTable } from "./ExpenseDetailTable"
 import { ExpensesFormModal } from "./ExpensesFormModal"
-import { ExpenseDashboardData } from "@/app/actions/financial-control"
+import { ExpenseDashboardData } from "@/app/actions/financial-analysis"
 import { OperatingExpense } from "@/types/schema"
 import { exportExpensesToCSV } from "@/lib/export-utils"
 import { toast } from "sonner"
@@ -48,7 +48,7 @@ export function ExpensesDashboard({ data, restaurantId, onInsightEdit }: Expense
     const handleDeleteExpense = async (id: string) => {
         if (!confirm("¿Estás seguro de eliminar este gasto?")) return
         try {
-            const { deleteOperatingExpense } = await import("@/app/actions/financial-control")
+            const { deleteOperatingExpense } = await import("@/app/actions/financial-control-core")
             await deleteOperatingExpense(id)
             toast.success("Gasto eliminado")
             // Force refresh

@@ -1,5 +1,6 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { scanInvoiceWithGPT4o } from "@/services/openai-vision"
 import { InvoiceStatus, Invoice } from "@/types/schema"
@@ -10,6 +11,8 @@ import {
     parseInvoicesCsvPreview,
     type InvoicesCsvPayload,
 } from "@/lib/importing/invoices-csv"
+
+const log = createActionLogger('invoices')
 
 const InvoicesCsvImportSchema = z.object({
     csvText: z.string().min(1, "CSV vacío"),
@@ -388,7 +391,7 @@ export async function processInvoice(formData: FormData) {
 
     } catch (error: unknown) {
         // Rollback or Mark Error
-        console.error(error)
+        log.error({ err: error }, "Invoice action failed")
         await supabase
             .from('invoices')
             .update({ status: 'error' })
@@ -472,7 +475,7 @@ export async function createInvoiceRecord(filePath: string) {
         return { success: true, invoiceId: invoice.id }
 
     } catch (error: unknown) {
-        console.error("OCR Error:", error)
+        log.error({ err: error }, "OCR error")
         await supabase
             .from('invoices')
             .update({ status: 'error' })

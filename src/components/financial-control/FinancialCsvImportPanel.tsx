@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { AlertTriangle, CheckCircle2, Download, FileText, Upload } from "lucide-react"
-import { importFinancialCsv, validateFinancialCsvImport } from "@/app/actions/financial-control"
+import { importFinancialCsv, validateFinancialCsvImport } from "@/app/actions/financial-import"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

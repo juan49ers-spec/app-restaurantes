@@ -1,7 +1,7 @@
 # 04 — Financial Control
 
 **Ruta:** `/financial-control`
-**Archivos clave:** `src/app/financial-control/page.tsx`, `src/app/financial-control/client.tsx`, `src/app/actions/financial-control.ts`, `src/app/actions/resultados.ts`, `src/app/actions/impuestos.ts`
+**Archivos clave:** `src/app/financial-control/page.tsx`, `src/app/financial-control/client.tsx`, `src/app/actions/financial-control.ts`, `src/app/actions/financial-control-core.ts`, `src/app/actions/financial-import.ts`, `src/app/actions/financial-analysis.ts`, `src/app/actions/resultados.ts`, `src/app/actions/impuestos.ts`
 **Transversales relacionados:** [T02](./T02-base-de-datos.md), [T04](./T04-financial-math.md), [T06](./T06-server-actions-comunes.md)
 
 ## 1. Propósito y rol en el negocio
@@ -54,6 +54,13 @@ getMonthlyTarget(restaurantId, monthYear)
 **Componente cliente principal:** `FinancialControlClient` (en `client.tsx`). Mantiene tab activo, modales, fecha local. Tabs se cargan con `Suspense + lazy`.
 `FinancialCsvImportPanel` vive dentro de `FinancialControlClient` y permite cargar CSV de ventas o gastos. Calcula el preview en cliente con el motor puro `parseFinancialCsvPreview()`, ofrece plantilla descargable para el tipo seleccionado y exige un preflight limpio con `validateFinancialCsvImport()` antes de llamar a `importFinancialCsv()`. También usa `ImportIssuesDownloadButton` para exportar errores de archivo, filas inválidas y duplicados internos como CSV de incidencias.
 `ImpuestosDashboard` carga el trimestre de forma asíncrona y activa `isLoading` al cambiar de trimestre, evitando setState síncrono dentro del effect. `DesarrolloNegocio` calcula insights como derivado simple de métricas para no depender de memoización frágil.
+
+**Organización de actions (Fase 14.3):**
+- `financial-control.ts` es una fachada de compatibilidad que reexporta la API pública histórica.
+- `financial-control-core.ts` contiene ventas diarias, gastos operativos, objetivos mensuales y datos base del hub financiero.
+- `financial-import.ts` contiene `validateFinancialCsvImport()` e `importFinancialCsv()` junto con helpers privados de preflight e idempotencia.
+- `financial-analysis.ts` contiene agregaciones de lectura (`getExpenseDashboardData`, métricas fiscales y trimestrales). No muta datos.
+- Los logs de error de estas actions pasan por `createActionLogger()`; no se usa `console.*` en producción.
 
 **Importación CSV (16-lite):**
 - `src/lib/importing/financial-csv.ts` contiene el motor puro de preview para CSV de ventas (`daily_sales`) y gastos (`operating_expenses`).
@@ -120,7 +127,10 @@ getMonthlyTarget(restaurantId, monthYear)
 - Mirar `client.tsx` para entender el orquestador y los modales.
 
 **Archivos que suelen cambiar a la vez:**
-- `src/app/actions/financial-control.ts` — actions de ventas y gastos.
+- `src/app/actions/financial-control-core.ts` — actions de ventas, gastos y objetivos.
+- `src/app/actions/financial-import.ts` — importación CSV financiera.
+- `src/app/actions/financial-analysis.ts` — dashboards y métricas agregadas.
+- `src/app/actions/financial-control.ts` — solo fachada de reexport; no añadir lógica nueva aquí.
 - `src/app/actions/resultados.ts` — resultados mensuales y cierre.
 - `src/app/actions/impuestos.ts` — métricas fiscales.
 - `src/components/financial-control/*` — formularios y dashboards (30+ componentes).

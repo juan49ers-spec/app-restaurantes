@@ -5,7 +5,7 @@ import { CalendarView } from "@/components/financial-control/CalendarView"
 import { ModuleGate } from "@/components/financial-control/ModuleGate"
 import { TaxPulse } from "@/components/dashboard/TaxPulse"
 import { DailySales, OperatingExpense } from '@/types/schema'
-import type { FiscalMetrics } from "@/app/actions/financial-control"
+import type { FiscalMetrics } from "@/app/actions/financial-analysis"
 
 // Dynamically import PnLReport to avoid hydration mismatch with Recharts/Tabs
 const PnLReport = dynamic(() => import('@/components/financial-control/PnLReport').then(mod => mod.PnLReport), {

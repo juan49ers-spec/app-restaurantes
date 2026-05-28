@@ -16,7 +16,7 @@ Todas en `src/app/actions/`, una carpeta plana (sin subcarpetas) con archivos po
 | `impersonate.ts` | Start/stop impersonación. |
 | `broadcasts.ts` | Anuncios globales (super-admin). |
 | `dashboard.ts` | Datos agregados para dashboards. |
-| `financial-control.ts` | Ventas diarias, gastos, presupuestos, métricas fiscales, dashboard de gastos. |
+| `financial-control.ts`, `financial-control-core.ts`, `financial-import.ts`, `financial-analysis.ts` | Fachada financiera, ventas/gastos/targets, importación CSV y métricas agregadas. |
 | `financial-diagnosis.ts` | Diagnóstico financiero del ExecutiveDashboard. |
 | `financial-engine.ts` | Motor de cálculo y proyecciones. |
 | `recipes.ts`, `saveRecipe.ts` | CRUD de recetas (saveRecipe es RPC atómico aparte). |
@@ -26,7 +26,7 @@ Todas en `src/app/actions/`, una carpeta plana (sin subcarpetas) con archivos po
 | `stock-actions.ts` | Inventario, ventas diarias por receta, entradas manuales. |
 | `suppliers.ts`, `supplierItems.ts`, `supplier-mapping.ts`, `supplier-scorecard.ts` | CRM y scorecard de proveedores. |
 | `purchase-analytics.ts`, `smart-ordering.ts`, `price-alerts.ts` | Analytics de compras. |
-| `staff.ts`, `staff-actions.ts`, `staff-optimization.ts` | Equipo, turnos, optimización. |
+| `staff.ts`, `staff-directory.ts`, `staff-scheduling.ts`, `staff-import.ts`, `staff-actions.ts`, `staff-optimization.ts` | Fachada de staff, empleados, turnos, importación CSV, compatibilidad legacy y optimización. |
 | `operational.ts` | KPIs operativos. |
 | `alerts.ts` | Sistema de notificaciones y reglas. |
 | `waste-actions.ts` | Logging de mermas. |
@@ -124,6 +124,7 @@ type ActionResponse<T> = {
 - **Seed demo reporting:** `seedProfessionalReportDemoData()` resuelve el restaurante en servidor y solo debe usarse como herramienta QA/dev; no acepta `restaurant_id`.
 - **Toggles:** `toggle*`. Ej: `toggleRestaurantModule`, `toggleEmployeeStatus`.
 - **Acciones del super-admin:** prefijo `admin` en el archivo (`admin-billing.ts`) y nombres como `changeRestaurantPlan`, `adjustCredits`, `registerPayment`.
+- **Fachadas de compatibilidad:** `financial-control.ts` y `staff.ts` solo reexportan actions tras la Fase 14.3. La lógica nueva debe ir en los módulos de dominio (`*-core`, `*-import`, `*-analysis`, `*-directory`, `*-scheduling`).
 
 ## Resolución del `restaurant_id`
 
@@ -142,6 +143,7 @@ type ActionResponse<T> = {
 - **Validación Zod** → si quieres mensaje limpio al cliente, atrapa `ZodError` y mapea a `error: 'Validation failed: <field>'`.
 - **Errores Supabase** → devolver `error.message`. No exponer `error.details` al cliente (puede revelar PII).
 - **Errores inesperados** → `try/catch` general, loguear con `logger.error({ err, action: 'X' })`, devolver `{ success: false, error: 'Internal error' }`.
+- **Logging estructurado** → usar `createActionLogger()` y la firma Pino `log.error({ err, ...context }, 'mensaje')`. No usar `console.log/error/warn` en `src/app/actions`.
 - **Idempotencia** → si la action puede recibirse 2 veces (uploads, formularios), usar `idempotency_key` (tablas `invoices`, `operating_expenses` ya tienen la columna).
 
 ## Revalidación

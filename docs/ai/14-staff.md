@@ -1,7 +1,7 @@
 # 14 — Staff (Equipo)
 
 **Rutas:** `/staff/employees`, `/staff/schedule`, `/staff/policies`
-**Archivos clave:** `src/app/staff/employees/page.tsx`, `src/app/staff/schedule/page.tsx`, `src/app/staff/policies/page.tsx`, `src/app/actions/staff.ts`, `src/app/actions/staff-actions.ts`, `src/app/actions/staff-optimization.ts`, `src/app/actions/policy-actions.ts`, `src/components/staff/`
+**Archivos clave:** `src/app/staff/employees/page.tsx`, `src/app/staff/schedule/page.tsx`, `src/app/staff/policies/page.tsx`, `src/app/actions/staff.ts`, `src/app/actions/staff-directory.ts`, `src/app/actions/staff-scheduling.ts`, `src/app/actions/staff-import.ts`, `src/app/actions/staff-actions.ts`, `src/app/actions/staff-optimization.ts`, `src/app/actions/policy-actions.ts`, `src/components/staff/`
 **Transversales relacionados:** [T02](./T02-base-de-datos.md), [T04](./T04-financial-math.md)
 
 ## 1. Propósito y rol en el negocio
@@ -62,6 +62,13 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 - `EmployeeModal` usa `EmployeeSchema` con `react-hook-form`/`zodResolver`; por compatibilidad de tipos con React Hook Form, el resolver se castea vía `unknown` a `Resolver<EmployeeFormValues>`.
 - `wage_type` se observa con `useWatch`, no con `form.watch()` en render, para evitar avisos del React Compiler.
 
+**Organización de actions (Fase 14.3):**
+- `staff.ts` es una fachada de compatibilidad que reexporta la API pública histórica.
+- `staff-directory.ts` contiene CRUD de empleados (`getEmployees`, `upsertEmployee`, `toggleEmployeeStatus`, `deleteEmployee`).
+- `staff-scheduling.ts` contiene turnos y previsión (`getStaffingForecast`, `getShifts`, `upsertShift`, `deleteShift`).
+- `staff-import.ts` contiene importación CSV de empleados y turnos con preview/preflight/import.
+- Los logs de estas actions usan `createActionLogger()` en lugar de `console.*`.
+
 ## 4. Reglas de negocio y restricciones
 
 - **Convenio Colectivo Hostelería 2024-25:** las tarifas sugeridas vienen de `HOURLY_RATE_SUGGESTIONS` (rango mín-máx por rol). UI muestra rango pero no fuerza límites.
@@ -105,7 +112,7 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 - **system_access_level:** se guarda pero la auth real sigue siendo por email (ver [T03](./T03-autenticacion.md)). No se aplica como permiso de la app.
 - **Políticas no publicadas (`is_published=false`):** visibles solo para gerencia (en teoría — verificar filtros en UI).
 - **`employees.is_active` vs `employees.status`:** dos campos parecidos. Verificar cuál es canónico antes de filtrar.
-- **Actions duplicadas:** existen `staff.ts` y `staff-actions.ts`. Ambas deben resolver `restaurant_id` en servidor. La duplicidad sigue siendo deuda pendiente de consolidar antes de construir informes profesionales de horarios.
+- **Fachada legacy:** `staff.ts` ya no contiene lógica; reexporta `staff-directory.ts`, `staff-scheduling.ts` y `staff-import.ts` para no romper imports existentes. `staff-actions.ts` queda como compatibilidad legacy y también debe resolver `restaurant_id` en servidor.
 - **React Hook Form + React Compiler:** evita leer `form.watch()` directamente durante render en componentes nuevos; usa `useWatch`.
 
 ## 7. Al añadir/modificar una función aquí
@@ -116,7 +123,8 @@ Gestión integral de RRHH: directorio de empleados (con tarifas según Convenio 
 - No reintroducir `restaurant_id` como dato confiable enviado por cliente. Puede seguir presente en formularios por compatibilidad visual, pero la action debe resolverlo en servidor.
 
 **Archivos que suelen cambiar a la vez:**
-- `src/app/actions/staff.ts`, `staff-actions.ts`, `staff-optimization.ts`, `policy-actions.ts`.
+- `src/app/actions/staff-directory.ts`, `staff-scheduling.ts`, `staff-import.ts`, `staff-actions.ts`, `staff-optimization.ts`, `policy-actions.ts`.
+- `src/app/actions/staff.ts` solo debe cambiar si se añaden o retiran reexports públicos.
 - `src/components/staff/EmployeeForm.tsx`, `ShiftBoard.tsx`, `ShiftForm.tsx`, `PolicyBoard.tsx`, `ShiftBoardCell.tsx`, `ShiftCard.tsx`.
 - `src/components/staff/EmployeesCsvImportPanel.tsx` — importación CSV de plantilla de personal.
 - `src/lib/importing/employees-csv.ts` — parser puro de CSV de empleados.

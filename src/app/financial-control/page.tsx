@@ -1,7 +1,8 @@
 
 import { Suspense } from "react"
 import { FinancialControlClient } from "./client"
-import { getDailySales, getOperatingExpenses, getBillingDashboardData, getExpenseDashboardData } from "@/app/actions/financial-control"
+import { getDailySales, getOperatingExpenses, getBillingDashboardData } from "@/app/actions/financial-control-core"
+import { getExpenseDashboardData } from "@/app/actions/financial-analysis"
 import { getResultsDashboardData } from "@/app/actions/resultados"
 import { getCurrentRestaurant } from "@/app/actions/user"
 import { format, startOfMonth, endOfMonth } from "date-fns"

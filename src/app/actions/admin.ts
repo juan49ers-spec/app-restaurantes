@@ -1,8 +1,11 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { requireAdmin } from "./admin-queries"
+
+const log = createActionLogger('admin')
 
 export async function toggleRestaurantModule(
     restaurantId: string,
@@ -45,7 +48,7 @@ export async function toggleRestaurantModule(
         .eq('id', restaurantId)
 
     if (error) {
-        console.error("Error updating module:", error)
+        log.error({ err: error }, "Error updating module")
         throw new Error("Failed to update module")
     }
 
@@ -67,7 +70,7 @@ export async function updateUserRestaurant(
     })
 
     if (error) {
-        console.error("Error updating user restaurant:", error)
+        log.error({ err: error }, "Error updating user restaurant")
         throw new Error("Failed to update user restaurant")
     }
 
@@ -80,19 +83,13 @@ export async function deleteRestaurant(restaurantId: string) {
     const supabase = await createClient()
 
     // Call the cascading RPC function to safely delete the restaurant and all its related records
-    console.log(`[Admin Delete] Intentando eliminar restaurante: ${restaurantId}`)
+    log.info({ restaurantId }, "Attempting to delete restaurant")
     const { error } = await supabase.rpc('admin_delete_restaurant_cascade', {
         target_restaurant_id: restaurantId
     })
 
     if (error) {
-        console.error("=== ERROR COMPLETO DELETE RESTAURANT ===")
-        console.error("Code:", error.code)
-        console.error("Message:", error.message)
-        console.error("Details:", error.details)
-        console.error("Hint:", error.hint)
-        console.error("Full error object:", JSON.stringify(error, null, 2))
-        console.error("========================================")
+        log.error({ err: error, restaurantId, code: error.code, details: error.details, hint: error.hint }, "Error deleting restaurant")
         throw new Error(`No se pudo eliminar: [${error.code}] ${error.message}`)
     }
 

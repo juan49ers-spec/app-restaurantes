@@ -5,7 +5,7 @@ import { ShiftsCsvImportPanel } from '@/components/staff/ShiftsCsvImportPanel'
 const validateShiftsCsvImport = vi.fn()
 const importShiftsCsv = vi.fn()
 
-vi.mock('@/app/actions/staff', () => ({
+vi.mock('@/app/actions/staff-import', () => ({
   validateShiftsCsvImport: (input: unknown) => validateShiftsCsvImport(input),
   importShiftsCsv: (input: unknown) => importShiftsCsv(input),
 }))

@@ -3,7 +3,7 @@
 import React from 'react'
 import { ShieldCheck, Activity } from "lucide-react"
 import { TaxPulse } from "./TaxPulse"
-import type { FiscalMetrics } from "@/app/actions/financial-control"
+import type { FiscalMetrics } from "@/app/actions/financial-analysis"
 
 interface CFOOverviewProps {
     kpis: {

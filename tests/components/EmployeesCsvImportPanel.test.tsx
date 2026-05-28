@@ -5,7 +5,7 @@ import { EmployeesCsvImportPanel } from '@/components/staff/EmployeesCsvImportPa
 const validateEmployeesCsvImport = vi.fn()
 const importEmployeesCsv = vi.fn()
 
-vi.mock('@/app/actions/staff', () => ({
+vi.mock('@/app/actions/staff-import', () => ({
   validateEmployeesCsvImport: (input: unknown) => validateEmployeesCsvImport(input),
   importEmployeesCsv: (input: unknown) => importEmployeesCsv(input),
 }))

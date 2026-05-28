@@ -9,7 +9,7 @@ import dynamic from "next/dynamic"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DateRange } from "react-day-picker"
 import { DailySales, OperatingExpense } from '@/types/schema'
-import type { FiscalMetrics } from "@/app/actions/financial-control"
+import type { FiscalMetrics } from "@/app/actions/financial-analysis"
 
 const DynamicCFOOverview = dynamic(() => import("@/components/dashboard/CFOOverview").then(mod => mod.CFOOverview), {
     loading: () => <Skeleton className="w-full h-48 rounded-[2rem]" />

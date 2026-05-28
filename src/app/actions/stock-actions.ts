@@ -1,5 +1,6 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { getUserRestaurant } from "./utils"
 import { revalidatePath } from "next/cache"
@@ -9,6 +10,8 @@ import {
     parseRecipeSalesCsvPreview,
     type RecipeSalesCsvPayload,
 } from "@/lib/importing/recipe-sales-csv"
+
+const log = createActionLogger('stock-actions')
 
 const RecipeSalesCsvImportSchema = z.object({
     csvText: z.string().min(1, 'CSV vacío'),
@@ -437,7 +440,7 @@ export async function getIngredientConsumption(sales: { recipeId: string; qty: n
             .in('recipe_id', currentRecipeIds)
 
         if (error) {
-            console.error("Error fetching recipe ingredients for explosion:", error)
+            log.error({ err: error }, "Error fetching recipe ingredients for explosion")
             break
         }
 

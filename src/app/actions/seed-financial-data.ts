@@ -1,16 +1,19 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { addDays, format, subDays, startOfMonth } from "date-fns"
 import { revalidatePath } from "next/cache"
 import { OperatingExpenseCategory } from "@/types/schema"
+
+const log = createActionLogger('seed-financial-data')
 
 export async function seedFinancialData(restaurantId: string) {
     const supabase = await createClient()
     const today = new Date()
     const startDate = subDays(today, 60) // Last 60 days
 
-    console.log(`🌱 Seeding financial data for restaurant ${restaurantId} from ${format(startDate, 'yyyy-MM-dd')}...`)
+    log.info({ restaurantId, from: format(startDate, 'yyyy-MM-dd') }, 'Seeding financial data')
 
     const salesPayloads = []
     const expensesPayloads = []
@@ -199,7 +202,7 @@ export async function seedFinancialData(restaurantId: string) {
         .upsert(salesPayloads, { onConflict: 'restaurant_id, date' })
 
     if (salesError) {
-        console.error("Sales Seed Error:", salesError)
+        log.error({ err: salesError }, "Sales seed error")
         return { success: false, error: salesError.message }
     }
 
@@ -209,7 +212,7 @@ export async function seedFinancialData(restaurantId: string) {
         .insert(expensesPayloads)
 
     if (expError) {
-        console.error("Expenses Seed Error:", expError)
+        log.error({ err: expError }, "Expenses seed error")
         return { success: false, error: expError.message }
     }
 

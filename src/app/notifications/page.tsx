@@ -1,6 +1,7 @@
 import { getNotifications, getNotificationStats } from "@/app/actions/alerts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertConfiguration } from "@/components/alerts/AlertConfiguration"
+import { NotificationHistory } from "@/components/alerts/NotificationHistory"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bell, History, Settings, AlertTriangle, Info, AlertCircle } from "lucide-react"
 
@@ -91,5 +92,3 @@ export default async function NotificationsPage() {
     </div>
   )
 }
-
-import { NotificationHistory } from "@/components/alerts/NotificationHistory"

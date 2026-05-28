@@ -1,10 +1,13 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { ScannedItem } from "@/types/schema"
 import { revalidatePath } from "next/cache"
 import { createAlert } from "./alerts"
+
+const log = createActionLogger('review-invoice')
 
 type UpdateInvoiceParams = {
     invoice_number: string
@@ -198,7 +201,7 @@ export async function updateInvoice(invoiceId: string, data: UpdateInvoiceParams
         return { success: true }
 
     } catch (error) {
-        console.error("Update Invoice Error:", error)
+        log.error({ err: error }, "Update invoice error")
         return { success: false, error: error instanceof Error ? error.message : "Unknown error" }
     }
 }

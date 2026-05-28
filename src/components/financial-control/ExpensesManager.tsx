@@ -22,7 +22,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 import { OperatingExpense, EXPENSE_CATEGORY_LABELS, EXPENSE_TAGS, OperatingExpenseCategorySchema } from "@/types/schema"
-import { upsertOperatingExpense, deleteOperatingExpense } from "@/app/actions/financial-control"
+import { upsertOperatingExpense, deleteOperatingExpense } from "@/app/actions/financial-control-core"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

@@ -9,7 +9,7 @@ import { Loader2, Users, Clock, AlertTriangle, Save, CheckCircle2, Lock, Unlock,
 import { toast } from "sonner"
 
 import { DailySales } from "@/types/schema"
-import { upsertDailySales } from "@/app/actions/financial-control"
+import { upsertDailySales } from "@/app/actions/financial-control-core"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { round } from "@/lib/utils"

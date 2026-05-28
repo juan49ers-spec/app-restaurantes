@@ -1,7 +1,10 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
+
+const log = createActionLogger('seed-sales-robust')
 
 export async function seedRobustSalesData(restaurantId: string) {
     const supabase = await createClient()
@@ -76,7 +79,7 @@ export async function seedRobustSalesData(restaurantId: string) {
         .upsert(dataToInsert, { onConflict: 'restaurant_id, date' })
 
     if (error) {
-        console.error("Error seeding sales:", error)
+        log.error({ err: error }, "Error seeding sales")
         return { success: false, error: error.message }
     }
 

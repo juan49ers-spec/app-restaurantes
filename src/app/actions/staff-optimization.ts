@@ -1,8 +1,11 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { differenceInCalendarDays, subDays, format, getDay } from "date-fns"
 import { getUserRestaurant } from "./utils"
+
+const log = createActionLogger('staff-optimization')
 
 export interface StaffEfficiencyData {
     date: string
@@ -96,7 +99,7 @@ export async function getStaffEfficiency(
         .order('date', { ascending: true })
 
     if (salesError) {
-        console.error('Staff Efficiency - Sales query failed:', salesError.message, salesError.code)
+        log.error({ err: salesError, code: salesError.code }, 'Staff efficiency sales query failed')
         return emptyResult
     }
 
@@ -120,7 +123,7 @@ export async function getStaffEfficiency(
         .lte('date', format(end, 'yyyy-MM-dd'))
 
     if (shiftsError) {
-        console.error('Staff Efficiency - Shifts query failed:', shiftsError.message, shiftsError.code)
+        log.error({ err: shiftsError, code: shiftsError.code }, 'Staff efficiency shifts query failed')
         return emptyResult
     }
 

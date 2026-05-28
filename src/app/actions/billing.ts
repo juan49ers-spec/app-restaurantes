@@ -1,8 +1,11 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { getUserRestaurant } from "./utils"
 import { revalidatePath } from "next/cache"
+
+const log = createActionLogger('billing')
 
 export async function getCredits() {
     const supabase = await createClient()
@@ -15,7 +18,7 @@ export async function getCredits() {
         .single()
 
     if (error) {
-        console.error("Error fetching credits:", error)
+        log.error({ err: error }, "Error fetching credits")
         return 0
     }
 

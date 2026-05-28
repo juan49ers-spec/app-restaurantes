@@ -1,7 +1,10 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { subDays, getDay } from "date-fns"
+
+const log = createActionLogger('seed-shifts-robust')
 
 // Realistic Staff Profiles
 const MOCK_EMPLOYEES = [
@@ -18,7 +21,7 @@ const MOCK_EMPLOYEES = [
 export async function seedShiftsAndEmployees(restaurantId: string) {
     const supabase = await createClient()
 
-    console.log(`🌱 Seeding Operations data for restaurant: ${restaurantId}`)
+    log.info({ restaurantId }, "Seeding operations data")
 
     // 1. Clean previous data (Optional: typically we'd check if exists, but for seed we reset)
     // Be careful in prod, but this is a seed tool.
@@ -37,7 +40,7 @@ export async function seedShiftsAndEmployees(restaurantId: string) {
         }).select().single()
 
         if (error) {
-            console.error("Error creating employee:", error)
+            log.error({ err: error }, "Error creating employee")
             continue
         }
 
@@ -99,8 +102,8 @@ export async function seedShiftsAndEmployees(restaurantId: string) {
 
     if (shiftsToInsert.length > 0) {
         const { error } = await supabase.from('shifts').insert(shiftsToInsert)
-        if (error) console.error("Error inserting shifts:", error)
-        else console.log(`✅ Automatically scheduled ${shiftsToInsert.length} shifts.`)
+        if (error) log.error({ err: error }, "Error inserting shifts")
+        else log.info({ count: shiftsToInsert.length }, "Automatically scheduled shifts")
     }
 }
 

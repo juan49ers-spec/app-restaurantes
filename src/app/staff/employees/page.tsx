@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import { redirect } from "next/navigation"
-import { getEmployees } from "@/app/actions/staff"
+import { getEmployees } from "@/app/actions/staff-directory"
 import { getUserRestaurant } from "@/app/actions/utils"
 import { ClientEmployeesView } from "./ClientEmployeesView"
 import { Skeleton } from "@/components/ui/skeleton"

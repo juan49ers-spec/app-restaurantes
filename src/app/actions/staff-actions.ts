@@ -1,9 +1,12 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { EmployeeSchema, type Employee, ShiftSchema, type Shift } from "@/types/schema"
 import { getUserRestaurant } from "./utils"
+
+const log = createActionLogger('staff-actions')
 
 /**
  * EMPLOYEES
@@ -46,7 +49,7 @@ export async function upsertEmployee(employee: Employee) {
         .single()
 
     if (error) {
-        console.error('Supabase upsertEmployee error:', error)
+        log.error({ err: error }, 'Supabase upsertEmployee error')
         throw new Error(`Error de base de datos: ${error.message} (código: ${error.code})`)
     }
 

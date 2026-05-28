@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { AlertTriangle, CheckCircle2, Download, FileText, Upload } from "lucide-react"
-import { importEmployeesCsv, validateEmployeesCsvImport } from "@/app/actions/staff"
+import { importEmployeesCsv, validateEmployeesCsvImport } from "@/app/actions/staff-import"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"

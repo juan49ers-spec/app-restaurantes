@@ -1,10 +1,13 @@
 'use server';
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabaseServer';
 import { revalidatePath } from 'next/cache';
 import { BillingModule, UpdateModuleParams } from '@/types/billing';
 
 import { requireSuperAdmin } from './broadcasts';
+
+const log = createActionLogger('billing-config')
 
 /**
  * Obtiene la configuración de todos los módulos de facturación desde la base de datos.
@@ -19,7 +22,7 @@ export async function getBillingModulesConfig(): Promise<BillingModule[]> {
         .order('price_monthly', { ascending: true });
 
     if (error) {
-        console.error('Error fetching billing modules:', JSON.stringify(error, null, 2));
+        log.error({ err: error }, 'Error fetching billing modules');
         throw new Error('No se pudo cargar la configuración de los módulos');
     }
 
@@ -51,7 +54,7 @@ export async function updateBillingModule(params: UpdateModuleParams) {
         .eq('id', params.id);
 
     if (error) {
-        console.error('Error updating billing module:', error);
+        log.error({ err: error }, 'Error updating billing module');
         return { success: false, error: error.message };
     }
 

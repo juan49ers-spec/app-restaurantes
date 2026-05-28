@@ -3,6 +3,12 @@
 // Esto reduce el bundle inicial y la compilación en dev drásticamente.
 import { EXPENSE_CATEGORIES } from './financial-constants'
 
+interface JsPdfWithInternals {
+    internal?: {
+        getNumberOfPages?: () => number
+    }
+}
+
 async function loadJsPDF() {
     const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
         import('jspdf'),
@@ -339,8 +345,7 @@ export const exportMetricToPDF = async (
     })
 
     // --- FOOTER ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- accessing jspdf internal API
-    const pageCount = (doc as any).internal?.getNumberOfPages?.() || 1
+    const pageCount = (doc as JsPdfWithInternals).internal?.getNumberOfPages?.() || 1
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i)
         doc.setFontSize(8)

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Landmark, TrendingUp, Download } from "lucide-react"
-import type { FiscalMetrics } from "@/app/actions/financial-control"
+import type { FiscalMetrics } from "@/app/actions/financial-analysis"
 import { getFiscalQuarterInfo, formatCurrency } from "@/lib/fiscal-utils"
 
 interface TaxPulseProps {

@@ -31,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Employee, EmployeeSchema } from "@/types/schema"
-import { upsertEmployee } from "@/app/actions/staff"
+import { upsertEmployee } from "@/app/actions/staff-directory"
 import { toast } from "sonner"
 import { Loader2, Palette } from "lucide-react"
 import { cn } from "@/lib/utils"

@@ -1,5 +1,6 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { getUserRestaurant } from "./utils"
 import { Recipe } from "@/types/schema"
@@ -11,6 +12,8 @@ import {
     parseRecipesCsvPreview,
     type RecipesCsvPayload,
 } from "@/lib/importing/recipes-csv"
+
+const log = createActionLogger('recipes')
 
 const RecipesCsvImportSchema = z.object({
     csvText: z.string().min(1, "CSV vacío"),
@@ -388,7 +391,7 @@ export async function getRecipePriceHistory(recipeId: string) {
         .order('created_at', { ascending: true })
 
     if (error) {
-        console.error("Error fetching recipe price history:", error)
+        log.error({ err: error }, "Error fetching recipe price history")
         return []
     }
     return data

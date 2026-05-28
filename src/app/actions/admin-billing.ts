@@ -1,10 +1,13 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
 import { requireSuperAdmin } from "./broadcasts"
 import { AddonId, PlanModuleAccess, calculateEffectiveAccess } from "@/lib/plan-definitions"
 import { getBillingModulesConfig } from "./billing-config"
+
+const log = createActionLogger('admin-billing')
 
 export interface BillingEvent {
     id: string
@@ -166,7 +169,7 @@ export async function changeRestaurantPlan(restaurantId: string, newAddons: Addo
             created_by: adminUser.id
         })
 
-    if (eventErr) console.error("Could not log billing event:", eventErr)
+    if (eventErr) log.error({ err: eventErr }, "Could not log billing event")
 
     revalidatePath('/admin/billing')
     // Revalidar el layout raíz para que el sidebar del restaurante

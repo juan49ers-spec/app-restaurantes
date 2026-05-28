@@ -1,10 +1,12 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from '@/lib/supabaseServer'
-import { createClient as createSupabaseClient } from '@/lib/supabaseServer'
 import { getUserRestaurant } from './utils'
 import { AlertRule, AlertNotification, AlertType, AlertSeverity, DEFAULT_ALERT_RULES } from '@/types/alerts'
 import { revalidatePath } from 'next/cache'
+
+const log = createActionLogger('alerts')
 
 // Legacy alert creation for backward compatibility
 export async function createAlert(
@@ -13,7 +15,7 @@ export async function createAlert(
   message: string,
   metadata: Record<string, unknown> = {}
 ) {
-  const supabase = await createSupabaseClient()
+  const supabase = await createClient()
   const restaurantId = await getUserRestaurant()
   if (!restaurantId) return
 
@@ -28,12 +30,12 @@ export async function createAlert(
       is_read: false
     })
 
-  if (error) console.error("Error creating alert:", error)
+  if (error) log.error({ err: error }, "Error creating alert")
 }
 
 // Legacy function for backward compatibility
 export async function getRecentAlerts(limit = 5) {
-  const supabase = await createSupabaseClient()
+  const supabase = await createClient()
   const restaurantId = await getUserRestaurant()
   if (!restaurantId) return []
 
@@ -61,7 +63,7 @@ export async function getAlertRules(): Promise<AlertRule[]> {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching alert rules:', error)
+    log.error({ err: error }, 'Error fetching alert rules')
     return []
   }
 
@@ -93,7 +95,7 @@ export async function initializeDefaultAlertRules(): Promise<void> {
   const { error } = await supabase.from('alert_rules').insert(rules)
 
   if (error) {
-    console.error('Error creating default alert rules:', error)
+    log.error({ err: error }, 'Error creating default alert rules')
   }
 }
 
@@ -162,7 +164,7 @@ export async function getNotifications(
     .range(options.offset || 0, (options.offset || 0) + (options.limit || 20) - 1)
 
   if (error) {
-    console.error('Error fetching notifications:', error)
+    log.error({ err: error }, 'Error fetching notifications')
     return { notifications: [], total: 0, unread: 0 }
   }
 

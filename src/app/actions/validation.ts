@@ -1,7 +1,10 @@
 'use server'
 
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
 import { revalidatePath } from "next/cache"
+
+const log = createActionLogger('validation')
 
 /**
  * Confirm a match between a pending item and an existing master ingredient
@@ -37,7 +40,7 @@ export async function confirmValidation(
         })
 
     if (insertError) {
-        console.error("Error inserting into supplier_items:", insertError)
+        log.error({ err: insertError }, "Error inserting into supplier_items")
         throw insertError
     }
 

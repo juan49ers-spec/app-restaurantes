@@ -3,7 +3,10 @@
  * NO son server actions — son funciones de servidor normales 
  * que se invocan desde Server Components (pages/layouts).
  */
+import { createActionLogger } from '@/lib/logger'
 import { createClient } from "@/lib/supabaseServer"
+
+const log = createActionLogger('admin-queries')
 
 const ADMIN_EMAILS = ['juan49ers@gmail.com', 'admin@controlhub.com']
 
@@ -101,7 +104,7 @@ export async function getAllRestaurants() {
         .order('created_at', { ascending: false })
 
     if (error) {
-        console.error("Error fetching restaurants:", error)
+        log.error({ err: error }, "Error fetching restaurants")
         return []
     }
 
@@ -124,7 +127,7 @@ export async function getAllRestaurants() {
                 created_at: safeDate
             } as AdminRestaurantRow)
         } catch (e) {
-            console.error(`[Admin - Restaurants] Fallo al parsear restaurante ID: ${r.id}`, e)
+            log.error({ err: e, restaurantId: r.id }, "Failed to parse restaurant row")
             // Se omite el restaurante corrupto en vez de tirar toda la página con un 500
         }
     }
@@ -165,7 +168,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     const employees = employeesRes.data || []
 
     if (auditRes.error) {
-        console.error("Error fetching recent audit logs:", JSON.stringify(auditRes.error, null, 2))
+        log.error({ err: auditRes.error }, "Error fetching recent audit logs")
     }
     const auditLogs = (auditRes.data || []) as AuditLogEntry[]
 
@@ -241,7 +244,7 @@ export async function getAuditLogs(page = 1, pageSize = 50): Promise<{ logs: Aud
     ])
 
     if (dataRes.error || countRes.error) {
-        console.error("Error fetching audit logs:", JSON.stringify(dataRes.error || countRes.error, null, 2))
+        log.error({ err: dataRes.error || countRes.error }, "Error fetching audit logs")
         return { logs: [], total: 0 }
     }
 
@@ -272,7 +275,7 @@ export async function getAdminUsers(): Promise<AdminUserRow[]> {
     // Usa RPC con SECURITY DEFINER — lee auth.users sin service role key
     const { data: users, error } = await supabase.rpc('admin_list_users')
     if (error) {
-        console.error("Error fetching users:", error)
+        log.error({ err: error }, "Error fetching users")
         return []
     }
 
