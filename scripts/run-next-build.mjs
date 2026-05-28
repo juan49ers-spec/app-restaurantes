@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const nextDevDir = resolve(rootDir, '.next', 'dev');
+const minProcessMaxListeners = 50;
+const listenerLimitScript = resolve(rootDir, 'scripts', 'set-process-listener-limit.cjs');
 const nextBin = resolve(
   rootDir,
   'node_modules',
@@ -14,9 +16,13 @@ const nextBin = resolve(
   'next',
 );
 
+if (process.getMaxListeners() < minProcessMaxListeners) {
+  process.setMaxListeners(minProcessMaxListeners);
+}
+
 rmSync(nextDevDir, { force: true, recursive: true });
 
-const child = spawn(process.execPath, [nextBin, 'build'], {
+const child = spawn(process.execPath, ['--require', listenerLimitScript, nextBin, 'build'], {
   cwd: rootDir,
   env: {
     ...process.env,
