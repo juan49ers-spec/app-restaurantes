@@ -62,6 +62,12 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `POST /api/portal/meeting-request` valida `reportId/message` con Zod, resuelve `restaurant_id` en servidor con `getUserRestaurant()` y delega en `requestConsultantMeetingForRestaurant()`.
 - La ruta existe para el formulario cliente interactivo; evita depender de una server action invocada desde el cliente cuando el árbol se remonta y se pierde estado local.
 
+**QA operativo:** `npm run qa:client-flow`
+
+- Ejecuta el recorrido determinista consultor -> cliente con Vitest y puede añadir QA visual con Playwright si se define `RUN_VISUAL_QA=true`.
+- Para validar el portal publicado en producción se puede usar `QA_BASE_URL=https://app-finanzas-restaurante.vercel.app RUN_VISUAL_QA=true npm run qa:client-flow`.
+- La parte visual necesita un informe publicado; si no lo hay, las pruebas E2E se saltan con explicación en vez de fallar sin contexto.
+
 **Consultas server-side:** `src/lib/portal.ts`
 
 - Las páginas del portal usan helpers `*ForRestaurant(restaurantId)` después de resolver `getCurrentRestaurant()` en servidor.
@@ -149,3 +155,4 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 5. Mantener PDF basado en snapshot guardado.
 6. Añadir tests de action para cualquier cambio de publicación o reunión.
 7. Si una página server necesita leer portal, resolver restaurante en servidor y usar `src/lib/portal.ts`, no llamar a una mutación/action como data loader.
+8. Antes de una demo cliente, ejecutar `npm run qa:client-flow`; si se va a enseñar portal real, añadir `RUN_VISUAL_QA=true`.

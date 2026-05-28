@@ -21,7 +21,8 @@
     "post-refactor": "npm run smoke-test && npm run typecheck && npm run build",
     "maintenance:vacuum": "tsx scripts/cli/maintenance-vacuum.ts",
     "maintenance:clean-logs": "tsx scripts/cli/maintenance-clean-logs.ts",
-    "maintenance:health-check": "tsx scripts/cli/maintenance-health-check.ts"
+    "maintenance:health-check": "tsx scripts/cli/maintenance-health-check.ts",
+    "qa:client-flow": "node scripts/cli/qa-client-flow.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

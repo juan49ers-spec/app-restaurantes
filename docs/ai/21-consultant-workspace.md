@@ -70,6 +70,11 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 - `DeliveryWorkflowPanel` es un componente client ligero. Recibe informes READY recientes ya cruzados con solicitudes del portal, filtra localmente por estado (`Todos`, `Abiertos`, `Publicados`, `Cerrados`) y muestra timeline visual: READY → Portal → Reunión → Cierre. No hace queries ni decide permisos.
 - `ClientPortfolioPanel` es un componente client ligero. Recibe la cartera ya calculada, muestra el restaurante activo y llama a `selectConsultantClient()` para cambiar de cliente. No decide permisos.
 
+**QA operativo:** `npm run qa:client-flow`
+
+- Verifica el recorrido comercial completo que nace en la mesa del consultor: checklist, informe, publicación, portal, solicitud de reunión, seguimiento y despublicación.
+- No sustituye a `npm run verify`; es el comando recomendado antes de enseñar la app con datos reales o demo.
+
 ## 4. Reglas de negocio y restricciones
 
 - `restaurant_id` nunca viaja desde cliente.
@@ -144,3 +149,4 @@ No es el portal cliente y no debe usarse como experiencia pública. Tampoco intr
 5. Añadir tests de action para cada nueva mutación.
 6. Probar `/consultant`, `/reports` y `/portal` juntos, porque forman un flujo único de entrega.
 7. Mantener las server actions en `src/app/actions/consultant.ts`; si crece la lógica, extraer helpers puros a `src/lib/consultant/` sin mover mutaciones a subcarpetas de actions.
+8. Si el cambio afecta al recorrido de entrega, añadirlo a `npm run qa:client-flow` o justificar por qué queda fuera.

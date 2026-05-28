@@ -86,6 +86,7 @@ Cuando vayas a tocar una funcionalidad:
 - [Cierre Fase 7.2 — Limpieza analitica y QA menor](./phase-7-2-analytical-cleanup.md) — coherencia de margen ponderado, brecha semanal acotada y endpoint demo protegido.
 - [Cierre Fase 8 — BCG en informe profesional](./phase-8-menu-engineering-reporting.md) — integra snapshots Menu Engineering ANALYZED en el informe sin recalcular en UI.
 - [Cierre Fase 9 — Área cliente](./phase-9-client-portal.md) — portal autenticado para informes publicados, solicitudes de reunión y descarga PDF.
+- [Cierre Fase 21 — QA real del flujo cliente](./phase-21-real-client-qa.md) — comando operativo para verificar el recorrido consultor -> cliente antes de enseñar la app.
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 
