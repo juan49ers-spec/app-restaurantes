@@ -27,8 +27,13 @@ async function loginAsConsultant(page: Page) {
   await page.goto('/login', { waitUntil: 'domcontentloaded' })
   await page.getByLabel(/correo electrónico/i).fill(E2E_EMAIL)
   await page.getByLabel(/contraseña/i).fill(E2E_PASSWORD)
-  await page.getByRole('button', { name: /iniciar sesión/i }).click()
-  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 20000 })
+  const loginButton = page.getByRole('button', { name: /iniciar sesión/i })
+  await expect(loginButton).toBeEnabled({ timeout: 10000 })
+  await Promise.all([
+    page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 45000 }),
+    loginButton.click(),
+  ])
+  await page.waitForLoadState('networkidle').catch(() => undefined)
 }
 
 async function expectNoVisibleErrors(page: Page) {

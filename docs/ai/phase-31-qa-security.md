@@ -10,6 +10,7 @@ Eliminar credenciales reales hardcodeadas en los tests E2E y dejar un guardia au
 - La QA visual requiere `E2E_EMAIL` y `E2E_PASSWORD` desde entorno o `.env.local`.
 - `scripts/cli/qa-client-flow.mjs` carga `.env.local` y `.env` antes de ejecutar las pruebas.
 - `tests/security/no-hardcoded-e2e-credentials.test.ts` verifica que el spec visual no contiene las credenciales reales y que usa variables de entorno.
+- El helper de login de Playwright espera a que el botón esté habilitado, registra la espera de navegación antes del click y da margen de 45 segundos a Supabase/Vercel en producción para evitar falsos flakies por latencia.
 
 ## Regla de seguridad
 
