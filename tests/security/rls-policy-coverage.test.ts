@@ -1,0 +1,37 @@
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+const MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'migrations')
+
+function migrationSql() {
+  return readdirSync(MIGRATIONS_DIR)
+    .filter(file => file.endsWith('.sql'))
+    .map(file => readFileSync(join(MIGRATIONS_DIR, file), 'utf8'))
+    .join('\n')
+    .toLowerCase()
+}
+
+describe('RLS policy coverage for critical tenant tables', () => {
+  it.each([
+    'professional_report_drafts',
+    'portal_meeting_requests',
+    'menu_reports',
+    'menu_report_items',
+    'consultant_restaurants',
+  ])('documents row-level security policies for %s', tableName => {
+    const sql = migrationSql()
+
+    expect(sql).toContain(`alter table public.${tableName} enable row level security`)
+    expect(sql).toContain(`on public.${tableName}`)
+    expect(sql).toMatch(new RegExp(`create policy[\\s\\S]+on public\\.${tableName}`))
+  })
+
+  it('keeps the consultant portfolio table scoped by authenticated user or restaurant owner', () => {
+    const sql = migrationSql()
+
+    expect(sql).toContain('consultant_user_id = auth.uid()')
+    expect(sql).toContain('select id from public.restaurants where owner_id = auth.uid()')
+    expect(sql).toContain('grant select on public.consultant_restaurants to authenticated')
+  })
+})
