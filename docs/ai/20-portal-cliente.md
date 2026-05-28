@@ -1,7 +1,7 @@
 # 20 — Portal Cliente
 
 **Ruta:** `/portal`, `/portal/reports/[id]`
-**Archivos clave:** `src/app/portal/layout.tsx`, `src/app/portal/page.tsx`, `src/app/portal/reports/[id]/page.tsx`, `src/app/actions/portal.ts`, `src/components/portal/*`
+**Archivos clave:** `src/app/portal/layout.tsx`, `src/app/portal/page.tsx`, `src/app/portal/reports/[id]/page.tsx`, `src/app/actions/portal.ts`, `src/app/api/portal/meeting-request/route.ts`, `src/lib/portal.ts`, `src/components/portal/*`
 **Transversales relacionados:** [T01](./T01-arquitectura.md), [T02](./T02-base-de-datos.md), [T03](./T03-autenticacion.md), [T06](./T06-server-actions-comunes.md), [T11](./T11-reporting-profesional.md)
 
 ## 1. Propósito y rol en el negocio
@@ -43,6 +43,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `PortalExpenseBreakdown` muestra gastos por categoría, ordenados por variación absoluta frente al mes anterior. Consume `PortalExpenseCategoryBreakdown` calculado en servidor y usa etiquetas españolas de `EXPENSE_CATEGORY_LABELS`.
 - `PortalSuggestedActions` muestra hasta 3 acciones sugeridas a revisar con el consultor. Las acciones salen de `buildPortalSuggestedActions(presentation)`, una función pura basada en tonos de KPIs/conclusiones.
 - `PortalReportSummary` mantiene el histórico publicado con enlaces al detalle web y PDF imprimible. Además muestra el estado de entrega derivado de `viewed_at` y de la última solicitud de reunión.
+- `PortalMeetingRequestDialog` usa `/api/portal/meeting-request` para solicitar reunión desde el cliente. Mantiene un estado optimista persistido en `sessionStorage` por informe para que el feedback "Solicitud registrada" sobreviva a remounts del árbol cliente tras la petición.
 
 **Actions:** `src/app/actions/portal.ts`
 
@@ -56,10 +57,16 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - `requestConsultantMeeting(input)` crea una fila `portal_meeting_requests` solo si no existe ya una solicitud abierta (`PENDING` o `ACKNOWLEDGED`) para ese informe y restaurante. Si existe, devuelve la solicitud existente con `reused: true`.
 - `publishReportDraft(id)` y `unpublishReportDraft(id)` se usan desde la mesa interna. Publicar valida que el draft esta `READY`, pertenece al restaurante activo y que el snapshot supera `evaluateProfessionalReportQualityGate()` sin bloqueos.
 
+**API routes:** `src/app/api/portal/meeting-request/route.ts`
+
+- `POST /api/portal/meeting-request` valida `reportId/message` con Zod, resuelve `restaurant_id` en servidor con `getUserRestaurant()` y delega en `requestConsultantMeetingForRestaurant()`.
+- La ruta existe para el formulario cliente interactivo; evita depender de una server action invocada desde el cliente cuando el árbol se remonta y se pierde estado local.
+
 **Consultas server-side:** `src/lib/portal.ts`
 
 - Las páginas del portal usan helpers `*ForRestaurant(restaurantId)` después de resolver `getCurrentRestaurant()` en servidor.
 - Las actions públicas siguen resolviendo `restaurant_id` con `getUserRestaurant()` y delegan en esos helpers para no duplicar queries.
+- `requestConsultantMeetingForRestaurant({ restaurantId, reportId, message })` concentra la validación de pertenencia del informe publicado, el anti-duplicado de solicitudes abiertas y la inserción de `portal_meeting_requests`. Lo reutilizan la server action y la API route.
 - Si el contexto vivo falla, las páginas conservan identidad de restaurante/consultor desde `getCurrentRestaurant()` y solo omiten el dato vivo.
 
 **Persistencia:**
@@ -118,6 +125,7 @@ No sustituye la mesa interna de `/reports` ni la mesa de consultoría `/consulta
 - Si el objetivo mensual no existe o es 0, no se muestra progreso vivo.
 - Si falla una solicitud de reunión, el formulario muestra error sin romper el portal.
 - Si ya existe una solicitud abierta para el informe, el formulario informa al cliente y no inserta otra fila.
+- Si el componente de solicitud se remonta después de enviar la petición, el estado de confirmación se recupera desde `sessionStorage` para mantener feedback visible al cliente.
 - Si una versión se despublica mientras el cliente la ve, una recarga deja de mostrarla.
 - Si una versión se despublica o se vuelve a publicar, `viewed_at` se reinicia para que el nuevo ciclo de entrega empiece como pendiente de lectura.
 - Si el informe tiene conclusiones con tono `warning` o `critical`, la portada las muestra antes que una lectura positiva para orientar la revisión con el consultor.

@@ -17,11 +17,11 @@ describe('PortalMultiPeriodTrend', () => {
     render(<PortalMultiPeriodTrend trend={trend} />)
 
     expect(screen.getByText('Tendencia de 3 meses')).toBeInTheDocument()
-    expect(screen.getByText('Mar 2026')).toBeInTheDocument()
-    expect(screen.getByText('Abr 2026')).toBeInTheDocument()
-    expect(screen.getByText('May 2026')).toBeInTheDocument()
-    expect(screen.getByText(/18.000,00/)).toBeInTheDocument()
-    expect(screen.getByText(/6800,00/)).toBeInTheDocument()
+    expect(screen.getAllByText('Mar 2026').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Abr 2026').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('May 2026').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/18.000,00/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/6800,00/).length).toBeGreaterThan(0)
   })
 
   it('renders a no-trend state with one period', () => {

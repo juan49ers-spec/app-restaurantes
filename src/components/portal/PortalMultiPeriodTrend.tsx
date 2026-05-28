@@ -40,23 +40,49 @@ export function PortalMultiPeriodTrend({ trend }: PortalMultiPeriodTrendProps) {
         </Badge>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-md border border-slate-200">
-        <div className="grid grid-cols-[1.1fr_1fr_1fr_1fr] bg-slate-50 px-4 py-3 text-xs font-bold uppercase text-slate-500">
-          <span>Periodo</span>
-          <span className="text-right">Ventas</span>
-          <span className="text-right">Gastos</span>
-          <span className="text-right">Resultado</span>
-        </div>
+      <div className="mt-5 grid gap-3 sm:hidden">
         {trend.periods.map(period => (
-          <div key={period.from} className="grid grid-cols-[1.1fr_1fr_1fr_1fr] items-center border-t border-slate-200 px-4 py-3 text-sm">
-            <span className="font-semibold text-slate-950">{period.label}</span>
-            <span className="text-right font-semibold tabular-nums text-slate-950">{formatCurrency(period.revenue)}</span>
-            <span className="text-right tabular-nums text-slate-600">{formatCurrency(period.expenses)}</span>
-            <span className={cn('text-right font-semibold tabular-nums', directionClass(period.netResult))}>
-              {formatCurrency(period.netResult)}
-            </span>
-          </div>
+          <article key={period.from} className="rounded-md border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-bold text-slate-950">{period.label}</p>
+            <div className="mt-3 grid gap-2 text-sm">
+              <p className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Ventas</span>
+                <span className="font-semibold tabular-nums text-slate-950">{formatCurrency(period.revenue)}</span>
+              </p>
+              <p className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Gastos</span>
+                <span className="tabular-nums text-slate-600">{formatCurrency(period.expenses)}</span>
+              </p>
+              <p className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Resultado</span>
+                <span className={cn('font-semibold tabular-nums', directionClass(period.netResult))}>
+                  {formatCurrency(period.netResult)}
+                </span>
+              </p>
+            </div>
+          </article>
         ))}
+      </div>
+
+      <div className="mt-5 hidden overflow-hidden rounded-md border border-slate-200 sm:block">
+        <div>
+          <div className="grid grid-cols-[1.1fr_1fr_1fr_1fr] bg-slate-50 px-4 py-3 text-xs font-bold uppercase text-slate-500">
+            <span>Periodo</span>
+            <span className="text-right">Ventas</span>
+            <span className="text-right">Gastos</span>
+            <span className="text-right">Resultado</span>
+          </div>
+          {trend.periods.map(period => (
+            <div key={period.from} className="grid grid-cols-[1.1fr_1fr_1fr_1fr] items-center border-t border-slate-200 px-4 py-3 text-sm">
+              <span className="font-semibold text-slate-950">{period.label}</span>
+              <span className="text-right font-semibold tabular-nums text-slate-950">{formatCurrency(period.revenue)}</span>
+              <span className="text-right tabular-nums text-slate-600">{formatCurrency(period.expenses)}</span>
+              <span className={cn('text-right font-semibold tabular-nums', directionClass(period.netResult))}>
+                {formatCurrency(period.netResult)}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {trend.hasTrend && (

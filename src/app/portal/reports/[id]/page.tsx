@@ -60,7 +60,7 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
 
   return (
     <main className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <PortalExecutiveBrief
           presentation={presentation}
           reportId={draft.id}
@@ -116,7 +116,7 @@ export default async function PortalReportDetailPage({ params }: PortalReportDet
         })}
       </div>
 
-      <aside className="space-y-4">
+      <aside className="min-w-0 space-y-4">
         <div className="lg:sticky lg:top-6">
           <div className="space-y-4">
             <PortalChapterNavigation chapters={presentation.chapters} />

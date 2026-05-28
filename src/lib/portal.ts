@@ -53,6 +53,11 @@ export interface PortalContext {
     liveRevenue: PortalLiveRevenueProgress | null
 }
 
+export interface PortalMeetingRequestResult {
+    id: string
+    reused: boolean
+}
+
 type NumericRow = Record<string, number | null | undefined>
 type DatedNumericRow = Record<string, string | number | null | undefined>
 
@@ -305,6 +310,56 @@ export async function getPortalContextForRestaurant(restaurantId: string): Promi
                 : null,
         },
     }
+}
+
+export async function requestConsultantMeetingForRestaurant(input: {
+    restaurantId: string
+    reportId: string
+    message?: string
+}): Promise<ActionResponse<PortalMeetingRequestResult>> {
+    const supabase = await createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) return { success: false, error: 'Usuario no autenticado.' }
+
+    const { data: report, error: reportError } = await supabase
+        .from('professional_report_drafts')
+        .select('id')
+        .eq('id', input.reportId)
+        .eq('restaurant_id', input.restaurantId)
+        .not('published_at', 'is', null)
+        .maybeSingle()
+
+    if (reportError) return { success: false, error: 'No se pudo validar el informe.' }
+    if (!report) return { success: false, error: 'Informe publicado no encontrado.' }
+
+    const { data: existingRequest, error: existingRequestError } = await supabase
+        .from('portal_meeting_requests')
+        .select('id')
+        .eq('restaurant_id', input.restaurantId)
+        .eq('report_id', input.reportId)
+        .in('status', ['PENDING', 'ACKNOWLEDGED'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+    if (existingRequestError) return { success: false, error: 'No se pudo validar si ya existe una solicitud abierta.' }
+    if (existingRequest) return { success: true, data: { id: existingRequest.id, reused: true } }
+
+    const { data, error } = await supabase
+        .from('portal_meeting_requests')
+        .insert({
+            restaurant_id: input.restaurantId,
+            report_id: input.reportId,
+            message: input.message?.trim() || null,
+            status: 'PENDING',
+            created_by: user.id,
+        })
+        .select('id')
+        .single()
+
+    if (error || !data) return { success: false, error: 'No se pudo solicitar la reunión.' }
+
+    return { success: true, data: { id: data.id, reused: false } }
 }
 
 export async function getPortalPeriodComparisonForRestaurant(input: {

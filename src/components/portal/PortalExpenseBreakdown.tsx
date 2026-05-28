@@ -41,33 +41,69 @@ export function PortalExpenseBreakdown({ breakdown }: PortalExpenseBreakdownProp
         </Badge>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-md border border-slate-200">
-        <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] bg-slate-50 px-4 py-3 text-xs font-bold uppercase text-slate-500">
-          <span>Categoría</span>
-          <span className="text-right">Actual</span>
-          <span className="text-right">Anterior</span>
-          <span className="text-right">Cambio</span>
-        </div>
+      <div className="mt-5 grid gap-3 sm:hidden">
         {breakdown.categories.map(category => (
-          <div key={category.category} className="grid grid-cols-[1.4fr_1fr_1fr_1fr] items-center border-t border-slate-200 px-4 py-3 text-sm">
-            <span className="font-semibold text-slate-950">{category.label}</span>
-            <span className="text-right font-semibold tabular-nums text-slate-950">{formatCurrency(category.currentAmount)}</span>
-            <span className="text-right tabular-nums text-slate-600">
-              {breakdown.hasPreviousData ? formatCurrency(category.previousAmount) : 'Sin comparativa'}
-            </span>
-            <span className={cn('flex items-center justify-end gap-1 font-semibold tabular-nums', deltaClass(category.delta.value))}>
-              {breakdown.hasPreviousData ? (
-                <>
-                  <DeltaIcon value={category.delta.value} />
-                  {formatDelta(category.delta.value)}
-                  {category.delta.pct !== null && <span className="text-xs">({formatPct(category.delta.pct)})</span>}
-                </>
-              ) : (
-                'Sin comparativa'
-              )}
-            </span>
-          </div>
+          <article key={category.category} className="rounded-md border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-bold text-slate-950">{category.label}</p>
+            <div className="mt-3 grid gap-2 text-sm">
+              <p className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Actual</span>
+                <span className="font-semibold tabular-nums text-slate-950">{formatCurrency(category.currentAmount)}</span>
+              </p>
+              <p className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Anterior</span>
+                <span className="tabular-nums text-slate-600">
+                  {breakdown.hasPreviousData ? formatCurrency(category.previousAmount) : 'Sin comparativa'}
+                </span>
+              </p>
+              <p className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Cambio</span>
+                <span className={cn('flex items-center justify-end gap-1 font-semibold tabular-nums', deltaClass(category.delta.value))}>
+                  {breakdown.hasPreviousData ? (
+                    <>
+                      <DeltaIcon value={category.delta.value} />
+                      {formatDelta(category.delta.value)}
+                      {category.delta.pct !== null && <span className="text-xs">({formatPct(category.delta.pct)})</span>}
+                    </>
+                  ) : (
+                    'Sin comparativa'
+                  )}
+                </span>
+              </p>
+            </div>
+          </article>
         ))}
+      </div>
+
+      <div className="mt-5 hidden overflow-hidden rounded-md border border-slate-200 sm:block">
+        <div>
+          <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] bg-slate-50 px-4 py-3 text-xs font-bold uppercase text-slate-500">
+            <span>Categoría</span>
+            <span className="text-right">Actual</span>
+            <span className="text-right">Anterior</span>
+            <span className="text-right">Cambio</span>
+          </div>
+          {breakdown.categories.map(category => (
+            <div key={category.category} className="grid grid-cols-[1.4fr_1fr_1fr_1fr] items-center border-t border-slate-200 px-4 py-3 text-sm">
+              <span className="font-semibold text-slate-950">{category.label}</span>
+              <span className="text-right font-semibold tabular-nums text-slate-950">{formatCurrency(category.currentAmount)}</span>
+              <span className="text-right tabular-nums text-slate-600">
+                {breakdown.hasPreviousData ? formatCurrency(category.previousAmount) : 'Sin comparativa'}
+              </span>
+              <span className={cn('flex items-center justify-end gap-1 font-semibold tabular-nums', deltaClass(category.delta.value))}>
+                {breakdown.hasPreviousData ? (
+                  <>
+                    <DeltaIcon value={category.delta.value} />
+                    {formatDelta(category.delta.value)}
+                    {category.delta.pct !== null && <span className="text-xs">({formatPct(category.delta.pct)})</span>}
+                  </>
+                ) : (
+                  'Sin comparativa'
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   )

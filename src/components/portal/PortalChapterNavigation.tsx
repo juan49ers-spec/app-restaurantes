@@ -8,12 +8,12 @@ export function PortalChapterNavigation({ chapters }: { chapters: PresentationCh
       className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
     >
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Capítulos del informe</p>
-      <div className="mt-4 grid gap-2">
+      <div className="mt-4 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
         {chapters.map(chapter => (
           <Link
             key={chapter.id}
             href={`#chapter-${chapter.id}`}
-            className="group flex items-center gap-3 rounded-md border border-slate-200 px-3 py-2 text-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
+            className="group flex min-w-0 items-center gap-3 rounded-md border border-slate-200 px-3 py-2 text-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
           >
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-950 text-xs font-semibold text-white">
               {chapter.label}
