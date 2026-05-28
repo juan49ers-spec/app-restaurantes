@@ -90,6 +90,7 @@ Cuando vayas a tocar una funcionalidad:
 - [Cierre Fase 22 — Onboarding comercial del consultor](./phase-22-consultant-onboarding.md) — recorrido post-alta para llevar un cliente nuevo hasta su primer informe publicado.
 - [Cierre Fase 23 — Portal Cliente V3](./phase-23-client-portal-v3.md) — recorrido de revisión dentro del portal para explicar estado de lectura, reunión y próximas acciones.
 - [Cierre Fase 24 — Exportaciones y entregables](./phase-24-delivery-exports.md) — paquete de entrega con informe web, PDF imprimible y revisión con consultor.
+- [Cierre Fase 25 — Notificaciones](./phase-25-notifications.md) — acceso directo a configuración de alertas y normalización testeada de pestañas.
 - [Resumen consolidado — Reporting y Menu Engineering](./implementation-summary-reporting-menu-engineering.md) — vision completa de fases, decisiones, verificacion y pendientes.
 - [Prompt Claude — Revision externa](./claude-review-prompt-reporting-menu-engineering.md) — prompt preparado para pedir una segunda revision independiente.
 

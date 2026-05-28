@@ -57,8 +57,8 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
       setNotifications(result.notifications)
       setUnreadCount(result.unread)
       setTotalCount(result.total)
-    } catch (error) {
-      console.error('Error loading notifications:', error)
+    } catch {
+      toast.error('No se pudieron cargar las notificaciones')
     } finally {
       setLoading(false)
     }
@@ -77,8 +77,8 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
       try {
         const stats = await getNotificationStats()
         setUnreadCount(stats.unread)
-      } catch (error) {
-        console.error('Error polling notifications:', error)
+      } catch {
+        // El polling no debe molestar al usuario si falla una petición puntual.
       }
     }, 30000)
 
@@ -160,7 +160,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                 Marcar todo
               </Button>
             )}
-            <Link href="/settings/alerts">
+            <Link href="/notifications?tab=settings">
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Settings className="h-4 w-4" />
               </Button>

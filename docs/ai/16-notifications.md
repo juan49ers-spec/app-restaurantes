@@ -23,6 +23,7 @@ Centro de control de alertas in-app. Muestra histórico de notificaciones genera
    - Tipo (enum 8 valores), condiciones (JSON), canales (email/in-app/push), cooldown_hours, `is_active`.
    - Botón "Inicializar Reglas Predeterminadas" → `initializeDefaultAlertRules`.
 4. **Notificación expandible** → muestra descripción, entidad afectada, fecha completa.
+5. Desde el popover global de la campana, el icono de configuración abre `/notifications?tab=settings` para entrar directamente en la pestaña de reglas.
 
 ## 3. Flujo técnico de datos
 
@@ -30,6 +31,7 @@ Centro de control de alertas in-app. Muestra histórico de notificaciones genera
 - `getNotifications({ limit, offset, unreadOnly })` — paginadas, retorna `{ notifications, total, unread }`.
 - `getNotificationStats()` — counts por severidad y por tipo.
 - `getAlertRules()` — reglas configuradas.
+- `normalizeNotificationsTab(tab)` en `src/lib/notifications.ts` normaliza `searchParams.tab` para abrir `Historial` o `Configuración` sin depender de strings sueltos en la página.
 
 **Escritura:**
 - `markNotificationAsRead(id)` — actualiza `read=true`, `read_at=NOW()`.
@@ -77,6 +79,7 @@ Centro de control de alertas in-app. Muestra histórico de notificaciones genera
 - **Notificación duplicada en pocos segundos:** mitigada por cooldown, pero si el cooldown es 0 horas, pueden duplicar.
 - **Condiciones JSON sin validación de schema:** un admin puede meter un JSON inválido. Se debería validar contra un schema antes de guardar.
 - **Polling cada 30s** en `NotificationCenter` puede ser excesivo para muchas tabs abiertas. Considerar realtime.
+- **Polling tolerante:** si falla una petición puntual del polling, se ignora para no molestar al usuario; si falla la carga explícita al abrir el popover, muestra toast.
 - **Email:** depende de provider configurado (probablemente Resend o similar, no visible en el código revisado).
 
 ## 7. Al añadir/modificar una función aquí

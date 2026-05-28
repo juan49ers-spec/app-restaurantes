@@ -4,10 +4,19 @@ import { AlertConfiguration } from "@/components/alerts/AlertConfiguration"
 import { NotificationHistory } from "@/components/alerts/NotificationHistory"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bell, History, Settings, AlertTriangle, Info, AlertCircle } from "lucide-react"
+import { normalizeNotificationsTab } from "@/lib/notifications"
 
 export const dynamic = 'force-dynamic'
 
-export default async function NotificationsPage() {
+interface NotificationsPageProps {
+  searchParams?: Promise<{
+    tab?: string | string[]
+  }>
+}
+
+export default async function NotificationsPage({ searchParams }: NotificationsPageProps) {
+  const params = await searchParams
+  const defaultTab = normalizeNotificationsTab(params?.tab)
   const [result, stats] = await Promise.all([
     getNotifications({ limit: 50 }),
     getNotificationStats()
@@ -69,7 +78,7 @@ export default async function NotificationsPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="history" className="space-y-4">
+      <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="history" className="gap-2">
             <History className="h-4 w-4" />
