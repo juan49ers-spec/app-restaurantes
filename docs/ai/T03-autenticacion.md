@@ -52,7 +52,7 @@ Centralizada en `src/app/actions/utils.ts::getUserRestaurant()` con orden de pri
 1. **Si es admin con impersonación activa** (cookie `impersonated_restaurant_id` + `isAdminEmail(user.email)`): usa ese `restaurant_id`.
 2. **Si hay cliente de consultoría activo** (cookie `active_consultant_restaurant_id`): solo se usa si existe una relación `consultant_restaurants` activa para `auth.uid()`.
 3. Restaurante donde `owner_id = user.id`.
-4. Fallback: `user.user_metadata.restaurant_id`.
+4. Fallback: `user.user_metadata.restaurant_id` solo si existe y es string.
 5. Si nada → retorna `null` (la action debe responder con error/redirect).
 
 Hay también `getCurrentRestaurant()` en `src/app/actions/user.ts` que retorna el objeto restaurante completo y usa `React.cache()` para deduplicar lecturas dentro del mismo render.

@@ -222,6 +222,29 @@ describe('Utils Actions', () => {
       expect(mockSupabaseChain.from).toHaveBeenCalledWith('restaurants')
     })
 
+    it('debería ignorar metadata restaurant_id si no es string', async () => {
+      const { getUserRestaurant } = await import('@/app/actions/utils')
+
+      mockSupabaseChain.auth.getUser.mockResolvedValue({
+        data: {
+          user: {
+            id: 'user-123',
+            email: 'test@example.com',
+            user_metadata: {
+              restaurant_id: { value: 'not-a-string' },
+            },
+          },
+        },
+        error: null,
+      })
+      mockSupabaseChain.maybeSingle.mockResolvedValue({
+        data: null,
+        error: null,
+      })
+
+      await expect(getUserRestaurant()).resolves.toBeNull()
+    })
+
     it('debería limpiar la cookie de cliente activo cuando la relación ya no es válida', async () => {
       const { getUserRestaurant } = await import('@/app/actions/utils')
 

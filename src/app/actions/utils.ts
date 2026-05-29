@@ -67,7 +67,7 @@ export async function getUserRestaurant(): Promise<string | null> {
 
     // 2. Check metadata fallback (e.g. user assigned to restaurant by admin)
     const metadataId = user.user_metadata?.restaurant_id
-    if (metadataId) return metadataId as string
+    if (typeof metadataId === 'string' && metadataId.length > 0) return metadataId
 
     // 3. No restaurant found — admin users or new users without restaurant
     return null

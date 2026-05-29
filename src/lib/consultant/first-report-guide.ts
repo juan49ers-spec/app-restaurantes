@@ -116,19 +116,6 @@ export function buildFirstReportGuide(checklist: ConsultantPreparationChecklist)
     }
   }
 
-  if (!publishedIsComplete) {
-    return {
-      status: 'PUBLISH_READY',
-      title: 'Publica el informe desde la mesa de informes',
-      summary: 'El snapshot READY es publicable. Mantén la publicación dentro de /reports para conservar revisión, versionado y quality gate.',
-      primaryAction: {
-        label: 'Publicar desde informes',
-        href,
-      },
-      steps: buildSteps('publication', ['data', 'ready', 'quality']),
-    }
-  }
-
   return {
     status: 'PUBLISH_READY',
     title: 'Publica el informe desde la mesa de informes',
