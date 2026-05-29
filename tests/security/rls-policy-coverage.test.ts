@@ -19,6 +19,8 @@ describe('RLS policy coverage for critical tenant tables', () => {
     'menu_reports',
     'menu_report_items',
     'consultant_restaurants',
+    'alert_rules',
+    'alert_notifications',
   ])('documents row-level security policies for %s', tableName => {
     const sql = migrationSql()
 
