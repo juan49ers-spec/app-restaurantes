@@ -1,99 +1,102 @@
-# Restaurant Financial Management System (SaaS)
+# ControlHub Pro - Restaurant Finance SaaS
 
 ![Project Status](https://img.shields.io/badge/status-active_development-brightgreen)
-![CI](https://github.com/tu-usuario/restaurant-finance-app/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/juan49ers-spec/app-restaurantes/actions/workflows/ci.yml/badge.svg)
 
-## Project Overview
+## Overview
 
-A comprehensive financial control and menu engineering platform tailored for the hospitality industry. This application helps restaurant managers and owners optimize their profitability through:
+ControlHub Pro is a private SaaS platform for restaurant financial management
+and consulting delivery. The current product is consultant-first: a consultant
+loads and validates restaurant data, generates professional reports, publishes
+them to a client portal, and manages the follow-up workflow.
 
-- **Financial Control**: P&L tracking, expense management, and dynamic forecasting.
-- **Menu Engineering**: Recipe costing, margin analysis, and BCG matrix classification (Stars, Plowhorses, Puzzles, Dogs).
-- **Staff Management**: intelligent scheduling, payroll estimation, and shift planning.
-- **Inventory & Suppliers**: Stock control, supplier management, and purchasing intelligence.
+## Current capabilities
 
-## Contributing
+- **Professional reporting**: immutable report snapshots, versioned drafts,
+  READY status, quality gate, publication controls, printable PDF view, and
+  consultant briefing.
+- **Client portal**: published report list, executive cover, report chapters,
+  KPIs, period comparisons, multi-period trend, expense breakdown, suggested
+  actions, review plan, PDF download/print, view tracking, and meeting request
+  flow.
+- **Consultant workspace**: preparation checklist, weighted completion,
+  first-report guide, delivery workflow, meeting request management, branding,
+  and client portfolio.
+- **Multi-consultant foundation**: `consultant_restaurants` relationships,
+  active client selection, admin management, RLS guards, and stale-cookie
+  cleanup.
+- **CSV onboarding imports**: sales, expenses, recipe sales, shifts, invoice
+  headers, recipes, and employees with preview, preflight duplicate checks,
+  server-side validation, and issue exports.
+- **Menu engineering**: recipe costing, contribution margin analysis, BCG
+  matrix classification, scenarios, and integration into professional reports.
+- **Financial control**: daily sales, operating expenses, monthly targets,
+  trends, and profitability indicators.
+- **Notifications and QA**: delivery notifications, health check, visual QA,
+  full delivery flow tests, RLS coverage guards, and commercial demo readiness.
 
-We welcome contributions! Please see our [Contributing Guidelines](Contributing.md) (coming soon) and use the provided templates for Issues and Pull Requests.
+## Tech stack
 
-1. Fork the repository.
-2. Create a feature branch: `git checkout -b feature/amazing-feature`.
-3. Commit your changes: `git commit -m 'feat: Add amazing feature'`.
-4. Push to the branch: `git push origin feature/amazing-feature`.
-5. Open a Pull Request.
-
-## Tech Stack
-
-### Core
-
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Framework**: Next.js App Router
 - **Language**: TypeScript
-- **Database**: Supabase (PostgreSQL)
-- **Auth**: Supabase Auth
+- **Database/Auth**: Supabase PostgreSQL + Supabase Auth
+- **UI**: Tailwind CSS, Radix UI primitives, Lucide React, Recharts
+- **Validation**: Zod
+- **Tests**: Vitest, Testing Library, Playwright
 
-### UI & UX
+## Getting started
 
-- **Styling**: Tailwind CSS
-- **Components**: Shadcn/UI (Radix UI + Tailwind)
-- **Charts**: Recharts
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-
-### State & Utilities
-
-- **Math**: `decimal.js` (or native precision handling in `financial-math.ts`)
-- **Dates**: `date-fns`
-- **Forms**: `react-hook-form` + `zod`
-
-## Getting Started
-
-1. **Clone the repository**
+1. Clone the repository.
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/juan49ers-spec/app-restaurantes.git
+   cd app-restaurantes
    ```
 
-2. **Install dependencies**
+2. Install dependencies.
 
    ```bash
    npm install
    ```
 
-3. **Configure Environment**
-   Create a `.env.local` file in the root directory:
+3. Configure environment variables.
 
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```bash
+   cp .env.example .env.local
    ```
 
-4. **Run Development Server**
+   Fill `.env.local` with local Supabase credentials and any optional
+   integration keys needed for your workflow.
+
+4. Start the development server.
 
    ```bash
    npm run dev
    ```
 
-## Project Structure
+## Verification
 
-- **/src/app**: Next.js App Router pages and layouts.
-  - **/actions**: Server Actions for data mutation and fetching.
-- **/src/components**: Reusable UI components.
-  - **/financial-control**: specific components for the Finance module.
-  - **/menu-engineering**: specific components for the Menu Engineering module.
-  - **/recipes**: Recipe editor and costing components.
-  - **/ui**: Shadcn/UI primitive components.
-- **/src/lib**: Utility functions and business logic (e.g., `financial-math.ts`).
-- **/src/types**: TypeScript interfaces and Zod schemas (`schema.ts`).
-
-## Testing
-
-This project uses **Vitest** for unit testing.
+Run the full local verification pipeline before opening a pull request:
 
 ```bash
-# Run tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
+npm run verify
 ```
-<!-- Verification commit -->
+
+For Supabase migration changes:
+
+```bash
+npm run validate:migrations
+```
+
+## Repository documents
+
+- [Contributing](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
+- [License](LICENSE)
+- [Security policy](SECURITY.md)
+- [Environment template](.env.example)
+
+## Documentation for AI agents
+
+The canonical internal documentation is under `docs/ai/`.
+Legacy documentation under `docs/` is not the source of truth for new work.
