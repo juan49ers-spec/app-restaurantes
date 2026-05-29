@@ -10,6 +10,8 @@ Verificar el portal cliente, el detalle de informe y la vista imprimible con Pla
 - `E2E_PORT` permite cambiar el puerto local.
 - `BASE_URL` permite apuntar Playwright a una URL remota; en ese caso no se arranca servidor local.
 - `scripts/cli/qa-client-flow.mjs` pasa `BASE_URL` desde `QA_BASE_URL`, `BASE_URL` o el puerto local por defecto.
+- El timeout global de Playwright es 60s para que el login contra producción real no quede limitado por el default de 30s cuando Supabase/Vercel responden más lento. Los retries siguen activos y cualquier flaky debe investigarse si se repite.
+- `portal-visual-qa.spec.ts` usa una única sesión autenticada compartida dentro del bloque serial. Evita 12 logins consecutivos contra producción y reduce falsos flakies de auth/red sin relajar las aserciones visuales.
 
 ## Resultado
 
@@ -26,6 +28,7 @@ Se ejecutó `RUN_VISUAL_QA=true npm run qa:client-flow` contra servidor local en
 - Para local: `RUN_VISUAL_QA=true npm run qa:client-flow`.
 - Para producción: `QA_BASE_URL=https://app-finanzas-restaurante.vercel.app RUN_VISUAL_QA=true npm run qa:client-flow`.
 - Las capturas viven en `tests/e2e/screenshots/` y no se versionan.
+- Si se ejecuta contra producción, configurar `E2E_EMAIL` y `E2E_PASSWORD` fuera del código. Los tests saltan de forma segura si no existen.
 
 ## Riesgos cerrados
 

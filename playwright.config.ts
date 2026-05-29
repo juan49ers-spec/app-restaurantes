@@ -13,6 +13,7 @@ const webServerPort = parsedBaseURL.port || (parsedBaseURL.protocol === 'https:'
 export default defineConfig({
   testDir: '.',
   testMatch: ['e2e/**/*.spec.ts', 'tests/e2e/**/*.spec.ts'],
+  timeout: 60000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,

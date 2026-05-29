@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 
@@ -91,12 +91,21 @@ async function openFirstReportDetailOrSkip(page: Page) {
 }
 
 test.describe.serial('Portal visual QA', () => {
-  test.beforeEach(async ({ page }) => {
+  let context: BrowserContext
+  let page: Page
+
+  test.beforeAll(async ({ browser }) => {
+    context = await browser.newContext()
+    page = await context.newPage()
     await loginAsConsultant(page)
   })
 
+  test.afterAll(async () => {
+    await context?.close()
+  })
+
   for (const breakpoint of BREAKPOINTS) {
-    test(`portal home renderiza contenido en ${breakpoint.name}`, async ({ page }) => {
+    test(`portal home renderiza contenido en ${breakpoint.name}`, async () => {
       await page.setViewportSize({ width: breakpoint.width, height: breakpoint.height })
       await openPortalOrSkip(page)
 
@@ -120,7 +129,7 @@ test.describe.serial('Portal visual QA', () => {
   }
 
   for (const breakpoint of BREAKPOINTS) {
-    test(`portal detalle renderiza informe completo en ${breakpoint.name}`, async ({ page }) => {
+    test(`portal detalle renderiza informe completo en ${breakpoint.name}`, async () => {
       await page.setViewportSize({ width: breakpoint.width, height: breakpoint.height })
       await openFirstReportDetailOrSkip(page)
 
@@ -157,7 +166,7 @@ test.describe.serial('Portal visual QA', () => {
     })
   }
 
-  test('PDF imprimible renderiza documento completo', async ({ page }) => {
+  test('PDF imprimible renderiza documento completo', async () => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await openPortalOrSkip(page)
 
@@ -186,7 +195,7 @@ test.describe.serial('Portal visual QA', () => {
     })
   })
 
-  test('solicitud de reunión funciona desde el detalle', async ({ page }) => {
+  test('solicitud de reunión funciona desde el detalle', async () => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await openFirstReportDetailOrSkip(page)
 
@@ -203,7 +212,7 @@ test.describe.serial('Portal visual QA', () => {
     })
   })
 
-  test('histórico muestra badges de estado con icono', async ({ page }) => {
+  test('histórico muestra badges de estado con icono', async () => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await openPortalOrSkip(page)
 
@@ -218,7 +227,7 @@ test.describe.serial('Portal visual QA', () => {
     })
   })
 
-  test('navegación del portal funciona', async ({ page }) => {
+  test('navegación del portal funciona', async () => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await openPortalOrSkip(page)
 
