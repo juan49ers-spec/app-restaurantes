@@ -23,7 +23,8 @@
     "maintenance:clean-logs": "tsx scripts/cli/maintenance-clean-logs.ts",
     "maintenance:health-check": "tsx scripts/cli/maintenance-health-check.ts",
     "qa:client-flow": "node scripts/cli/qa-client-flow.mjs",
-    "qa:commercial-demo": "node scripts/cli/qa-commercial-demo.mjs"
+    "qa:commercial-demo": "node scripts/cli/qa-commercial-demo.mjs",
+    "validate:migrations": "node scripts/ci/validate-migrations.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

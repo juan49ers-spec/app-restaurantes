@@ -27,5 +27,43 @@ jobs:
     - name: Install Dependencies
       run: npm ci
 
+    - name: Validate Supabase migrations
+      run: npm run validate:migrations
+
     - name: Verify
       run: npm run verify
+
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+    - name: Skip E2E without credentials
+      if: ${{ env.E2E_EMAIL == '' || env.E2E_PASSWORD == '' }}
+      run: echo "Skipping Playwright E2E because E2E_EMAIL/E2E_PASSWORD are not configured."
+
+    - uses: actions/checkout@v4
+      if: ${{ env.E2E_EMAIL != '' && env.E2E_PASSWORD != '' }}
+
+    - name: Use Node.js 20.x
+      if: ${{ env.E2E_EMAIL != '' && env.E2E_PASSWORD != '' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Install Dependencies
+      if: ${{ env.E2E_EMAIL != '' && env.E2E_PASSWORD != '' }}
+      run: npm ci
+
+    - name: Install Playwright browsers
+      if: ${{ env.E2E_EMAIL != '' && env.E2E_PASSWORD != '' }}
+      run: npx playwright install --with-deps chromium
+
+    - name: Run Playwright E2E
+      if: ${{ env.E2E_EMAIL != '' && env.E2E_PASSWORD != '' }}
+      run: npm run test:e2e
