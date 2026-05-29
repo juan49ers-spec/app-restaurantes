@@ -67,6 +67,7 @@ Permitir que un consultor gestione una cartera de restaurantes sin convertir tod
 - **Consultant Workspace:** muestra la cartera y usa el cliente activo.
 - **Auth:** `getUserRestaurant()` ahora entiende la cookie de cliente activo para relaciones de consultoría.
 - **RLS:** `consultant_restaurants` permite lectura al consultor vinculado y al owner del restaurante.
+- **Notificaciones:** `alert_rules` y `alert_notifications` también reconocen relaciones `consultant_restaurants.status='ACTIVE'`, de modo que publicar informes o solicitar reuniones como consultor asignado puede crear/leer notificaciones del restaurante activo.
 - **Admin:** `/admin/consultants` es el único punto UI para crear o cambiar relaciones.
 - **Admin impersonation:** sigue teniendo prioridad sobre la cookie de cliente activo.
 - **Futuro:** onboarding multi-cliente, billing por cliente y roles avanzados deben apoyarse en esta relación, no en `user_metadata`.

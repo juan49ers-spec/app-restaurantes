@@ -14,6 +14,7 @@ Conectar el flujo consultor-cliente con el centro de notificaciones in-app para 
 - `NotificationCenter` y `NotificationHistory` enlazan notificaciones `REPORT` a `/portal/reports/{id}`.
 - Migración `20260528233000_delivery_notifications.sql` permite `rule_id = NULL` en `alert_notifications`.
 - Migración `20260529103000_create_alert_notifications_tables.sql` hace reproducibles `alert_rules` y `alert_notifications` con RLS por restaurante propietario, índices y permisos explícitos para `authenticated`.
+- Migración `20260529114500_harden_alert_notifications_rls.sql` amplía esas políticas a consultores con relación `ACTIVE` y super-admins, y evita que una notificación referencie una regla de otro restaurante.
 
 ## Seguridad y robustez
 
@@ -21,6 +22,7 @@ Conectar el flujo consultor-cliente con el centro de notificaciones in-app para 
 - La inserción de notificación es no bloqueante: un fallo se registra con logger estructurado y no revierte publicación ni solicitud.
 - No se acepta `restaurant_id` desde el cliente.
 - `alert_rules` y `alert_notifications` tienen políticas RLS de lectura/escritura por `restaurants.owner_id = auth.uid()`.
+- El acceso RLS también contempla el modelo multi-cliente: `consultant_restaurants.status='ACTIVE'` y `public.is_super_admin()`. La integridad de `rule_id` se comprueba en `WITH CHECK`.
 
 ## Tests
 

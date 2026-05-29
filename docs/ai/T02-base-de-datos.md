@@ -55,8 +55,8 @@
 | `audit_logs` | `table_name`, `record_id`, `action` (INSERT/UPDATE/DELETE), `old_data`, `new_data`, `changed_by`, `restaurant_id` | Auditoría completa. Trigger automático en `daily_sales`, `operating_expenses`, `employees`, `recipes`. |
 | `business_rules` | `restaurant_id`, `rule_name`, `rule_type`, `value` (JSONB), `valid_from`, `valid_until`, `is_active`, `version` | Versioning de reglas (COGS%, labor%, márgenes target, umbrales merma). |
 | `financial_alerts` | `restaurant_id`, `alert_type` (margin_deviation/expense_anomaly/waste_spike), `severity` (info/warning/critical), `title`, `metadata` (JSONB), `is_read`, `resolved_at` | Alertas automáticas. |
-| `alert_rules` | `restaurant_id`, `rule_type`, `conditions` (JSONB), `channels`, `cooldown_hours`, `is_active` | Reglas que disparan notificaciones. |
-| `alert_notifications` | `restaurant_id`, `rule_id` nullable, `type`, `severity`, `title`, `message`, `entity_type`, `entity_id`, `entity_name`, `metadata`, `read`, `read_at`, `created_at` | Notificaciones in-app. Las notificaciones derivadas de reglas usan `rule_id`; las de entrega (`REPORT_PUBLISHED`, `CLIENT_MEETING_REQUEST`) pueden tener `rule_id = NULL`. |
+| `alert_rules` | `restaurant_id`, `name`, `type`, `enabled`, `conditions` (JSONB), `severity`, `channels`, `cooldown`, `created_at`, `updated_at` | Reglas que disparan notificaciones. RLS permite al owner, al consultor con relación `ACTIVE` y al super-admin SQL. |
+| `alert_notifications` | `restaurant_id`, `rule_id` nullable, `type`, `severity`, `title`, `message`, `entity_type`, `entity_id`, `entity_name`, `metadata`, `read`, `read_at`, `created_at` | Notificaciones in-app. Las notificaciones derivadas de reglas usan `rule_id`; las de entrega (`REPORT_PUBLISHED`, `CLIENT_MEETING_REQUEST`) pueden tener `rule_id = NULL`. RLS permite owner, consultor `ACTIVE` y super-admin; además impide que `rule_id` apunte a una regla de otro restaurante. |
 | `broadcasts` | `id`, `title`, `body`, `severity`, `active_from`, `active_until`, `created_by` | Anuncios globales del super-admin. **Sin `restaurant_id`** (sistema). |
 | `scenarios` | `id`, `user_id`, `name`, `base_revenue`, `base_expenses`, `adjustments` (JSONB) | Simulaciones what-if del simulador financiero. |
 | `professional_report_drafts` | `restaurant_id`, `period_from`, `period_to`, `version`, `status`, `schema_version`, `report_snapshot` (JSONB), `narrative_overrides` (JSONB), `exported_at`, `published_at`, `published_by`, `viewed_at` | Versiones guardadas de informes profesionales. Snapshot inmutable para exportacion. Desde Fase 6 puede incluir `menu_performance`; desde Fase 8 puede incluir `menu_engineering` derivado de un snapshot BCG `ANALYZED`. Desde Fase 9 solo las filas con `published_at IS NOT NULL` aparecen en el portal cliente. Desde Fase 14, `viewed_at` registra la apertura del detalle web del informe por el cliente/restaurante. |
@@ -69,6 +69,8 @@
 ## RLS (Row Level Security)
 
 - **Patrón base:** `USING (restaurant_id IN (SELECT id FROM restaurants WHERE owner_id = auth.uid()))`.
+- **Patrón consultor:** las tablas operativas que participan en el flujo consultor-cliente pueden añadir acceso a `consultant_restaurants.status='ACTIVE'`, siempre validando también en server actions con `getUserRestaurant()`.
+- **Patrón super-admin SQL:** las tablas que deben verse/gestionarse desde panel admin pueden añadir `public.is_super_admin()` respaldado por `public.super_admins`.
 - Tablas globales (`billing_modules`, `broadcasts`, `super_admins`, `auth.users`) tienen políticas distintas o son leídas en server con service role/funciones `SECURITY DEFINER`.
 - `audit_logs` requiere rol admin para SELECT (lo consume `/admin/audit`).
 - **No bypass cliente:** todas las acciones de mutación se hacen en server actions; el `restaurant_id` se inyecta server-side (ver [T03](./T03-autenticacion.md)).

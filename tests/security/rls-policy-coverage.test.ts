@@ -47,4 +47,25 @@ describe('RLS policy coverage for critical tenant tables', () => {
     expect(sql).toContain('join public.super_admins')
     expect(sql).toContain('grant execute on function public.is_super_admin() to authenticated')
   })
+
+  it('keeps alert tables accessible to owners, active consultants and super admins', () => {
+    const sql = migrationSql()
+
+    expect(sql).toContain('on public.alert_rules')
+    expect(sql).toContain('on public.alert_notifications')
+    expect(sql).toContain('public.is_super_admin()')
+    expect(sql).toContain('from public.consultant_restaurants cr')
+    expect(sql).toContain('cr.consultant_user_id = auth.uid()')
+    expect(sql).toContain("cr.status = 'active'")
+    expect(sql).toContain('select id from public.restaurants where owner_id = auth.uid()')
+  })
+
+  it('prevents alert notifications from referencing rules from another restaurant', () => {
+    const sql = migrationSql()
+
+    expect(sql).toContain('rule_id is null')
+    expect(sql).toContain('from public.alert_rules ar')
+    expect(sql).toContain('ar.id = alert_notifications.rule_id')
+    expect(sql).toContain('ar.restaurant_id = alert_notifications.restaurant_id')
+  })
 })

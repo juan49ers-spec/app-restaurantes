@@ -58,12 +58,13 @@ Centro de control de alertas in-app. Muestra histórico de notificaciones genera
 - **Broadcasts vs Notifications:**
   - **Broadcasts** (`/admin/...`) son anuncios sistema-wide creados por super-admin, visibles a todos los restaurantes en el `BroadcastBanner` top. No son alertas accionables.
   - **Notifications** son específicas por restaurante.
-- **Permisos:** solo super-admin (`requireSuperAdmin`) crea broadcasts. Restaurante normal solo ve y configura sus propias alert rules.
+- **Permisos:** solo super-admin (`requireSuperAdmin`) crea broadcasts. En notificaciones de restaurante, RLS permite operar al owner, al consultor con relación `consultant_restaurants.status='ACTIVE'` y al super-admin SQL (`public.is_super_admin()`). Las actions siguen resolviendo `restaurant_id` en servidor.
 - Visible en sidebar (revisar si depende de algún addon).
 
 ## 5. Dependencias e implicaciones cruzadas
 
 - **Tablas:** `alert_notifications`, `alert_rules`, `broadcasts` (global), `financial_alerts` (relacionada).
+- **Integridad de reglas:** si una notificación referencia `rule_id`, la política RLS exige que esa regla pertenezca al mismo `restaurant_id`. Los eventos de entrega usan `rule_id = NULL`.
 - **Otras páginas afectadas:**
   - `/invoices` — al confirmar factura con spike, dispara `PRICE_CHANGE`.
   - `/recipes` y `/ingredients` — `MARGIN_DROP`, `MENU_ITEM_UNPROFITABLE`.
@@ -84,6 +85,7 @@ Centro de control de alertas in-app. Muestra histórico de notificaciones genera
 - **Polling tolerante:** si falla una petición puntual del polling, se ignora para no molestar al usuario; si falla la carga explícita al abrir el popover, muestra toast.
 - **Email:** depende de provider configurado (probablemente Resend o similar, no visible en el código revisado).
 - **Entrega no bloqueante:** si falla la inserción de una notificación de publicación o reunión, la publicación/solicitud no se revierte; se registra warning estructurado y el flujo principal sigue.
+- **Consultor asignado:** las alertas deben funcionar también cuando `getUserRestaurant()` devuelve un cliente activo de consultoría; la migración `20260529114500_harden_alert_notifications_rls.sql` extiende RLS a consultores activos y super-admins.
 
 ## 7. Al añadir/modificar una función aquí
 
