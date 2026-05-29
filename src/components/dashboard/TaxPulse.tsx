@@ -15,10 +15,8 @@ export function TaxPulse({ metrics }: TaxPulseProps) {
 
     // Export Logic
     const handleExport = async () => {
-        const XLSX = (await import('xlsx')).default
-
         const today = new Date()
-        const data = [
+        const data: Array<Array<string | number>> = [
             ["Informe Fiscal Estimado", `Generado: ${today.toLocaleDateString()}`],
             [""],
             ["Concepto", "Importe", "Notas"],
@@ -31,19 +29,18 @@ export function TaxPulse({ metrics }: TaxPulseProps) {
             ["TOTAL A RESERVAR", metrics.netTaxPayable + metrics.irpfWithheld, `Vence: ${nextDeadline}`]
         ]
 
-        const wb = XLSX.utils.book_new()
-        const ws = XLSX.utils.aoa_to_sheet(data)
-
-        // Basic formatting
-        const wscols = [
-            { wch: 25 },
-            { wch: 15 },
-            { wch: 30 }
-        ];
-        ws['!cols'] = wscols;
-
-        XLSX.utils.book_append_sheet(wb, ws, "Fiscal_Export")
-        XLSX.writeFile(wb, `Fiscal_Export_${quarter}_${year}.xlsx`)
+        const csv = data
+            .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+            .join('\n')
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `Fiscal_Export_${quarter}_${year}.csv`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
     }
 
     return (

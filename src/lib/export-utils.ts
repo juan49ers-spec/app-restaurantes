@@ -1,4 +1,4 @@
-// Heavy libraries (jsPDF ~500KB, xlsx ~1.2MB, file-saver) se cargan
+// Heavy libraries (jsPDF ~500KB, file-saver) se cargan
 // dinámicamente solo cuando el usuario exporta, no al abrir la página.
 // Esto reduce el bundle inicial y la compilación en dev drásticamente.
 import { EXPENSE_CATEGORIES } from './financial-constants'
@@ -15,11 +15,6 @@ async function loadJsPDF() {
         import('jspdf-autotable')
     ])
     return { jsPDF, autoTable }
-}
-
-async function loadXLSX() {
-    const XLSX = await import('xlsx')
-    return XLSX
 }
 
 async function loadFileSaver() {
@@ -138,6 +133,15 @@ const formatCurrency = (value: number) =>
 
 const formatPct = (value: number) => `${value.toFixed(1)}% `
 
+function csvCell(value: string | number): string {
+    const text = typeof value === 'number' ? String(value) : value
+    return `"${text.replace(/"/g, '""')}"`
+}
+
+function rowsToCsv(rows: Array<Array<string | number>>): string {
+    return rows.map((row) => row.map(csvCell).join(';')).join('\n')
+}
+
 /**
  * Generates a high-end professional PDF P&L Report
  */
@@ -234,15 +238,14 @@ export const exportPnLToPDF = async (data: PnLData, period: string, restaurantNa
 }
 
 /**
- * Generates a detailed Excel Export
+ * Generates a detailed CSV export compatible with Excel.
  */
 export const exportPnLToExcel = async (data: PnLData, period: string) => {
-    const [XLSX, saveAs] = await Promise.all([loadXLSX(), loadFileSaver()])
+    const saveAs = await loadFileSaver()
     const cogs = data.chartData ? data.chartData.reduce((sum, day) => sum + (day.cogs || 0), 0) : 0
     const grossMargin = data.revenue.total - cogs
 
-    // 1. Prepare Summary Data
-    const summaryData = [
+    const summaryData: Array<Array<string | number>> = [
         ['Concepto', 'Importe', '% Ventas'],
         ['INGRESOS', data.revenue.total, 1],
         ['COGS', cogs, cogs / data.revenue.total],
@@ -255,20 +258,8 @@ export const exportPnLToExcel = async (data: PnLData, period: string) => {
         ['NET PROFIT', data.netProfit, data.netProfit / data.revenue.total]
     ]
 
-    // 2. Create Workbook
-    const wb = XLSX.utils.book_new()
-    const ws = XLSX.utils.aoa_to_sheet(summaryData)
-
-    // 3. Formatting (Basic Widths)
-    ws['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }]
-
-    // 4. Append Sheet
-    XLSX.utils.book_append_sheet(wb, ws, "Estado Resultados")
-
-    // 5. Download
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' })
-    saveAs(blob, `PnL_Export_${period.replace(/\s/g, '_')}.xlsx`)
+    const blob = new Blob([`\uFEFF${rowsToCsv(summaryData)}`], { type: 'text/csv;charset=utf-8;' })
+    saveAs(blob, `PnL_Export_${period.replace(/\s/g, '_')}.csv`)
 }
 
 /**
