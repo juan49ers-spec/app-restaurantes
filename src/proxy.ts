@@ -13,8 +13,7 @@ export async function proxy(request: NextRequest) {
         const isPublicRoute =
             request.nextUrl.pathname.startsWith('/login') ||
             request.nextUrl.pathname.startsWith('/auth') ||
-            request.nextUrl.pathname === '/api/health' ||
-            request.nextUrl.pathname.startsWith('/api/debug')
+            request.nextUrl.pathname === '/api/health'
         const hasAuthCookie = hasSupabaseAuthCookie(request)
 
         let response = NextResponse.next({

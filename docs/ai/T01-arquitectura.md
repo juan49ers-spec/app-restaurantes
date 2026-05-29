@@ -35,7 +35,7 @@ src/
 │   ├── login/                   ← Único punto sin auth obligatoria
 │   ├── onboarding/              ← Crear restaurante por primera vez
 │   ├── admin/                   ← Panel super-admin (NAV_ITEMS hardcoded en AdminShell)
-│   ├── api/                     ← Endpoints internos (health, debug, invoices/uploads, seed-ops)
+│   ├── api/                     ← Endpoints internos (health, invoices/uploads, seed-ops)
 │   ├── actions/                 ← Server Actions agrupadas por dominio (ver T06)
 │   ├── financial-control/       ← Hub financiero con 4 tabs lazy-loaded
 │   ├── reports/                 ← Mesa de revision de informes profesionales

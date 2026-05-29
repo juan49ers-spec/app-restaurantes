@@ -6,7 +6,7 @@
 
 ## 1. Propósito y rol en el negocio
 
-Punto único de entrada al producto. Autentica al usuario contra Supabase y permite también crear una cuenta nueva. Es la única ruta accesible sin sesión (junto con `/api/debug` y `/auth/*`).
+Punto único de entrada al producto. Autentica al usuario contra Supabase y permite también crear una cuenta nueva. Es la única ruta de interfaz accesible sin sesión (junto con `/auth/*`; `/api/health` es el único endpoint público de sistema).
 
 ## 2. Viaje del usuario
 

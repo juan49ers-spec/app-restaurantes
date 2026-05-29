@@ -22,10 +22,10 @@ Responsabilidades:
 
 1. Inyectar cliente Supabase server con cookies del request.
 2. Antes de llamar a Supabase, revisa si hay cookie `sb-*auth-token*`.
-3. Si no hay cookie y la ruta es pública (`/login`, `/auth`, `/api/health`, `/api/debug`) → deja pasar sin tocar Supabase.
+3. Si no hay cookie y la ruta es pública (`/login`, `/auth`, `/api/health`) → deja pasar sin tocar Supabase.
 4. Si no hay cookie y la ruta es privada → redirige a `/login` sin llamada de red.
 5. Si hay cookie, ejecuta `supabase.auth.getUser()` → user actual.
-6. Si **no hay user** y la ruta no es `/login`, `/auth`, `/api/health` o `/api/debug` → redirige a `/login`.
+6. Si **no hay user** y la ruta no es `/login`, `/auth` o `/api/health` → redirige a `/login`.
 4. Si **hay user y va a `/login`** → redirige a `/admin` (si admin) o `/` (si no).
 5. Si **hay user admin y va a `/`** → redirige a `/admin`.
 
@@ -126,7 +126,7 @@ export default async function Page() {
 
 | Ruta | Acceso |
 |------|--------|
-| `/login`, `/api/health`, `/api/debug` | Público |
+| `/login`, `/api/health` | Público |
 | `/onboarding` | Usuario autenticado sin restaurante |
 | `/` (dashboard) | Usuario autenticado con restaurante (admin redirige a `/admin`) |
 | `/financial-control`, `/invoices`, `/escandallos`, `/recipes`, `/ingredients`, `/menu-engineering`, `/stock`, `/desperdicios`, `/operational`, `/notifications` | Auth + restaurante. Algunas se ocultan en sidebar según `active_addons` pero la URL sigue siendo accesible si la pegas directamente (revisar caso por caso). |
