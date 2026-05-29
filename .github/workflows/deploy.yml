@@ -27,9 +27,14 @@ jobs:
                   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
             - name: Deploy to Vercel
+              if: ${{ secrets.VERCEL_TOKEN != '' }}
               run: npx vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }}
               # Nota: Esto asume que el usuario configurará VERCEL_TOKEN si quiere despliegue manual desde CI
               # En la mayoría de los casos, Vercel lo hace automáticamente al detectar el push a GitHub.
+
+            - name: Skip manual Vercel deploy
+              if: ${{ secrets.VERCEL_TOKEN == '' }}
+              run: echo "Skipping manual Vercel deploy because VERCEL_TOKEN is not configured. Vercel Git integration can still deploy repository pushes."
 
             - name: Notify Slack
               if: always()
