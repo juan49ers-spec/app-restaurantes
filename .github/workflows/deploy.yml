@@ -8,6 +8,9 @@ on:
 jobs:
     deploy:
         runs-on: ubuntu-latest
+        env:
+            VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+            SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         steps:
             - uses: actions/checkout@v4
 
@@ -27,18 +30,18 @@ jobs:
                   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
             - name: Deploy to Vercel
-              if: ${{ secrets.VERCEL_TOKEN != '' }}
-              run: npx vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }}
+              if: ${{ env.VERCEL_TOKEN != '' }}
+              run: npx vercel deploy --prebuilt --prod --token $VERCEL_TOKEN
               # Nota: Esto asume que el usuario configurará VERCEL_TOKEN si quiere despliegue manual desde CI
               # En la mayoría de los casos, Vercel lo hace automáticamente al detectar el push a GitHub.
 
             - name: Skip manual Vercel deploy
-              if: ${{ secrets.VERCEL_TOKEN == '' }}
+              if: ${{ env.VERCEL_TOKEN == '' }}
               run: echo "Skipping manual Vercel deploy because VERCEL_TOKEN is not configured. Vercel Git integration can still deploy repository pushes."
 
             - name: Notify Slack
               if: always()
               run: |
-                  if [ -n "${{ secrets.SLACK_WEBHOOK }}" ]; then
-                    curl -X POST -H 'Content-type: application/json' --data '{"text":"🚀 Deploy to production completed with status: ${{ job.status }}"}' ${{ secrets.SLACK_WEBHOOK }}
+                  if [ -n "$SLACK_WEBHOOK" ]; then
+                    curl -X POST -H 'Content-type: application/json' --data '{"text":"Deploy to production completed with status: ${{ job.status }}"}' "$SLACK_WEBHOOK"
                   fi
